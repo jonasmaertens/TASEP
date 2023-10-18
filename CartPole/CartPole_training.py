@@ -1,15 +1,17 @@
+# %% Imports && Setup
 import gymnasium as gym
 import math
 import random
 import matplotlib
 import matplotlib.pyplot as plt
-from collections import namedtuple, deque
 from itertools import count
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
+
+from DQN import DQN
+from Memory import ReplayMemory
 
 env = gym.make("CartPole-v1")
 
@@ -23,42 +25,7 @@ plt.ion()
 # if GPU is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
-
-
-class ReplayMemory(object):
-
-    def __init__(self, capacity):
-        self.memory = deque([], maxlen=capacity)
-
-    def push(self, *args):
-        """Save a transition"""
-        self.memory.append(Transition(*args))
-
-    def sample(self, batch_size):
-        return random.sample(self.memory, batch_size)
-
-    def __len__(self):
-        return len(self.memory)
-    
-class DQN(nn.Module):
-
-    def __init__(self, n_observations, n_actions):
-        super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, n_actions)
-
-    # Called with either one element to determine next action, or a batch
-    # during optimization. Returns tensor([[left0exp,right0exp]...]).
-    def forward(self, x):
-        x = F.relu(self.layer1(x))
-        x = F.relu(self.layer2(x))
-        return self.layer3(x)
-    
-
-
+# %% Init
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
 # GAMMA is the discount factor as mentioned in the previous section
 # EPS_START is the starting value of epsilon
@@ -66,6 +33,8 @@ class DQN(nn.Module):
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
 # LR is the learning rate of the ``AdamW`` optimizer
+# original values:
+"""
 BATCH_SIZE = 128
 GAMMA = 0.99
 EPS_START = 0.9
@@ -73,6 +42,15 @@ EPS_END = 0.05
 EPS_DECAY = 1000
 TAU = 0.005
 LR = 1e-4
+"""
+BATCH_SIZE = 256
+GAMMA = 0.99
+EPS_START = 0.9
+EPS_END = 0.05
+EPS_DECAY = 1000
+TAU = 0.005
+LR = 1e-4
+MEMORY_SIZE = 100000
 
 # Get number of actions from gym action space
 n_actions = env.action_space.n
@@ -85,8 +63,7 @@ target_net = DQN(n_observations, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-memory = ReplayMemory(10000)
-
+memory = ReplayMemory(MEMORY_SIZE)
 
 steps_done = 0
 
@@ -94,14 +71,17 @@ steps_done = 0
 def select_action(state):
     global steps_done
     sample = random.random()
-    eps_threshold = EPS_END + (EPS_START - EPS_END) * \
-        math.exp(-1. * steps_done / EPS_DECAY)
+    eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
     if sample > eps_threshold:
         with torch.no_grad():
             # t.max(1) will return the largest column value of each row.
             # second column on max result is index of where max element was
             # found, so we pick action with the larger expected reward.
+            # max(1) gives max along axis 1 ==> max of every row
+            # return tensor with first row = max values and second row = indices of max values
+            # we want the indices of the max values, so we use [1]
+            # we also need to reshape the tensor to be 1x1 instead of 1
             return policy_net(state).max(1)[1].view(1, 1)
     else:
         return torch.tensor([[env.action_space.sample()]], device=device, dtype=torch.long)
@@ -127,7 +107,7 @@ def plot_durations(show_result=False):
         means = torch.cat((torch.zeros(99), means))
         plt.plot(means.numpy())
 
-    plt.pause(0.001)  # pause a bit so that plots are updated
+    plt.pause(0.005)  # pause a bit so that plots are updated
     if is_ipython:
         if not show_result:
             display.display(plt.gcf())
@@ -135,21 +115,18 @@ def plot_durations(show_result=False):
         else:
             display.display(plt.gcf())
 
+
 def optimize_model():
     if len(memory) < BATCH_SIZE:
         return
-    transitions = memory.sample(BATCH_SIZE)
-    # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
-    # detailed explanation). This converts batch-array of Transitions
-    # to Transition of batch-arrays.
-    batch = Transition(*zip(*transitions))
+    batch = memory.sample(BATCH_SIZE)
 
     # Compute a mask of non-final states and concatenate the batch elements
     # (a final state would've been the one after which simulation ended)
     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                          batch.next_state)), device=device, dtype=torch.bool)
+                                            batch.next_state)), device=device, dtype=torch.bool)
     non_final_next_states = torch.cat([s for s in batch.next_state
-                                                if s is not None])
+                                       if s is not None])
     state_batch = torch.cat(batch.state)
     action_batch = torch.cat(batch.action)
     reward_batch = torch.cat(batch.reward)
@@ -175,14 +152,24 @@ def optimize_model():
     loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
 
     # Optimize the model
+    # clears the .grad attribute of the weights tensor
     optimizer.zero_grad()
+    # computes the gradient of loss w.r.t. all the weights
+    # computation graph is embedded in the loss tensor because it is created
+    # from the action values tensor which is computed by forward pass though
+    # the network. Gradient values are stored in the .grad attribute of the
+    # weights tensor
     loss.backward()
     # In-place gradient clipping
     torch.nn.utils.clip_grad_value_(policy_net.parameters(), 100)
+    # uses the gradient values in the .grad attribute of the weights tensor
+    # to update the weight values
     optimizer.step()
 
+
+# %% Training loop
 if torch.cuda.is_available():
-    num_episodes = 600
+    num_episodes = 6000
 else:
     num_episodes = 50
 
@@ -215,14 +202,16 @@ for i_episode in range(num_episodes):
         target_net_state_dict = target_net.state_dict()
         policy_net_state_dict = policy_net.state_dict()
         for key in policy_net_state_dict:
-            target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
+            target_net_state_dict[key] = policy_net_state_dict[key] * TAU + target_net_state_dict[key] * (1 - TAU)
         target_net.load_state_dict(target_net_state_dict)
 
         if done:
             episode_durations.append(t + 1)
-            plot_durations()
+            # plot_durations()
+            print(f"Episode {i_episode} finished after {t + 1} timesteps")
             break
 
+torch.save(policy_net.state_dict(), "policy_net_trained.pt")
 print('Complete')
 plot_durations(show_result=True)
 plt.ioff()

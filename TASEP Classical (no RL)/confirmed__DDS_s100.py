@@ -30,7 +30,7 @@ Corr = np.zeros(totalMCS)
 CorrTot = np.zeros(totalMCS)
 
 # ==========================================================================================
-# Precompute all possible probabilities for spins exchangeand some values for optimization
+# Precompute all possible probabilities for spins exchange and some values for optimization
 # ==========================================================================================
 
 size = 1.0*Lx*Ly
