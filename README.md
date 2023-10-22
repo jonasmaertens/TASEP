@@ -1,7 +1,7 @@
 # TASEP-Smarticles
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jonasmaertens/TASEP?style=flat)
-![GitHub license](https://img.shields.io/github/license/your-username/TASEP)
+![GitHub license](https://img.shields.io/github/license/jonasmaertens/TASEP)
 ![GitHub last commit](https://img.shields.io/github/last-commit/jonasmaertens/TASEP)
 
 ## Overview
@@ -22,7 +22,8 @@
 - `DQN.py`: Neural network RL agent class
 - `GridEnvironment.py`: Environment class that computes states, transitions, and rewards
 - `Memory.py`: Class for storing and sampling from experiences
-- `training.py`: Sample training script that plots progress, visualizes with Pygame, and saves the network at the end
+- `Trainer.py`: Wrapper class for training the network
+- `example_training.py`: Sample training script that plots progress, visualizes with Pygame, and saves the network at the end
 
 ## Setup
 
@@ -54,7 +55,7 @@
 
     ```bash
     cd TASEP-Smarticles
-    python Training.py
+    python example_training.py
 
 ## Author
 Jonas Märtens

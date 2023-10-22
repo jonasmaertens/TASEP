@@ -4,9 +4,30 @@ import pygame
 import gymnasium as gym
 from gymnasium import spaces
 
-from typing import SupportsFloat, TypeVar, Any
+from typing import SupportsFloat, TypeVar, Any, TypedDict
 
 ObsType = TypeVar("ObsType")
+
+
+class EnvParams(TypedDict):
+    """
+    Environment Params for GridEnvironment
+    Attributes:
+        render_mode: The mode to render the environment in, either "human" or "rgb_array"
+        length: The length of the grid
+        width: The number of "lanes"
+        moves_per_timestep: The number of moves per timestep
+        window_height: The height of the PyGame window
+        observation_distance: The distance from the agent to the edge of the observation square
+        initial_state_template: The template to use for the initial state, either "checkerboard" or "everyThird"
+    """
+    render_mode: str | None
+    length: int
+    width: int
+    moves_per_timestep: int
+    window_height: int
+    observation_distance: int
+    initial_state_template: str
 
 
 class GridEnv(gym.Env):
@@ -28,7 +49,8 @@ class GridEnv(gym.Env):
             "initial_state_templates"], "initial_state_template must be None, 'checkerboard', or 'everyThird'"
         self.initial_state_template = initial_state_template
 
-        assert initial_state is None or initial_state.shape == (self.width, self.length), "initial_state must be None or have shape (width, length)"
+        assert initial_state is None or initial_state.shape == (
+            self.width, self.length), "initial_state must be None or have shape (width, length)"
         self.initial_state = initial_state
 
         # The agent perceives part of the surrounding grid, it has a square view
@@ -90,9 +112,9 @@ class GridEnv(gym.Env):
     def _get_info(self):
         # Return dict with information about the current state of the environment
         return {
-            "state": self.state,
-            "N": self.n,
-            "rho": self.rho,
+            # "state": self.state,
+            # "N": self.n,
+            # "rho": self.rho,
             "current": self.total_forward / self.timesteps if self.timesteps > 0 else 0,
         }
 
