@@ -141,7 +141,7 @@ def optimize_model():
 
 # %% Training loop
 if torch.cuda.is_available():
-    num_timesteps = int(420_000)
+    num_timesteps = int(520_000)
 else:
     num_timesteps = int(1e6)
 
@@ -151,7 +151,11 @@ timesteps = []
 state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
 
 while steps_done < num_timesteps:
-    if steps_done > 400_000 and env.render_mode is None:
+    # Reset the environment every 50,000 steps
+    if steps_done % 50_000 == 0:
+        (state, _), info = env.reset()
+        state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
+    if steps_done == 500_000:
         env = gym.make("GridEnv",
                        render_mode="human",
                        length=64,
