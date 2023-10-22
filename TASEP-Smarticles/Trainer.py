@@ -1,0 +1,262 @@
+# %% Imports && Setup
+import datetime
+
+import gymnasium as gym
+import math
+import random
+import matplotlib.pyplot as plt
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+from DQN import DQN
+from Memory import ReplayMemory
+from GridEnvironment import GridEnv, EnvParams
+
+from typing import TypedDict
+
+
+class Hyperparams(TypedDict):
+    """
+    Attributes:
+        BATCH_SIZE: The number of transitions sampled from the replay buffer
+        GAMMA: The discount factor
+        EPS_START: The starting value of epsilon
+        EPS_END: The final value of epsilon
+        EPS_DECAY: The rate of exponential decay of epsilon, higher means a slower decay
+        TAU: The update rate of the target network
+        LR: The learning rate of the ``AdamW`` optimizer
+        MEMORY_SIZE: The size of the replay buffer
+    """
+    BATCH_SIZE: int
+    GAMMA: float
+    EPS_START: float
+    EPS_END: float
+    EPS_DECAY: int
+    TAU: float
+    LR: float
+    MEMORY_SIZE: int
+
+
+class Trainer:
+    def __init__(self, env_params: EnvParams, hyperparams: Hyperparams, reset_interval: int = None,
+                 total_steps: int = 100000,
+                 render_start: int = None, do_plot: bool = True, plot_interval: int = 10000):
+        """
+        :type env_params: EnvParams
+        :type reset_interval: int
+        :type total_steps: int
+        :type render_start: int
+        :type do_plot: bool
+        :type plot_interval: int
+        :param env_params: The parameters for the environment. Of type GridEnv.EnvParams
+        :param hyperparams: The hyperparameters for the agent. Of type Trainer.Hyperparams
+        :param reset_interval: The interval at which the environment should be reset
+        :param total_steps: The total number of steps to train for
+        :param render_start: The step at which the environment should be rendered in human mode
+        :param do_plot: Whether to plot the current value of the current at regular intervals
+        :param plot_interval: The interval at which to plot the current value
+        """
+        self.env_params = env_params
+        self.hyperparams = hyperparams
+        self.reset_interval = reset_interval
+        self.total_steps = total_steps
+        self.render_start = render_start
+        self.do_plot = do_plot
+        self.plot_interval = plot_interval
+
+        self.currents = []
+        self.timesteps = []
+
+        # if GPU is to be used, CUDA for NVIDIA, MPS for Apple Silicon
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+        self.env = self._init_env()
+        self.policy_net, self.target_net, self.optimizer, self.memory, self.criterion, self.state = self._init_model()
+        self.steps_done = 0
+
+
+    def _init_env(self) -> GridEnv:
+        gym.envs.registration.register(
+            id='GridEnv',
+            entry_point='GridEnvironment:GridEnv',
+        )
+        GridEnv.metadata["render_fps"] = 144
+        env: GridEnv | gym.Env = gym.make("GridEnv", **self.env_params)
+        return env
+
+    def _init_model(self) -> tuple[DQN, DQN, optim.AdamW, ReplayMemory, nn.SmoothL1Loss, torch.Tensor]:
+        # Get number of actions from environment action space
+        n_actions = self.env.action_space.n
+        # Get the number of observed grid cells
+        (state, _), info = self.env.reset()
+        n_observations = len(state)
+
+        state: torch.Tensor = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+        # Init model, optimizer, replay memory
+        policy_net = DQN(n_observations, n_actions).to(self.device)
+        target_net = DQN(n_observations, n_actions).to(self.device)
+        target_net.load_state_dict(policy_net.state_dict())
+
+        optimizer = optim.AdamW(policy_net.parameters(), lr=self.hyperparams['LR'], amsgrad=True)
+        memory = ReplayMemory(self.hyperparams['MEMORY_SIZE'])
+        criterion = nn.SmoothL1Loss()
+
+        return policy_net, target_net, optimizer, memory, criterion, state
+
+    def _get_current_eps(self) -> float:
+        """
+        Returns the current epsilon value for the epsilon-greedy policy
+        Epsilon decays exponentially from EPS_START to EPS_END over EPS_DECAY steps
+        """
+        return self.hyperparams['EPS_END'] + (self.hyperparams['EPS_START'] - self.hyperparams['EPS_END']) * \
+            math.exp(-1. * self.steps_done / self.hyperparams['EPS_DECAY'])
+
+    def select_action(self, state: torch.Tensor) -> torch.Tensor:
+        """
+        Selects an action using an epsilon-greedy policy
+        :param state: Current state
+        """
+        sample = random.random()
+        eps_threshold = self._get_current_eps()
+        self.steps_done += 1
+        if sample > eps_threshold:
+            with torch.no_grad():
+                # max(1) gives max along axis 1 ==> max of every row
+                # return tensor with first row = max values and second row = indices of max values
+                # we want the indices of the max values, so we use [1]
+                # we also need to reshape the tensor to be 1x1 instead of 1
+                # ==> pick action with the largest expected reward
+                return self.policy_net(state).max(1)[1].view(1, 1)
+        else:
+            return torch.tensor([[self.env.action_space.sample()]], device=self.device, dtype=torch.long)
+
+    def optimize_model(self):
+        if len(self.memory) < self.hyperparams['BATCH_SIZE']:
+            return
+        batch = self.memory.sample(self.hyperparams['BATCH_SIZE'])
+
+        # Compute a mask of non-final states and concatenate the batch elements
+        # (a final state would've been the one after which simulation ended)
+        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
+                                                batch.next_state)), device=self.device, dtype=torch.bool)
+        non_final_next_states = torch.cat([s for s in batch.next_state
+                                           if s is not None])
+        state_batch = torch.cat(batch.state)
+        action_batch = torch.cat(batch.action)
+        reward_batch = torch.cat(batch.reward)
+
+        # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
+        # columns of actions taken. These are the actions which would've been taken
+        # for each batch state according to policy_net
+        state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+
+        # Compute V(s_{t+1}) for all next states.
+        # Expected values of actions for non_final_next_states are computed based
+        # on the "older" target_net; selecting their best reward with max(1)[0].
+        # This is merged based on the mask, such that we'll have either the expected
+        # state value or 0 in case the state was final.
+        next_state_values = torch.zeros(self.hyperparams['BATCH_SIZE'], device=self.device)
+        with torch.no_grad():
+            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
+        # Compute the expected Q values
+        expected_state_action_values = (next_state_values * self.hyperparams['GAMMA']) + reward_batch
+
+        # Compute Huber loss
+        loss = self.criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+
+        # clear the .grad attribute of the weights tensor
+        self.optimizer.zero_grad()
+
+        # compute the gradient of loss w.r.t. all the weights
+        # computation graph is embedded in the loss tensor because it is created
+        # from the action values tensor which is computed by forward pass though
+        # the network. Gradient values are stored in the .grad attribute of the
+        # weights tensor
+        loss.backward()
+
+        # In-place gradient clipping
+        torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
+
+        # use the gradient values in the .grad attribute of the weights tensor
+        # to update the weight values
+        self.optimizer.step()
+
+    def train(self):
+        """
+        Trains the agent
+        """
+        print(f"Training for {self.total_steps} timesteps")
+
+        # Training loop
+        while self.steps_done < self.total_steps:
+            # Reset the environment if the reset interval has been reached
+            if self.steps_done % self.reset_interval == 0 and self.steps_done != 0:
+                (state, _), info = self.env.reset()
+                self.state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+            # Reset the environment to human render mode if the render start has been reached
+            if self.steps_done == self.render_start:
+                self.env = gym.make("GridEnv",
+                                    render_mode="human",
+                                    length=64,
+                                    width=16,
+                                    moves_per_timestep=10,
+                                    window_height=256,
+                                    observation_distance=3,
+                                    initial_state_template="checkerboard")
+                (state, _), info = self.env.reset()
+                self.state: torch.Tensor = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+            # Select action for current state
+            action = self.select_action(self.state)
+
+            # Perform action and get reward, reaction and next state
+            (react_observation, next_observation), reward, terminated, truncated, info = self.env.step(action.item())
+            reward = torch.tensor([reward], device=self.device)
+
+            if terminated:
+                next_state = None
+                react_state = None
+            else:
+                react_state = torch.tensor(react_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+                next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+            # Store the transition in memory
+            self.memory.push(self.state, action, react_state, reward)
+
+            # Move to the next state
+            self.state = next_state
+
+            # Perform one step of the optimization (on the policy network)
+            self.optimize_model()
+
+            # Soft update of the target network's weights
+            # θ′ ← τ θ + (1 −τ )θ′
+            target_net_state_dict = self.target_net.state_dict()
+            policy_net_state_dict = self.policy_net.state_dict()
+            for key in policy_net_state_dict:
+                target_net_state_dict[key] = policy_net_state_dict[key] * self.hyperparams["TAU"] + \
+                                             target_net_state_dict[
+                                                 key] * (1 - self.hyperparams["TAU"])
+            self.target_net.load_state_dict(target_net_state_dict)
+
+            if self.steps_done % self.plot_interval == 0:
+                print(
+                    f"{self.steps_done} steps finished: Current: {info['current']}, " +
+                    f"eps: {self._get_current_eps()}")
+                self.currents.append(info['current'])
+                self.timesteps.append(self.steps_done)
+                plt.plot(self.timesteps, self.currents)
+                plt.show()
+
+    def save(self, file: str = None, append_timestamp=True):
+        if file is None:
+            file = f"models/policy_net_trained_{self.total_steps}_steps.pt"
+        if append_timestamp:
+            file.replace(".pt", f"_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.pt")
+        if "models/" not in file:
+            file = f"models/{file}"
+        torch.save(self.policy_net.state_dict(), file)
