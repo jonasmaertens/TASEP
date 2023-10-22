@@ -1,8 +1,10 @@
 # %% Imports && Setup
+import datetime
+
 import gymnasium as gym
 import math
 import random
-from itertools import count
+import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
@@ -16,10 +18,16 @@ from GridEnvironment import GridEnv
 gym.envs.registration.register(
     id='GridEnv',
     entry_point='GridEnvironment:GridEnv',
-    max_episode_steps=1000
 )
-# env: GridEnv = gym.make("GridEnv", render_mode="human")
-env: GridEnv = gym.make("GridEnv", render_mode=None)
+GridEnv.metadata["render_fps"] = 144
+env: GridEnv | gym.Env = gym.make("GridEnv",
+                                  render_mode=None,
+                                  length=64,
+                                  width=16,
+                                  moves_per_timestep=10,
+                                  window_height=256,
+                                  observation_distance=3,
+                                  initial_state_template="checkerboard")
 
 # if GPU is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -32,14 +40,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
 # LR is the learning rate of the ``AdamW`` optimizer
-BATCH_SIZE = 128
-GAMMA = 0.8
+BATCH_SIZE = 256
+GAMMA = 0.6
 EPS_START = 0.9
-EPS_END = 0.05
-EPS_DECAY = 1000
-TAU = 0.005
-LR = 1e-4
-MEMORY_SIZE = 100000
+EPS_END = 0.03
+EPS_DECAY = 40_000
+TAU = 0.001
+LR = 1e-2
+MEMORY_SIZE = 30_000
 
 # Get number of actions from gym action space
 n_actions = env.action_space.n
@@ -47,6 +55,7 @@ n_actions = env.action_space.n
 (state, _), info = env.reset()
 n_observations = len(state)
 
+# %% Init model, optimizer, memory
 policy_net = DQN(n_observations, n_actions).to(device)
 target_net = DQN(n_observations, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
@@ -56,11 +65,14 @@ memory = ReplayMemory(MEMORY_SIZE)
 
 steps_done = 0
 
+def get_current_eps():
+    return EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY)
+
 
 def select_action(state):
     global steps_done
     sample = random.random()
-    eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY)
+    eps_threshold = get_current_eps()
     steps_done += 1
     if sample > eps_threshold:
         with torch.no_grad():
@@ -129,48 +141,66 @@ def optimize_model():
 
 # %% Training loop
 if torch.cuda.is_available():
-    num_episodes = 6000
+    num_timesteps = int(420_000)
 else:
-    num_episodes = 50
+    num_timesteps = int(1e6)
 
-for i_episode in range(num_episodes):
-    # Initialize the environment and get it's state
-    if i_episode > 5:
-        env = gym.make("GridEnv", render_mode="human")
-    (state, _), info = env.reset()
-    state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
-    for t in count():
-        action = select_action(state)
-        (react_observation, next_observation), reward, terminated, truncated, info = env.step(action.item())
-        reward = torch.tensor([reward], device=device)
-        done = terminated or truncated
+print(f"Training for {num_timesteps} timesteps")
+currents = []
+timesteps = []
+state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
 
-        if terminated:
-            next_state = None
-        else:
-            react_state = torch.tensor(react_observation, dtype=torch.float32, device=device).unsqueeze(0)
-            next_state = torch.tensor(next_observation, dtype=torch.float32, device=device).unsqueeze(0)
+while steps_done < num_timesteps:
+    if steps_done > 400_000 and env.render_mode is None:
+        env = gym.make("GridEnv",
+                       render_mode="human",
+                       length=64,
+                       width=16,
+                       moves_per_timestep=10,
+                       window_height=256,
+                       observation_distance=3,
+                       initial_state_template="checkerboard")
+        (state, _), info = env.reset()
+        state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
 
-        # Store the transition in memory
-        memory.push(state, action, react_state, reward)
+    action = select_action(state)
+    (react_observation, next_observation), reward, terminated, truncated, info = env.step(action.item())
+    reward = torch.tensor([reward], device=device)
+    done = terminated or truncated
 
-        # Move to the next state
-        state = next_state
+    if terminated:
+        next_state = None
+    else:
+        react_state = torch.tensor(react_observation, dtype=torch.float32, device=device).unsqueeze(0)
+        next_state = torch.tensor(next_observation, dtype=torch.float32, device=device).unsqueeze(0)
 
-        # Perform one step of the optimization (on the policy network)
-        optimize_model()
+    # Store the transition in memory
+    memory.push(state, action, react_state, reward)
 
-        # Soft update of the target network's weights
-        # θ′ ← τ θ + (1 −τ )θ′
-        target_net_state_dict = target_net.state_dict()
-        policy_net_state_dict = policy_net.state_dict()
-        for key in policy_net_state_dict:
-            target_net_state_dict[key] = policy_net_state_dict[key] * TAU + target_net_state_dict[key] * (1 - TAU)
-        target_net.load_state_dict(target_net_state_dict)
+    # Move to the next state
+    state = next_state
 
-        if done:
-            print(f"Episode {i_episode} finished after {t + 1} timesteps: Current: {info['current']}")
-            break
+    # Perform one step of the optimization (on the policy network)
+    optimize_model()
 
-torch.save(policy_net.state_dict(), "policy_net_trained.pt")
+    # Soft update of the target network's weights
+    # θ′ ← τ θ + (1 −τ )θ′
+    target_net_state_dict = target_net.state_dict()
+    policy_net_state_dict = policy_net.state_dict()
+    for key in policy_net_state_dict:
+        target_net_state_dict[key] = policy_net_state_dict[key] * TAU + target_net_state_dict[key] * (1 - TAU)
+    target_net.load_state_dict(target_net_state_dict)
+
+    if steps_done % 1000 == 0:
+        print(
+            f"{steps_done} steps finished: Current: {info['current']}, " +
+            f"eps: {get_current_eps()}")
+        currents.append(info['current'])
+        timesteps.append(steps_done)
+        plt.plot(timesteps, currents)
+        plt.show()
+
+
+torch.save(policy_net.state_dict(),
+           f"policy_net_trained_{num_timesteps}_steps_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.pt")
 print('Complete')

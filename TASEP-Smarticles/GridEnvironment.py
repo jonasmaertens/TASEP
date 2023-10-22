@@ -10,27 +10,38 @@ ObsType = TypeVar("ObsType")
 
 
 class GridEnv(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 144,
+                "initial_state_templates": ["checkerboard", "everyThird"]}
 
-    def __init__(self, render_mode=None, length=64, width=16):
+    def __init__(self, render_mode=None, length=64, width=16, moves_per_timestep=5, window_height=256,
+                 observation_distance=3, initial_state=None, initial_state_template=None):
         self.state: np.ndarray[np.uint8] = None
         self.current_mover = None
         self.length = length  # The length of the grid
         self.width = width  # The number of "lanes"
-        self.window_size = 1024  # The size of the PyGame window
+        self.window_height = window_height  # The height of the PyGame window
+        self.window_width = self.window_height * self.length / self.width  # The width of the PyGame window
         self.total_forward = 0
+        self.timesteps = 0
+        self.moves_per_timestep = moves_per_timestep
+        assert initial_state_template is None or initial_state_template in self.metadata[
+            "initial_state_templates"], "initial_state_template must be None, 'checkerboard', or 'everyThird'"
+        self.initial_state_template = initial_state_template
+
+        assert initial_state is None or initial_state.shape == (self.width, self.length), "initial_state must be None or have shape (width, length)"
+        self.initial_state = initial_state
 
         # The agent perceives part of the surrounding grid, it has a square view
         # with viewing distance `self.observation_size`
-        self.observation_distance = 3
+        self.observation_distance = observation_distance
         # Each grid cell can be either empty or occupied by a particle
         single_obs = spaces.Box(
             low=0, high=1, shape=((self.observation_distance * 2 + 1) ** 2,), dtype=np.uint8
         )
-        self.observation_space = spaces.Tuple((single_obs, single_obs))
+        self.observation_space: spaces.Tuple[ObsType, ObsType] = spaces.Tuple((single_obs, single_obs))
 
         # We have 4 actions, corresponding to "forward", "up", "down"
-        self.action_space = spaces.Discrete(3)
+        self.action_space: spaces.Discrete = spaces.Discrete(3)
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -82,7 +93,7 @@ class GridEnv(gym.Env):
             "state": self.state,
             "N": self.n,
             "rho": self.rho,
-            "current": self.total_forward / 1000
+            "current": self.total_forward / self.timesteps if self.timesteps > 0 else 0,
         }
 
     def render(self):
@@ -94,13 +105,13 @@ class GridEnv(gym.Env):
             pygame.init()
             pygame.display.init()
             self.window = pygame.display.set_mode(
-                (self.window_size, self.window_size * self.width // self.length)
+                (self.window_width, self.window_height)
             )
         if self.clock is None and self.render_mode == "human":
             self.clock = pygame.time.Clock()
 
         pix_square_size = (
-                self.window_size / self.width / 4
+                self.window_height / self.width
         )
 
         # Draw the state array
@@ -111,12 +122,12 @@ class GridEnv(gym.Env):
         # Finally, create a PyGame surface from the array and scale it to the correct size
         state_surf = pygame.surfarray.make_surface(rgb_array)
         state_surf = pygame.transform.scale(state_surf,
-                                            (self.window_size, self.window_size * self.width // self.length))
+                                            (self.window_width, self.window_height))
         # Finally, add some gridlines
         for i in range(self.width):
-            pygame.draw.line(state_surf, (0, 0, 0), (0, i * pix_square_size), (self.window_size, i * pix_square_size))
+            pygame.draw.line(state_surf, (0, 0, 0), (0, i * pix_square_size), (self.window_width, i * pix_square_size))
         for i in range(self.length):
-            pygame.draw.line(state_surf, (0, 0, 0), (i * pix_square_size, 0), (i * pix_square_size, self.window_size))
+            pygame.draw.line(state_surf, (0, 0, 0), (i * pix_square_size, 0), (i * pix_square_size, self.window_height))
 
         if self.render_mode == "human":
             # The following line copies our drawings from `canvas` to the visible window
@@ -130,25 +141,28 @@ class GridEnv(gym.Env):
         else:  # rgb_array
             return pygame.surfarray.array3d(state_surf)
 
-    def reset(self, seed=None, options=None, initial_state=None):
+    def reset(self, seed=None, options=None) -> tuple[tuple[ObsType, ObsType], dict[str, Any]]:
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
         self.total_forward = 0
+        self.timesteps = 0
 
         # Set the initial state of the environment
         # If no initial state is given, we set the initial state to be a checkerboard
-        if initial_state is None:
-            # self.state = np.indices((self.width, self.length)).sum(axis=0, dtype=np.uint8) % 2
-            self.state = np.zeros((self.width, self.length), dtype=np.uint8)
-            self.state[::3, ::3] = 1
+        if self.initial_state is None:
+            if self.initial_state_template == "checkerboard":
+                self.state = np.indices((self.width, self.length)).sum(axis=0, dtype=np.uint8) % 2
+            elif self.initial_state_template == "everyThird":
+                self.state = np.zeros((self.width, self.length), dtype=np.uint8)
+                self.state[::3, ::3] = 1
+            else:
+                self.state = self.np_random.integers(2, size=(self.width, self.length), dtype=np.uint8)
         else:
-            assert initial_state.shape == (self.width, self.length), "Initial state has wrong shape"
-            self.state = initial_state
+            self.state = self.initial_state
 
         observation = self._get_obs()
         info = self._get_info()
-
         if self.render_mode == "human":
             self._render_frame()
         return (observation, observation), info
@@ -165,6 +179,7 @@ class GridEnv(gym.Env):
         # Move the agent in the specified direction if possible.
         # If the agent is at the boundary of the grid, it will wrap around
         reward = 0
+        self.timesteps += 1
         if action == 0:  # forward
             next_y = 0 if self.current_mover[1] == self.length - 1 else self.current_mover[1] + 1
             has_moved = self._move_if_possible((self.current_mover[0], next_y))
@@ -189,7 +204,7 @@ class GridEnv(gym.Env):
         info = self._get_info()
         next_observation = self._get_obs(new_mover=True)
 
-        if self.render_mode == "human":
+        if self.render_mode == "human" and self.timesteps % self.moves_per_timestep == 0:
             self._render_frame()
 
         return (react_observation, next_observation), reward, False, False, info
