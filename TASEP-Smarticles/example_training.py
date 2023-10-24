@@ -9,7 +9,7 @@ envParams = EnvParams(render_mode=None,
                       initial_state_template="checkerboard",
                       distinguishable_particles=True)
 hyperparams = Hyperparams(BATCH_SIZE=256,
-                          GAMMA=0.6,
+                          GAMMA=0,
                           EPS_START=0.9,
                           EPS_END=0.03,
                           EPS_DECAY=40_000,

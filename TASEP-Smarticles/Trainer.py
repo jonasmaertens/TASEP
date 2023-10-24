@@ -1,11 +1,11 @@
 # %% Imports && Setup
 import datetime
-import time
 
 import gymnasium as gym
 import math
 import random
 import matplotlib.pyplot as plt
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -70,7 +70,9 @@ class Trainer:
 
         self.currents = []
         self.timesteps = []
-
+        if self.env_params["distinguishable_particles"]:
+            self.last_states: dict[int, tuple[np.ndarray, torch.Tensor, torch.Tensor]] = dict()
+            self.mover: Optional[int] = None
         # if GPU is to be used, CUDA for NVIDIA, MPS for Apple Silicon
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
@@ -89,8 +91,13 @@ class Trainer:
         return env
 
     def reset_env(self):
-        (state, _), info = self.env.reset()
-        self.state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+        if self.env_params["distinguishable_particles"]:
+            (state, mover), info = self.env.reset()
+            self.mover = mover
+            self.state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+        else:
+            (state, _), info = self.env.reset()
+            self.state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
 
     def _init_model(self) -> tuple[DQN, DQN, optim.AdamW, ReplayMemory, nn.SmoothL1Loss]:
         # Get number of actions from environment action space
@@ -212,21 +219,31 @@ class Trainer:
             action = self.select_action(self.state)
 
             # Perform action and get reward, reaction and next state
-            (react_observation, next_observation), reward, terminated, truncated, info = self.env.step(action.item())
+            if self.env_params["distinguishable_particles"]:
+                (next_observation, next_mover), reward, terminated, truncated, info = self.env.step(action.item())
+            else:
+                (react_observation, next_observation), reward, terminated, truncated, info = self.env.step(
+                    action.item())
             reward = torch.tensor([reward], device=self.device)
 
             if terminated:
                 next_state = None
                 react_state = None
             else:
-                react_state = torch.tensor(react_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
-
-            # Store the transition in memory
-            self.memory.push(self.state, action, react_state, reward)
+                if self.env_params["distinguishable_particles"]:
+                    if next_mover in self.last_states:
+                        self.memory.push(self.last_states[next_mover][0], self.last_states[next_mover][1],
+                                         next_state, self.last_states[next_mover][2])
+                    self.last_states[self.mover] = (self.state, action, reward)
+                else:
+                    react_state = torch.tensor(react_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+                    # Store the transition in memory
+                    self.memory.push(self.state, action, react_state, reward)
 
             # Move to the next state
             self.state = next_state
+            self.mover = next_mover
 
             # Perform one step of the optimization (on the policy network)
             self.optimize_model()

@@ -4,11 +4,11 @@ import pygame
 import gymnasium as gym
 from gymnasium import spaces
 from Hasel import hsl2rgb
-import time
 
-from typing import SupportsFloat, TypeVar, Any, TypedDict, Optional, Type
+from typing import SupportsFloat, TypeVar, Any, TypedDict, Optional, TypeAlias
 
 ObsType = TypeVar("ObsType")
+WholeObsType: TypeAlias = tuple[ObsType, ObsType] | tuple[ObsType, int]
 
 
 class EnvParams(TypedDict):
@@ -69,14 +69,16 @@ class GridEnv(gym.Env):
         if distinguishable_particles:
             self.internal_dtype = np.int32
             single_obs = spaces.Box(
-                low=0, high=2**20, shape=((self.observation_distance * 2 + 1) ** 2,), dtype=self.internal_dtype
+                low=0, high=2 ** 20, shape=((self.observation_distance * 2 + 1) ** 2,), dtype=self.internal_dtype
             )
+            self.observation_space: spaces.Tuple[ObsType, ] = spaces.Tuple(
+                (single_obs, spaces.Discrete(2 ** 20)))
         else:
             self.internal_dtype = np.uint8
             single_obs = spaces.Box(
                 low=0, high=1, shape=((self.observation_distance * 2 + 1) ** 2,), dtype=self.internal_dtype
             )
-        self.observation_space: spaces.Tuple[ObsType, ObsType] = spaces.Tuple((single_obs, single_obs))
+            self.observation_space: spaces.Tuple[ObsType, ObsType] = spaces.Tuple((single_obs, single_obs))
 
         # We have 4 actions, corresponding to "forward", "up", "down"
         self.action_space: spaces.Discrete = spaces.Discrete(3)
@@ -165,7 +167,7 @@ class GridEnv(gym.Env):
             hsl_array = np.stack([h_array, s_array, l_array], axis=2)
             rgb_array = hsl2rgb(hsl_array, self.internal_dtype)
         else:
-            rgb_array = np.stack([self.state.T*245, self.state.T*66, self.state.T*69], axis=2)
+            rgb_array = np.stack([self.state.T * 245, self.state.T * 66, self.state.T * 69], axis=2)
             rgb_array[rgb_array == 0] = 255  # correct white background
 
         # Finally, create a PyGame surface from the array and scale it to the correct size
@@ -190,7 +192,7 @@ class GridEnv(gym.Env):
         else:  # rgb_array
             return pygame.surfarray.array3d(state_surf)
 
-    def reset(self, seed=None, options=None) -> tuple[tuple[ObsType, ObsType], dict[str, Any]]:
+    def reset(self, seed=None, options=None) -> tuple[WholeObsType, dict[str, Any]]:
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
@@ -217,17 +219,19 @@ class GridEnv(gym.Env):
         info = self._get_info()
         if self.render_mode == "human":
             self._render_frame()
+        if self.distinguishable_particles:
+            return (observation, int(self.state[*self.current_mover])), info
         return (observation, observation), info
 
     def _move_if_possible(self, position: tuple) -> bool:
         if self.state[*position] == 0:  # if the next cell is empty, move
-            self.state[self.current_mover[0], self.current_mover[1]], self.state[*position] = \
-                self.state[*position], self.state[self.current_mover[0], self.current_mover[1]]
+            self.state[*self.current_mover], self.state[*position] = self.state[*position], self.state[
+                *self.current_mover]
             return True
         else:  # if the next cell is occupied, don't move
             return False
 
-    def step(self, action) -> tuple[tuple[ObsType, ObsType], SupportsFloat, bool, bool, dict[str, Any]]:
+    def step(self, action) -> tuple[WholeObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         # Move the agent in the specified direction if possible.
         # If the agent is at the boundary of the grid, it will wrap around
         reward = 0
@@ -252,13 +256,15 @@ class GridEnv(gym.Env):
                 if not has_moved:
                     reward = -1
 
-        react_observation = self._get_obs(new_mover=False)
+        if not self.distinguishable_particles:
+            react_observation = self._get_obs(new_mover=False)
         info = self._get_info()
         next_observation = self._get_obs(new_mover=True)
 
         if self.render_mode == "human" and self.timesteps % self.moves_per_timestep == 0:
             self._render_frame()
-
+        if self.distinguishable_particles:
+            return (next_observation, int(self.state[*self.current_mover])), reward, False, False, info
         return (react_observation, next_observation), reward, False, False, info
 
     def close(self):
