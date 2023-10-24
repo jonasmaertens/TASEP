@@ -1,5 +1,6 @@
 # %% Imports && Setup
 import datetime
+import time
 
 import gymnasium as gym
 import math
@@ -9,12 +10,13 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from tqdm import tqdm
 
 from DQN import DQN
 from Memory import ReplayMemory
 from GridEnvironment import GridEnv, EnvParams
 
-from typing import TypedDict
+from typing import TypedDict, Optional
 
 
 class Hyperparams(TypedDict):
@@ -73,9 +75,9 @@ class Trainer:
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
         self.env = self._init_env()
-        self.policy_net, self.target_net, self.optimizer, self.memory, self.criterion, self.state = self._init_model()
+        self.state: Optional[torch.Tensor] = None  # Initialized in self.reset_env() in self._init_model()
+        self.policy_net, self.target_net, self.optimizer, self.memory, self.criterion = self._init_model()
         self.steps_done = 0
-
 
     def _init_env(self) -> GridEnv:
         gym.envs.registration.register(
@@ -86,14 +88,16 @@ class Trainer:
         env: GridEnv | gym.Env = gym.make("GridEnv", **self.env_params)
         return env
 
-    def _init_model(self) -> tuple[DQN, DQN, optim.AdamW, ReplayMemory, nn.SmoothL1Loss, torch.Tensor]:
+    def reset_env(self):
+        (state, _), info = self.env.reset()
+        self.state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+    def _init_model(self) -> tuple[DQN, DQN, optim.AdamW, ReplayMemory, nn.SmoothL1Loss]:
         # Get number of actions from environment action space
         n_actions = self.env.action_space.n
         # Get the number of observed grid cells
-        (state, _), info = self.env.reset()
-        n_observations = len(state)
-
-        state: torch.Tensor = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+        self.reset_env()
+        n_observations = self.state.size()[1]
 
         # Init model, optimizer, replay memory
         policy_net = DQN(n_observations, n_actions).to(self.device)
@@ -104,7 +108,7 @@ class Trainer:
         memory = ReplayMemory(self.hyperparams['MEMORY_SIZE'])
         criterion = nn.SmoothL1Loss()
 
-        return policy_net, target_net, optimizer, memory, criterion, state
+        return policy_net, target_net, optimizer, memory, criterion
 
     def _get_current_eps(self) -> float:
         """
@@ -121,7 +125,7 @@ class Trainer:
         """
         sample = random.random()
         eps_threshold = self._get_current_eps()
-        self.steps_done += 1
+        # self.steps_done += 1
         if sample > eps_threshold:
             with torch.no_grad():
                 # max(1) gives max along axis 1 ==> max of every row
@@ -189,26 +193,20 @@ class Trainer:
         Trains the agent
         """
         print(f"Training for {self.total_steps} timesteps")
-
         # Training loop
-        while self.steps_done < self.total_steps:
+        for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps")):
+            just_reset = False
             # Reset the environment if the reset interval has been reached
             if self.steps_done % self.reset_interval == 0 and self.steps_done != 0:
-                (state, _), info = self.env.reset()
-                self.state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+                self.reset_env()
+                just_reset = True
 
             # Reset the environment to human render mode if the render start has been reached
             if self.steps_done == self.render_start:
-                self.env = gym.make("GridEnv",
-                                    render_mode="human",
-                                    length=64,
-                                    width=16,
-                                    moves_per_timestep=10,
-                                    window_height=256,
-                                    observation_distance=3,
-                                    initial_state_template="checkerboard")
-                (state, _), info = self.env.reset()
-                self.state: torch.Tensor = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+                self.env_params["render_mode"] = "human"
+                self.env: GridEnv | gym.Env = gym.make("GridEnv", **self.env_params)
+                self.reset_env()
+                just_reset = True
 
             # Select action for current state
             action = self.select_action(self.state)
@@ -243,12 +241,10 @@ class Trainer:
                                                  key] * (1 - self.hyperparams["TAU"])
             self.target_net.load_state_dict(target_net_state_dict)
 
-            if self.steps_done % self.plot_interval == 0:
-                print(
-                    f"{self.steps_done} steps finished: Current: {info['current']}, " +
-                    f"eps: {self._get_current_eps()}")
+            if self.steps_done % self.plot_interval == 0 and self.do_plot and not just_reset and self.steps_done != 0:
                 self.currents.append(info['current'])
                 self.timesteps.append(self.steps_done)
+                pbar.set_description(f"Eps.: {self._get_current_eps():.2f}, Current: {self.currents[-1]:.2f}")
                 plt.plot(self.timesteps, self.currents)
                 plt.show()
 

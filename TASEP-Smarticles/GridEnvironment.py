@@ -3,8 +3,10 @@ import pygame
 
 import gymnasium as gym
 from gymnasium import spaces
+from Hasel import hsl2rgb
+import time
 
-from typing import SupportsFloat, TypeVar, Any, TypedDict
+from typing import SupportsFloat, TypeVar, Any, TypedDict, Optional, Type
 
 ObsType = TypeVar("ObsType")
 
@@ -20,6 +22,7 @@ class EnvParams(TypedDict):
         window_height: The height of the PyGame window
         observation_distance: The distance from the agent to the edge of the observation square
         initial_state_template: The template to use for the initial state, either "checkerboard" or "everyThird"
+        distinguishable_particles: Whether particles should be distinguishable or not
     """
     render_mode: str | None
     length: int
@@ -27,7 +30,9 @@ class EnvParams(TypedDict):
     moves_per_timestep: int
     window_height: int
     observation_distance: int
+    initial_state: None | np.ndarray[np.uint8 | np.int32]
     initial_state_template: str
+    distinguishable_particles: bool
 
 
 class GridEnv(gym.Env):
@@ -35,9 +40,10 @@ class GridEnv(gym.Env):
                 "initial_state_templates": ["checkerboard", "everyThird"]}
 
     def __init__(self, render_mode=None, length=64, width=16, moves_per_timestep=5, window_height=256,
-                 observation_distance=3, initial_state=None, initial_state_template=None):
-        self.state: np.ndarray[np.uint8] = None
-        self.current_mover = None
+                 observation_distance=3, initial_state=None, initial_state_template=None,
+                 distinguishable_particles=False):
+        self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
+        self.current_mover: Optional[np.ndarray] = None
         self.length = length  # The length of the grid
         self.width = width  # The number of "lanes"
         self.window_height = window_height  # The height of the PyGame window
@@ -45,6 +51,7 @@ class GridEnv(gym.Env):
         self.total_forward = 0
         self.timesteps = 0
         self.moves_per_timestep = moves_per_timestep
+        self.distinguishable_particles = distinguishable_particles
         assert initial_state_template is None or initial_state_template in self.metadata[
             "initial_state_templates"], "initial_state_template must be None, 'checkerboard', or 'everyThird'"
         self.initial_state_template = initial_state_template
@@ -56,10 +63,19 @@ class GridEnv(gym.Env):
         # The agent perceives part of the surrounding grid, it has a square view
         # with viewing distance `self.observation_size`
         self.observation_distance = observation_distance
+
         # Each grid cell can be either empty or occupied by a particle
-        single_obs = spaces.Box(
-            low=0, high=1, shape=((self.observation_distance * 2 + 1) ** 2,), dtype=np.uint8
-        )
+        # TODO: Specify the correct observation space for distinguishable particle
+        if distinguishable_particles:
+            self.internal_dtype = np.int32
+            single_obs = spaces.Box(
+                low=0, high=2**20, shape=((self.observation_distance * 2 + 1) ** 2,), dtype=self.internal_dtype
+            )
+        else:
+            self.internal_dtype = np.uint8
+            single_obs = spaces.Box(
+                low=0, high=1, shape=((self.observation_distance * 2 + 1) ** 2,), dtype=self.internal_dtype
+            )
         self.observation_space: spaces.Tuple[ObsType, ObsType] = spaces.Tuple((single_obs, single_obs))
 
         # We have 4 actions, corresponding to "forward", "up", "down"
@@ -80,7 +96,7 @@ class GridEnv(gym.Env):
         # Select a random agent (a grid cell that is currently set to 1) and return
         # the observation of the grid around it
         if new_mover:
-            agent_indices = np.argwhere(self.state == 1)
+            agent_indices = np.argwhere(self.state >= 1)
             self.current_mover = agent_indices[self.np_random.integers(len(agent_indices))]
         # The observation is a square of size `self.observation_distance * 2 + 1`
         # centered around the agent. NumPy's `take` function is used to select
@@ -97,12 +113,14 @@ class GridEnv(gym.Env):
             mode="wrap",
             axis=1,
         )
+        if self.distinguishable_particles:
+            obs[obs != 0] = 1
         return obs.flatten()
 
     @property
     def n(self):
         # Return the number of particles in the system
-        return np.sum(self.state)
+        return np.count_nonzero(self.state)
 
     @property
     def rho(self):
@@ -138,9 +156,18 @@ class GridEnv(gym.Env):
 
         # Draw the state array
         # First stack the three color channels
-        rgb_array = np.stack([self.state.T * 252, self.state.T * 172, self.state.T * 33], axis=2)
-        # Then, replace all 0s with 255s ==> white background
-        rgb_array[rgb_array == 0] = 255
+        if self.distinguishable_particles:
+            h_array = self.state.T / self.n
+            s_array = np.full(self.state.T.shape, 0.82)
+            s_array[self.state.T == 0] = 0
+            l_array = np.full(self.state.T.shape, 0.56)
+            l_array[self.state.T == 0] = 1
+            hsl_array = np.stack([h_array, s_array, l_array], axis=2)
+            rgb_array = hsl2rgb(hsl_array, self.internal_dtype)
+        else:
+            rgb_array = np.stack([self.state.T*245, self.state.T*66, self.state.T*69], axis=2)
+            rgb_array[rgb_array == 0] = 255  # correct white background
+
         # Finally, create a PyGame surface from the array and scale it to the correct size
         state_surf = pygame.surfarray.make_surface(rgb_array)
         state_surf = pygame.transform.scale(state_surf,
@@ -174,15 +201,18 @@ class GridEnv(gym.Env):
         # If no initial state is given, we set the initial state to be a checkerboard
         if self.initial_state is None:
             if self.initial_state_template == "checkerboard":
-                self.state = np.indices((self.width, self.length)).sum(axis=0, dtype=np.uint8) % 2
+                self.state = np.indices((self.width, self.length)).sum(axis=0, dtype=self.internal_dtype) % 2
             elif self.initial_state_template == "everyThird":
-                self.state = np.zeros((self.width, self.length), dtype=np.uint8)
+                self.state = np.zeros((self.width, self.length), dtype=self.internal_dtype)
                 self.state[::3, ::3] = 1
             else:
-                self.state = self.np_random.integers(2, size=(self.width, self.length), dtype=np.uint8)
+                self.state = self.np_random.integers(2, size=(self.width, self.length), dtype=self.internal_dtype)
         else:
             self.state = self.initial_state
-
+        if self.distinguishable_particles:
+            random_integers = np.arange(1, self.n + 1, dtype=self.internal_dtype)
+            self.np_random.shuffle(random_integers)
+            self.state[self.state == 1] = random_integers
         observation = self._get_obs()
         info = self._get_info()
         if self.render_mode == "human":
@@ -191,8 +221,8 @@ class GridEnv(gym.Env):
 
     def _move_if_possible(self, position: tuple) -> bool:
         if self.state[*position] == 0:  # if the next cell is empty, move
-            self.state[self.current_mover[0], self.current_mover[1]] = 0
-            self.state[*position] = 1
+            self.state[self.current_mover[0], self.current_mover[1]], self.state[*position] = \
+                self.state[*position], self.state[self.current_mover[0], self.current_mover[1]]
             return True
         else:  # if the next cell is occupied, don't move
             return False
