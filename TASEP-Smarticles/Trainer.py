@@ -73,9 +73,9 @@ class Trainer:
         if self.env_params["distinguishable_particles"]:
             self.last_states: dict[int, tuple[np.ndarray, torch.Tensor, torch.Tensor]] = dict()
             self.mover: Optional[int] = None
-        # if GPU is to be used, CUDA for NVIDIA, MPS for Apple Silicon
+        # if GPU is to be used, CUDA for NVIDIA, MPS for Apple Silicon (not used bc slow)
         self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+            "cuda" if torch.cuda.is_available() else "cpu")
         self.env = self._init_env()
         self.state: Optional[torch.Tensor] = None  # Initialized in self.reset_env() in self._init_model()
         self.policy_net, self.target_net, self.optimizer, self.memory, self.criterion = self._init_model()
