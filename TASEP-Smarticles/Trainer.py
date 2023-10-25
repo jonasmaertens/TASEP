@@ -218,33 +218,26 @@ class Trainer:
             # Select action for current state
             action = self.select_action(self.state)
 
-            # Perform action and get reward, reaction and next state
             if self.env_params["distinguishable_particles"]:
                 (next_observation, next_mover), reward, terminated, truncated, info = self.env.step(action.item())
+                reward = torch.tensor([reward], device=self.device)
+                next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+                if next_mover in self.last_states:
+                    self.memory.push(self.last_states[next_mover][0], self.last_states[next_mover][1],
+                                     next_state, self.last_states[next_mover][2])
+                self.last_states[self.mover] = (self.state, action, reward)
+                self.mover = next_mover
             else:
                 (react_observation, next_observation), reward, terminated, truncated, info = self.env.step(
-                    action.item())
-            reward = torch.tensor([reward], device=self.device)
-
-            if terminated:
-                next_state = None
-                react_state = None
-            else:
+                    action.item())  # Perform action and get reward, reaction and next state
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
-                if self.env_params["distinguishable_particles"]:
-                    if next_mover in self.last_states:
-                        self.memory.push(self.last_states[next_mover][0], self.last_states[next_mover][1],
-                                         next_state, self.last_states[next_mover][2])
-                    self.last_states[self.mover] = (self.state, action, reward)
-                else:
-                    react_state = torch.tensor(react_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
-                    # Store the transition in memory
-                    self.memory.push(self.state, action, react_state, reward)
+                reward = torch.tensor([reward], device=self.device)
+                react_state = torch.tensor(react_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+                # Store the transition in memory
+                self.memory.push(self.state, action, react_state, reward)
 
             # Move to the next state
             self.state = next_state
-            if self.env_params["distinguishable_particles"]:
-                self.mover = next_mover
 
             # Perform one step of the optimization (on the policy network)
             self.optimize_model()
@@ -259,12 +252,13 @@ class Trainer:
                                                  key] * (1 - self.hyperparams["TAU"])
             self.target_net.load_state_dict(target_net_state_dict)
 
-            if self.steps_done % self.plot_interval == 0 and self.do_plot and not just_reset and self.steps_done != 0:
+            if self.steps_done % self.plot_interval == 0 and not just_reset and self.steps_done != 0:
                 self.currents.append(info['current'])
                 self.timesteps.append(self.steps_done)
                 pbar.set_description(f"Eps.: {self._get_current_eps():.2f}, Current: {self.currents[-1]:.2f}")
-                plt.plot(self.timesteps, self.currents)
-                plt.show()
+                if self.do_plot:
+                    plt.plot(self.timesteps, self.currents)
+                    plt.show()
 
     def save(self, file: str = None, append_timestamp=True):
         if file is None:
@@ -274,3 +268,15 @@ class Trainer:
         if "models/" not in file:
             file = f"models/{file}"
         torch.save(self.policy_net.state_dict(), file)
+
+    def save_plot(self, file: str = None, append_timestamp=True):
+        if file is None:
+            file = f"plots/plot_{self.total_steps}_steps.png"
+        if append_timestamp:
+            file.replace(".png", f"_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.png")
+        if "plots/" not in file:
+            file = f"plots/{file}"
+        plt.plot(self.timesteps, self.currents)
+        plt.savefig(file)
+        plt.cla()
+        plt.close()
