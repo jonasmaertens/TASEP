@@ -199,7 +199,7 @@ class Trainer:
         """
         Trains the agent
         """
-        print(f"Training for {self.total_steps} timesteps")
+        print(f"Training for {self.total_steps} timesteps on {self.device}")
         # Training loop
         for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps")):
             just_reset = False
@@ -243,7 +243,8 @@ class Trainer:
 
             # Move to the next state
             self.state = next_state
-            self.mover = next_mover
+            if self.env_params["distinguishable_particles"]:
+                self.mover = next_mover
 
             # Perform one step of the optimization (on the policy network)
             self.optimize_model()
