@@ -3,7 +3,7 @@ from Trainer import Trainer, Hyperparams, EnvParams
 envParams = EnvParams(render_mode=None,
                       length=64,
                       width=16,
-                      moves_per_timestep=10,
+                      moves_per_timestep=20,
                       window_height=256,
                       observation_distance=3,
                       initial_state_template="checkerboard")
@@ -16,8 +16,8 @@ hyperparams = Hyperparams(BATCH_SIZE=256,
                           LR=1e-2,
                           MEMORY_SIZE=30_000)
 
-trainer = Trainer(envParams, hyperparams, reset_interval=2_000,
-                  total_steps=5_000, render_start=2_500, do_plot=True, plot_interval=1000)
+trainer = Trainer(envParams, hyperparams, reset_interval=20_000,
+                  total_steps=100_000, render_start=10_000, do_plot=True, plot_interval=1000)
 
 trainer.train()
 

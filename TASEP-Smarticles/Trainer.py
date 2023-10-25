@@ -221,7 +221,7 @@ class Trainer:
                 next_state = None
                 react_state = None
             else:
-                react_state = torch.tensor(react_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+                react_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
 
             # Store the transition in memory
