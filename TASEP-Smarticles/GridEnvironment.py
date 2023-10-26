@@ -5,7 +5,7 @@ import gymnasium as gym
 from gymnasium import spaces
 from Hasel import hsl2rgb
 
-from typing import SupportsFloat, TypeVar, Any, TypedDict, Optional, TypeAlias
+from typing import SupportsFloat, TypeVar, Any, TypedDict, Optional, TypeAlias, NotRequired
 
 ObsType = TypeVar("ObsType")
 WholeObsType: TypeAlias = tuple[ObsType, ObsType] | tuple[ObsType, int]
@@ -24,14 +24,14 @@ class EnvParams(TypedDict):
         initial_state_template: The template to use for the initial state, either "checkerboard" or "everyThird"
         distinguishable_particles: Whether particles should be distinguishable or not
     """
-    render_mode: str | None
+    render_mode: NotRequired[str | None]
     length: int
     width: int
-    moves_per_timestep: int
-    window_height: int
+    moves_per_timestep: NotRequired[int]
+    window_height: NotRequired[int]
     observation_distance: int
-    initial_state: None | np.ndarray[np.uint8 | np.int32]
-    initial_state_template: str
+    initial_state: NotRequired[np.ndarray[np.uint8 | np.int32]]
+    initial_state_template: NotRequired[str]
     distinguishable_particles: bool
 
 

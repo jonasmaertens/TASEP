@@ -258,13 +258,14 @@ class Trainer:
                 pbar.set_description(f"Eps.: {self._get_current_eps():.2f}, Current: {self.currents[-1]:.2f}")
                 if self.do_plot:
                     plt.plot(self.timesteps, self.currents)
-                    plt.show()
+                    plt.show(block=False)
+                    plt.pause(0.01)
 
     def save(self, file: str = None, append_timestamp=True):
         if file is None:
             file = f"models/policy_net_trained_{self.total_steps}_steps.pt"
         if append_timestamp:
-            file.replace(".pt", f"_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.pt")
+            file = file.replace(".pt", f"_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.pt")
         if "models/" not in file:
             file = f"models/{file}"
         torch.save(self.policy_net.state_dict(), file)
