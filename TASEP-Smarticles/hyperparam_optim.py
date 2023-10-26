@@ -3,15 +3,15 @@ import itertools
 from tqdm import tqdm
 import datetime
 
-observation_distances = [1, 2]
-batch_sizes = [512, 8192]
-gammas = [0.3, 0.6, 0.999]
+observation_distances = [1]
+batch_sizes = [512]
+gammas = [0.6]
 eps_starts = [0.9]
 eps_ends = [0.1]
-eps_decays = [5_000, 100_000, 600_000]
+eps_decays = [100_000, 600_000]
 taus = [1e-4, 1e-2]
 lrs = [1e-3, 1e-2, 1e-1]
-memory_sizes = [1000, 1_000_000]
+memory_sizes = [100_000]
 
 if __name__ == '__main__':
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -20,6 +20,8 @@ if __name__ == '__main__':
     for observation_distance, batch_size, gamma, eps_start, eps_end, eps_decay, tau, lr, memory_size in tqdm(
             itertools.product(
                     observation_distances, batch_sizes, gammas, eps_starts, eps_ends, eps_decays, taus, lrs, memory_sizes)):
+        if gamma==0.3 and (eps_decay==5000 or eps_decay==100000):
+            continue
         envParams = EnvParams(render_mode=None,
                               length=32,
                               width=8,

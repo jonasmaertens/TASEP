@@ -199,9 +199,9 @@ class Trainer:
         """
         Trains the agent
         """
-        print(f"Training for {self.total_steps} timesteps on {self.device}")
+        #print(f"Training for {self.total_steps} timesteps on {self.device}")
         # Training loop
-        for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps")):
+        for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps", leave=False)):
             just_reset = False
             # Reset the environment if the reset interval has been reached
             if self.steps_done % self.reset_interval == 0 and self.steps_done != 0:
