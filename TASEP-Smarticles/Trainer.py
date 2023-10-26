@@ -199,7 +199,7 @@ class Trainer:
         """
         Trains the agent
         """
-        #print(f"Training for {self.total_steps} timesteps on {self.device}")
+        # print(f"Training for {self.total_steps} timesteps on {self.device}")
         # Training loop
         for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps", leave=False)):
             just_reset = False
