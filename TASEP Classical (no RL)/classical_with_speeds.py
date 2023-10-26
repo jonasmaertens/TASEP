@@ -4,16 +4,6 @@ import matplotlib.pyplot as plt
 
 
 @njit
-def truncated_normal(mean, std_dev, size):
-    samples = []
-    while len(samples) < size:
-        new_samples = np.random.normal(mean, std_dev, size)
-        new_samples = new_samples[(new_samples >= 0) & (new_samples <= 1)]
-        samples.extend(new_samples)
-    return np.array(samples[:size])
-
-
-@njit
 def truncated_normal_single(mean, std_dev):
     sample = -1
     while sample < 0 or sample > 1:
@@ -77,7 +67,6 @@ def simulate(sigma, log=True):
                     total_forward = 0
 
         currents_arrays.append(currents)
-
     return currents_arrays
 
 
@@ -100,17 +89,14 @@ def np_apply_along_axis(func1d, axis, arr):
 def np_mean(array, axis):
     return np_apply_along_axis(np.mean, axis, array)
 
-
 @njit
 def simulate_sigma_vs_steady_state_current(sigmas):
     currents = []
+    i = 1
     for sigma in sigmas:
-        print(f"Sigma: {sigma}/{sigmas[-1]}")
+        print("Sigma", i)
+        i += 1
         currents_arrays = simulate(sigma, log=False)
-        # currents_single = np.array(currents_arrays[0])
-        # for array in currents_arrays[1:]:
-        #     currents_single += np.array(array)
-        # currents_single /= len(currents_arrays)
         currents_single = np_mean(np.array(currents_arrays), axis=0)
         currents.append(np.mean(currents_single[-100:]))
     return currents
@@ -139,13 +125,40 @@ if __name__ == '__main__':
     # plt.legend()
     # plt.xlabel("Time")
     # plt.ylabel(f"Current (last {current_averaging_time} moves averaged)")
-    # plt.title(f"Average current over {runsNumber} runs with sigma = {sigma}\nUniform distribution of speeds")
+    # plt.title(f"Average current over {runsNumber} runs")
     # plt.savefig(f"plots/different_speeds/individual_sigmas/currents_fixed_sigma.png")
 
-    plt.cla()
-    sigmas = np.linspace(0.001, 0.5, 100, dtype=np.float32)
-    currents = simulate_sigma_vs_steady_state_current(sigmas)
+    # plt.cla()
+    # sigmas = np.logspace(-4, 1, 100, dtype=np.float32)
+    # print(sigmas)
+    # currents = simulate_sigma_vs_steady_state_current(sigmas)
+    # # save data
+    # np.save("data/sigma_vs_current.npy", currents)
+    # np.save("data/sigma_vs_current_sigmas.npy", sigmas)
+    # plt.plot(sigmas, currents)
+    # plt.xlabel("Sigma")
+    # plt.ylabel(f"Current (last {current_averaging_time} moves averaged)")
+    # plt.show()
+
+    currents = np.load("data/sigma_vs_current.npy")
+    sigmas = np.load("data/sigma_vs_current_sigmas.npy")
     plt.plot(sigmas, currents)
+    plt.xlabel("Sigma (log scale)")
+    plt.ylabel(f"Steady state current")
+    plt.title(f"Average current over {runsNumber} runs")
+    plt.xscale("log")
+    plt.savefig(f"plots/different_speeds/steady_state_current_log.png")
+    plt.cla()
     plt.xlabel("Sigma")
-    plt.ylabel(f"Current (last {current_averaging_time} moves averaged)")
-    plt.show()
+    plt.xscale("linear")
+    plt.ylabel(f"Steady state current")
+    plt.title(f"Average current over {runsNumber} runs")
+    plt.plot(sigmas[70:], currents[70:])
+    plt.savefig(f"plots/different_speeds/steady_state_current.png")
+    # take log(1/currents-1/0.0585)
+    plt.cla()
+    plt.plot(sigmas, np.log(1 / currents - 1 / 0.0585))
+    plt.xlabel("Sigma")
+    plt.ylabel(f"ln(1/I - 1/I_0)")
+    plt.title(f"Average current over {runsNumber} runs")
+    plt.savefig(f"plots/different_speeds//ln_fixed_sigma.png")
