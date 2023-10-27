@@ -12,6 +12,14 @@ def truncated_normal_single(mean, std_dev):
 
 
 @njit
+def truncated_normal(mean, std_dev, size):
+    samples = np.zeros(size, dtype=np.float32)
+    for i in range(size):
+        samples[i] = truncated_normal_single(mean, std_dev)
+    return samples
+
+
+@njit
 def simulate(sigma, log=True):
     currents_arrays = []
     for iwalk in range(runsNumber):
@@ -23,7 +31,7 @@ def simulate(sigma, log=True):
         system[::2] = 1
         # Give each particle a random speed (between 0 and 1)
         # from a uniform distribution
-        speeds = np.random.random(N)
+        speeds = truncated_normal(0.5, sigma, N)
         system[system == 1] = speeds
         system = system.reshape((Lx, Ly))
         currents = []
@@ -48,7 +56,7 @@ def simulate(sigma, log=True):
                     # check if there is a particle in front
                     if system[x, y_next] == 0:
                         # throw second dice from truncated normal that has to be less than the speed
-                        dice2 = truncated_normal_single(0.5, sigma)
+                        dice2 = np.random.random()
                         if dice2 < system[x, y]:
                             # if system[x,y] < 0.1:
                             # print("slow particle moved")
@@ -98,50 +106,16 @@ def simulate_sigma_vs_steady_state_current(sigmas):
         i += 1
         currents_arrays = simulate(sigma, log=False)
         currents_single = np_mean(np.array(currents_arrays), axis=0)
-        currents.append(np.mean(currents_single[-100:]))
+        # print(len(currents_single))
+        currents.append(np.mean(currents_single[-int(len(currents_single)/3):]))
     return currents
 
 
-if __name__ == '__main__':
-    totalMCS = 70  # Total number of Monte Carlo steps per single run
-    runsNumber = 100  # Number of runs to average over
-    Lx = 128  # Number of rows , width
-    Ly = 128  # Number of columns , length
-    N = Lx * Ly // 2
-    size = Lx * Ly
-    current_averaging_time = int(N / 3) - 1  # Number of MCS to average over
-
-    plt.rcParams["figure.figsize"] = (8, 4)
-    plt.rcParams["figure.dpi"] = 300
-    plt.rcParams["font.size"] = 11
-
-    # for sigma in [0.0001, 0.001, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 5]:
-    #     currents_arrays = simulate(sigma)
-    #     times = np.arange(len(currents_arrays[0]))
-    #     # average over all runs
-    #     currents = np.mean(currents_arrays, axis=0)
-    #     # plot
-    #     plt.plot(times, currents, label=f"sigma = {sigma}")
-    # plt.legend()
-    # plt.xlabel("Time")
-    # plt.ylabel(f"Current (last {current_averaging_time} moves averaged)")
-    # plt.title(f"Average current over {runsNumber} runs")
-    # plt.savefig(f"plots/different_speeds/individual_sigmas/currents_fixed_sigma.png")
-
-    # plt.cla()
-    # sigmas = np.logspace(-4, 1, 100, dtype=np.float32)
-    # print(sigmas)
-    # currents = simulate_sigma_vs_steady_state_current(sigmas)
-    # # save data
-    # np.save("data/sigma_vs_current.npy", currents)
-    # np.save("data/sigma_vs_current_sigmas.npy", sigmas)
-    # plt.plot(sigmas, currents)
-    # plt.xlabel("Sigma")
-    # plt.ylabel(f"Current (last {current_averaging_time} moves averaged)")
-    # plt.show()
-
+def evaluate():
     currents = np.load("data/sigma_vs_current.npy")
     sigmas = np.load("data/sigma_vs_current_sigmas.npy")
+    print(len(currents))
+    plt.cla()
     plt.plot(sigmas, currents)
     plt.xlabel("Sigma (log scale)")
     plt.ylabel(f"Steady state current")
@@ -162,3 +136,52 @@ if __name__ == '__main__':
     plt.ylabel(f"ln(1/I - 1/I_0)")
     plt.title(f"Average current over {runsNumber} runs")
     plt.savefig(f"plots/different_speeds//ln_fixed_sigma.png")
+
+
+def calc_sigma_vs_current():
+    plt.cla()
+    sigmas = np.logspace(-4, 1, 150, dtype=np.float32)
+    print(sigmas)
+    currents = simulate_sigma_vs_steady_state_current(sigmas)
+    # save data
+    np.save("data/sigma_vs_current.npy", currents)
+    np.save("data/sigma_vs_current_sigmas.npy", sigmas)
+
+
+def calc_indivual_sigmas():
+    for sigma in [0.0001, 0.001, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 5]:
+        currents_arrays = simulate(sigma)
+        times = np.arange(len(currents_arrays[0]))
+        # average over all runs
+        currents = np.mean(currents_arrays, axis=0)
+        # plot
+        plt.plot(times[10:], currents[10:], label=f"sigma = {sigma}")
+    plt.legend()
+    plt.xlabel("Time")
+    plt.ylabel(f"Current (last {current_averaging_time} moves averaged)")
+    plt.title(f"Average current over {runsNumber} runs")
+    plt.savefig(f"plots/different_speeds/individual_sigmas/currents_fixed_sigma.png")
+
+
+if __name__ == '__main__':
+    totalMCS = 70  # Total number of Monte Carlo steps per single run
+    runsNumber = 200  # Number of runs to average over
+    Lx = 128  # Number of rows , width
+    Ly = 128  # Number of columns , length
+    N = Lx * Ly // 2
+    size = Lx * Ly
+    current_averaging_time = int(N / 2) - 1  # Number of MCS to average over
+
+    plt.rcParams["figure.figsize"] = (8, 4)
+    plt.rcParams["figure.dpi"] = 300
+    plt.rcParams["font.size"] = 11
+
+    # calc_indivual_sigmas()
+    calc_sigma_vs_current()
+    evaluate()
+
+
+
+
+
+
