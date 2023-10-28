@@ -24,6 +24,8 @@ class EnvParams(TypedDict):
         initial_state_template: The template to use for the initial state, either "checkerboard" or "everyThird"
         distinguishable_particles: Whether particles should be distinguishable or not
         use_speeds: Whether to use speeds or not
+        sigma: The standard deviation of the normal distribution to draw speeds from
+        average_window: The number of timesteps to average over for the current. If None, the whole episode is averaged
     """
     render_mode: NotRequired[str | None]
     length: int
@@ -36,6 +38,7 @@ class EnvParams(TypedDict):
     distinguishable_particles: bool
     use_speeds: bool
     sigma: NotRequired[float]
+    average_window: NotRequired[int]
 
 
 def truncated_normal_single(mean, std_dev):
@@ -58,15 +61,20 @@ class GridEnv(gym.Env):
 
     def __init__(self, render_mode=None, length=64, width=16, moves_per_timestep=5, window_height=256,
                  observation_distance=3, initial_state=None, initial_state_template=None,
-                 distinguishable_particles=False, use_speeds=False, sigma=None):
+                 distinguishable_particles=False, use_speeds=False, sigma=None, average_window=1000):
         self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
         self.current_mover: Optional[np.ndarray] = None
         self.length = length  # The length of the grid
         self.width = width  # The number of "lanes"
         self.window_height = window_height  # The height of the PyGame window
         self.window_width = self.window_height * self.length / self.width  # The width of the PyGame window
+        self.pix_square_size = (self.window_height / self.width)
         self.total_forward = 0
-        self.timesteps = 0
+        self.total_timesteps = 0
+        self.average_window = average_window
+        self.avg_window_time = 0
+        self.avg_window_forward = 0
+        self._current = 0
         self.moves_per_timestep = moves_per_timestep
         self.distinguishable_particles = distinguishable_particles
         self.use_speeds = use_speeds
@@ -83,39 +91,26 @@ class GridEnv(gym.Env):
 
         # The agent perceives part of the surrounding grid, it has a square view
         # with viewing distance `self.observation_size`
-        self.observation_distance = observation_distance
+        self.obs_dist = observation_distance
 
-        # Each grid cell can be either empty or occupied by a particle
-        # TODO: Specify the correct observation space for distinguishable particle
-        if self.use_speeds and self.distinguishable_particles:
-            self.internal_dtype = np.float32
-            single_obs = spaces.Box(
-                low=0, high=2 ** 20, shape=((self.observation_distance * 2 + 1) ** 2,), dtype=self.internal_dtype
-            )
+        # With distinguishable particles, the observation is a tuple of the binary
+        # observation space and the number of the agent
+        if self.distinguishable_particles:
+            self.use_dtype = np.float32 if self.use_speeds else np.int32
+            single_obs = spaces.Box(low=0, high=1, shape=((self.obs_dist * 2 + 1) ** 2,), dtype=self.use_dtype)
             self.observation_space: spaces.Tuple[ObsType,] = spaces.Tuple(
-                (single_obs, spaces.Box(low=0, high=1, shape=(1,), dtype=self.internal_dtype)))
-        elif distinguishable_particles and not self.use_speeds:
-            self.internal_dtype = np.int32
-            single_obs = spaces.Box(
-                low=0, high=2 ** 20, shape=((self.observation_distance * 2 + 1) ** 2,), dtype=self.internal_dtype
-            )
+                (single_obs, spaces.Discrete(self.length * self.width)))
+        elif self.use_speeds:  # binary observation space -> speed observation space
+            self.use_dtype = np.float32
+            single_obs = spaces.Box(low=0, high=1, shape=((self.obs_dist * 2 + 1) ** 2,), dtype=self.use_dtype)
             self.observation_space: spaces.Tuple[ObsType,] = spaces.Tuple(
-                (single_obs, spaces.Discrete(2 ** 20)))
-        elif not distinguishable_particles and self.use_speeds:
-            self.internal_dtype = np.float32
-            single_obs = spaces.Box(
-                low=0, high=1, shape=((self.observation_distance * 2 + 1) ** 2,), dtype=self.internal_dtype
-            )
-            self.observation_space: spaces.Tuple[ObsType,] = spaces.Tuple(
-                (single_obs, spaces.Box(low=0, high=1, shape=(1,), dtype=self.internal_dtype)))
+                (single_obs, spaces.Box(low=0, high=1, shape=(1,), dtype=self.use_dtype)))
         else:
-            self.internal_dtype = np.uint8
-            single_obs = spaces.Box(
-                low=0, high=1, shape=((self.observation_distance * 2 + 1) ** 2,), dtype=self.internal_dtype
-            )
+            self.use_dtype = np.uint8
+            single_obs = spaces.Box(low=0, high=1, shape=((self.obs_dist * 2 + 1) ** 2,), dtype=self.use_dtype)
             self.observation_space: spaces.Tuple[ObsType, ObsType] = spaces.Tuple((single_obs, single_obs))
 
-        # We have 4 actions, corresponding to "forward", "up", "down"
+        # We have 3 actions, corresponding to "forward", "up", "down"
         self.action_space: spaces.Discrete = spaces.Discrete(3)
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
@@ -140,19 +135,20 @@ class GridEnv(gym.Env):
         # the correct part of the grid, and the `mode="wrap"` argument ensures
         # periodic boundary conditions.
         obs = self.state.take(
-            range(self.current_mover[0] - self.observation_distance,
-                  self.current_mover[0] + self.observation_distance + 1),
+            range(self.current_mover[0] - self.obs_dist,
+                  self.current_mover[0] + self.obs_dist + 1),
             mode="wrap",
             axis=0,
         ).take(
-            range(self.current_mover[1] - self.observation_distance,
-                  self.current_mover[1] + self.observation_distance + 1),
+            range(self.current_mover[1] - self.obs_dist,
+                  self.current_mover[1] + self.obs_dist + 1),
             mode="wrap",
             axis=1,
         )
-        # TODO: Allow agents to observe the speeds of the particles
-        if self.distinguishable_particles or self.use_speeds:
+        if self.distinguishable_particles and not self.use_speeds:
             obs[obs != 0] = 1
+        if self.use_speeds:
+            obs[obs != 0] = obs[obs != 0] % 1
         return obs.flatten()
 
     @property
@@ -167,8 +163,9 @@ class GridEnv(gym.Env):
 
     def _get_current(self):
         # Return the current of the system
-        # TODO: Implement averaging over n moves insead of the whole episode
-        return self.total_forward / self.timesteps if self.timesteps > 0 else 0
+        if self.average_window is None:
+            return self.total_forward / self.total_timesteps if self.total_timesteps > 0 else 0
+        return self._current
 
     def _get_info(self):
         # Return dict with information about the current state of the environment
@@ -187,38 +184,25 @@ class GridEnv(gym.Env):
         if self.window is None and self.render_mode == "human":
             pygame.init()
             pygame.display.init()
-            self.window = pygame.display.set_mode(
-                (self.window_width, self.window_height)
-            )
+            self.window = pygame.display.set_mode((self.window_width, self.window_height))
         if self.clock is None and self.render_mode == "human":
             self.clock = pygame.time.Clock()
 
-        pix_square_size = (
-                self.window_height / self.width
-        )
-
-        # Draw the state array
-        # First stack the three color channels
-        if self.distinguishable_particles:
-            if self.use_speeds:
-                h_array = self.state.T % 1
-            else:
+        # Draw the state array. For mapping the state array to colors, we use the
+        # HSL color space. The hue is determined by the value of the state array,
+        # the saturation is set to 1, and the lightness is set to 0.5.
+        if self.distinguishable_particles or self.use_speeds:
+            if self.use_speeds:  # use only 1 to 120° of the hue spectrum (red to green) depending on speed
+                h_array = (self.state.T % 1) / 3
+            else:  # use the whole hue spectrum -> random color for each particle
                 h_array = self.state.T / self.n
-            s_array = np.full(self.state.T.shape, 0.82)
+            s_array = np.full(self.state.T.shape, 1)
             s_array[self.state.T == 0] = 0
-            l_array = np.full(self.state.T.shape, 0.56)
-            l_array[self.state.T == 0] = 1
+            l_array = np.full(self.state.T.shape, 0.5)
+            l_array[self.state.T == 0] = 0.16
             hsl_array = np.stack([h_array, s_array, l_array], axis=2)
-            rgb_array = hsl2rgb(hsl_array, self.internal_dtype)
-        elif self.use_speeds and not self.distinguishable_particles:
-            h_array = self.state.T % 1
-            s_array = np.full(self.state.T.shape, 0.82)
-            s_array[self.state.T == 0] = 0
-            l_array = np.full(self.state.T.shape, 0.56)
-            l_array[self.state.T == 0] = 1
-            hsl_array = np.stack([h_array, s_array, l_array], axis=2)
-            rgb_array = hsl2rgb(hsl_array, self.internal_dtype)
-        else:
+            rgb_array = hsl2rgb(hsl_array, self.use_dtype)
+        else:  # binary observation space -> one fixed color for all particles on dark background
             rgb_array = np.stack([self.state.T * 245, self.state.T * 66, self.state.T * 69], axis=2)
             rgb_array[rgb_array == 0] = 255  # correct white background
 
@@ -229,11 +213,11 @@ class GridEnv(gym.Env):
                                                 (self.window_width, self.window_height))
             # Add gridlines
             for i in range(self.width):
-                pygame.draw.line(state_surf, (0, 0, 0), (0, i * pix_square_size),
-                                 (self.window_width, i * pix_square_size))
+                pygame.draw.line(state_surf, (0, 0, 0), (0, i * self.pix_square_size),
+                                 (self.window_width, i * self.pix_square_size))
             for i in range(self.length):
-                pygame.draw.line(state_surf, (0, 0, 0), (i * pix_square_size, 0),
-                                 (i * pix_square_size, self.window_height))
+                pygame.draw.line(state_surf, (0, 0, 0), (i * self.pix_square_size, 0),
+                                 (i * self.pix_square_size, self.window_height))
 
             # The following line copies our drawings from `canvas` to the visible window
             self.window.blit(state_surf, state_surf.get_rect())
@@ -247,26 +231,28 @@ class GridEnv(gym.Env):
             return rgb_array
 
     def reset(self, seed=None, options=None) -> tuple[WholeObsType, dict[str, Any]]:
-        # We need the following line to seed self.np_random
+        # We need the following line to seed self.np_random (for reproducibility)
         super().reset(seed=seed)
 
         self.total_forward = 0
-        self.timesteps = 0
+        self.total_timesteps = 0
+        self.avg_window_time = 0
+        self.avg_window_forward = 0
 
         # Set the initial state of the environment
         # If no initial state is given, we set the initial state to be a checkerboard
         if self.initial_state is None:
             if self.initial_state_template == "checkerboard":
-                self.state = np.indices((self.width, self.length)).sum(axis=0, dtype=self.internal_dtype) % 2
+                self.state = np.indices((self.width, self.length)).sum(axis=0, dtype=self.use_dtype) % 2
             elif self.initial_state_template == "everyThird":
-                self.state = np.zeros((self.width, self.length), dtype=self.internal_dtype)
+                self.state = np.zeros((self.width, self.length), dtype=self.use_dtype)
                 self.state[::3, ::3] = 1
             else:
-                self.state = self.np_random.integers(2, size=(self.width, self.length), dtype=self.internal_dtype)
+                self.state = self.np_random.integers(2, size=(self.width, self.length), dtype=self.use_dtype)
         else:
             self.state = self.initial_state
         if self.distinguishable_particles:
-            random_integers = np.arange(1, self.n + 1, dtype=self.internal_dtype)
+            random_integers = np.arange(1, self.n + 1, dtype=self.use_dtype)
             self.np_random.shuffle(random_integers)
             self.state[self.state == 1] = random_integers
             if self.use_speeds:
@@ -295,31 +281,15 @@ class GridEnv(gym.Env):
         # Move the agent in the specified direction if possible.
         # If the agent is at the boundary of the grid, it will wrap around
         reward = 0
-        self.timesteps += 1
+        self.total_timesteps += 1
+        self.avg_window_time += 1
+        if self.avg_window_time >= self.average_window:
+            self._current = self.avg_window_forward / self.average_window
+            self.avg_window_time = 0
+            self.avg_window_forward = 0
         if action == 0:  # forward
-            # TODO: Clean this up, remove duplicate code
-            if self.use_speeds:
-                # check if random dice is smaller than speed
-                dice = self.np_random.random()
-                if self.distinguishable_particles:
-                    if dice < self.state[*self.current_mover] % 1:
-                        next_y = 0 if self.current_mover[1] == self.length - 1 else self.current_mover[1] + 1
-                        has_moved = self._move_if_possible((self.current_mover[0], next_y))
-                        if not has_moved:
-                            reward = -1
-                        else:
-                            reward = 1
-                            self.total_forward += 1
-                else:
-                    if dice < self.state[*self.current_mover]:
-                        next_y = 0 if self.current_mover[1] == self.length - 1 else self.current_mover[1] + 1
-                        has_moved = self._move_if_possible((self.current_mover[0], next_y))
-                        if not has_moved:
-                            reward = -1
-                        else:
-                            reward = 1
-                            self.total_forward += 1
-            else:
+            # when using speeds, the probability to move forward is the speed of the particle
+            if not self.use_speeds or self.np_random.random() < self.state[*self.current_mover] % 1:
                 next_y = 0 if self.current_mover[1] == self.length - 1 else self.current_mover[1] + 1
                 has_moved = self._move_if_possible((self.current_mover[0], next_y))
                 if not has_moved:
@@ -327,24 +297,24 @@ class GridEnv(gym.Env):
                 else:
                     reward = 1
                     self.total_forward += 1
-        else:  # up or down
-            if action == 1:  # up
-                above = self.width - 1 if self.current_mover[0] == 0 else self.current_mover[0] - 1
-                has_moved = self._move_if_possible((above, self.current_mover[1]))
-                if not has_moved:
-                    reward = -1
-            else:  # down
-                below = 0 if self.current_mover[0] == self.width - 1 else self.current_mover[0] + 1
-                has_moved = self._move_if_possible((below, self.current_mover[1]))
-                if not has_moved:
-                    reward = -1
+                    self.avg_window_forward += 1
+        elif action == 1:  # up
+            above = self.width - 1 if self.current_mover[0] == 0 else self.current_mover[0] - 1
+            has_moved = self._move_if_possible((above, self.current_mover[1]))
+            if not has_moved:
+                reward = -1
+        else:  # down
+            below = 0 if self.current_mover[0] == self.width - 1 else self.current_mover[0] + 1
+            has_moved = self._move_if_possible((below, self.current_mover[1]))
+            if not has_moved:
+                reward = -1
 
         if not self.distinguishable_particles:
             react_observation = self._get_obs(new_mover=False)
         info = self._get_info()
         next_observation = self._get_obs(new_mover=True)
 
-        if self.render_mode == "human" and self.timesteps % self.moves_per_timestep == 0:
+        if self.render_mode == "human" and self.total_timesteps % self.moves_per_timestep == 0:
             self._render_frame()
         if self.distinguishable_particles:
             return (next_observation, int(self.state[*self.current_mover])), reward, False, False, info
