@@ -1,3 +1,4 @@
+import sys
 import datetime
 
 import gymnasium as gym
@@ -280,3 +281,13 @@ class Trainer:
         plt.savefig(file)
         plt.cla()
         plt.close()
+
+    def save_currents(self, file: str = None, append_timestamp=True):
+        if file is None:
+            file = f"data/currents_{self.total_steps}_steps.npy"
+        if append_timestamp:
+            file.replace(".npy", f"_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.npy")
+        if "data/" not in file:
+            file = f"data/{file}"
+        np.save(file, self.currents)
+        np.save(file.replace(".npy", "_timesteps.npy"), self.timesteps)
