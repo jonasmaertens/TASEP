@@ -1,3 +1,5 @@
+# import sys
+# sys.path.append('src/SmartTasep/') # uncomment this line if PYTHNONPATH is not set in IDE
 from Trainer import Trainer, Hyperparams, EnvParams
 
 if __name__ == '__main__':
@@ -13,7 +15,7 @@ if __name__ == '__main__':
                           sigma=0.5,
                           average_window=2500)
     hyperparams = Hyperparams(BATCH_SIZE=512,
-                              GAMMA=0.999,
+                              GAMMA=0.9,
                               EPS_START=0.9,
                               EPS_END=0.01,
                               EPS_DECAY=40000,
@@ -22,7 +24,7 @@ if __name__ == '__main__':
                               MEMORY_SIZE=100000)
 
     trainer = Trainer(envParams, hyperparams, reset_interval=40000,
-                      total_steps=100000, do_plot=True, plot_interval=2500)
+                      total_steps=300000, do_plot=True, plot_interval=2500)
 
     trainer.train()
 

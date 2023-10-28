@@ -1,4 +1,4 @@
-import sys
+import os
 import datetime
 
 import gymnasium as gym
@@ -42,16 +42,10 @@ class Hyperparams(TypedDict):
 
 
 class Trainer:
-    def __init__(self, env_params: EnvParams, hyperparams: Hyperparams, reset_interval: int = None,
-                 total_steps: int = 100000,
-                 render_start: int = None, do_plot: bool = True, plot_interval: int = 10000):
+    def __init__(self, env_params: EnvParams, hyperparams: Hyperparams | None = None, reset_interval: int = None,
+                 total_steps: int = 100000, render_start: int = None, do_plot: bool = True, plot_interval: int = 10000,
+                 model: str | None = None):
         """
-        :type env_params: EnvParams
-        :type reset_interval: int
-        :type total_steps: int
-        :type render_start: int
-        :type do_plot: bool
-        :type plot_interval: int
         :param env_params: The parameters for the environment. Of type GridEnv.EnvParams
         :param hyperparams: The hyperparameters for the agent. Of type Trainer.Hyperparams
         :param reset_interval: The interval at which the environment should be reset
@@ -59,9 +53,12 @@ class Trainer:
         :param render_start: The step at which the environment should be rendered in human mode
         :param do_plot: Whether to plot the current value of the current at regular intervals
         :param plot_interval: The interval at which to plot the current value
+        :param model: The path to a model to load
         """
         self.env_params = env_params
+        assert hyperparams is not None or model is not None, "Either hyperparams or model must be specified"
         self.hyperparams = hyperparams
+        self.model = model
         self.reset_interval = reset_interval
         self.total_steps = total_steps
         self.render_start = render_start
@@ -71,7 +68,7 @@ class Trainer:
         self.currents = []
         self.timesteps = []
         if self.env_params["distinguishable_particles"]:
-            self.last_states: dict[int, tuple[np.ndarray, torch.Tensor, torch.Tensor]] = dict()
+            self.last_states: dict[int, tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = dict()
             self.mover: Optional[int] = None
         # if GPU is to be used, CUDA for NVIDIA, MPS for Apple Silicon (not used bc slow)
         self.device = torch.device(
@@ -82,10 +79,11 @@ class Trainer:
         self.steps_done = 0
 
     def _init_env(self) -> GridEnv:
-        gym.envs.registration.register(
-            id='GridEnv',
-            entry_point='GridEnvironment:GridEnv',
-        )
+        if "GridEnv" not in gym.envs.registry:
+            gym.envs.registration.register(
+                id='GridEnv',
+                entry_point='GridEnvironment:GridEnv',
+            )
         GridEnv.metadata["render_fps"] = 144
         env: GridEnv | gym.Env = gym.make("GridEnv", **self.env_params)
         return env
@@ -107,13 +105,28 @@ class Trainer:
         n_observations = self.state.size()[1]
 
         # Init model, optimizer, replay memory
-        policy_net = DQN(n_observations, n_actions).to(self.device)
-        target_net = DQN(n_observations, n_actions).to(self.device)
-        target_net.load_state_dict(policy_net.state_dict())
+        if self.model is not None:
+            policy_net = DQN(n_observations, n_actions).to(self.device)
+            try:
+                policy_net.load_state_dict(torch.load(self.model))
+            except FileNotFoundError:
+                self.model = os.path.join(os.getcwd(), self.model)
+                policy_net.load_state_dict(torch.load(self.model))
+            target_net = DQN(n_observations, n_actions).to(self.device)
+            target_net.load_state_dict(policy_net.state_dict())
+        else:
+            policy_net = DQN(n_observations, n_actions).to(self.device)
+            target_net = DQN(n_observations, n_actions).to(self.device)
+            target_net.load_state_dict(policy_net.state_dict())
 
-        optimizer = optim.AdamW(policy_net.parameters(), lr=self.hyperparams['LR'], amsgrad=True)
-        memory = ReplayMemory(self.hyperparams['MEMORY_SIZE'])
-        criterion = nn.SmoothL1Loss()
+        if self.hyperparams:
+            optimizer = optim.AdamW(policy_net.parameters(), lr=self.hyperparams['LR'], amsgrad=True)
+            memory = ReplayMemory(self.hyperparams['MEMORY_SIZE'])
+            criterion = nn.SmoothL1Loss()
+        else:
+            optimizer = None
+            memory = None
+            criterion = None
 
         return policy_net, target_net, optimizer, memory, criterion
 
@@ -125,14 +138,17 @@ class Trainer:
         return self.hyperparams['EPS_END'] + (self.hyperparams['EPS_START'] - self.hyperparams['EPS_END']) * \
             math.exp(-1. * self.steps_done / self.hyperparams['EPS_DECAY'])
 
-    def select_action(self, state: torch.Tensor) -> torch.Tensor:
+    def select_action(self, state: torch.Tensor, eps_greedy=True) -> torch.Tensor:
         """
         Selects an action using an epsilon-greedy policy
         :param state: Current state
+        :param eps_greedy: Whether to use epsilon-greedy policy or greedy policy
         """
+        if not eps_greedy:
+            with torch.no_grad():
+                return self.policy_net(state).max(1)[1].view(1, 1)
         sample = random.random()
         eps_threshold = self._get_current_eps()
-        # self.steps_done += 1
         if sample > eps_threshold:
             with torch.no_grad():
                 # max(1) gives max along axis 1 ==> max of every row
@@ -204,7 +220,7 @@ class Trainer:
         for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps", leave=False)):
             just_reset = False
             # Reset the environment if the reset interval has been reached
-            if self.steps_done % self.reset_interval == 0 and self.steps_done != 0:
+            if self.reset_interval and self.steps_done % self.reset_interval == 0 and self.steps_done != 0:
                 self.reset_env()
                 just_reset = True
 
@@ -250,12 +266,51 @@ class Trainer:
                 target_net_state_dict[key] = policy_net_state_dict[key] * self.hyperparams["TAU"] + \
                                              target_net_state_dict[
                                                  key] * (1 - self.hyperparams["TAU"])
-            self.target_net.load_state_dict(target_net_state_dict)
 
             if self.steps_done % self.plot_interval == 0 and not just_reset and self.steps_done != 0:
                 self.currents.append(info['current'])
                 self.timesteps.append(self.steps_done)
                 pbar.set_description(f"Eps.: {self._get_current_eps():.2f}, Current: {self.currents[-1]:.2f}")
+                if self.do_plot:
+                    plt.plot(self.timesteps, self.currents)
+                    plt.show(block=False)
+                    plt.pause(0.01)
+
+    def run(self):
+        """
+        Runs the simulation for the specified number of steps
+        """
+        for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps", leave=False)):
+            # TODO: Avoid code duplication
+            just_reset = False
+            # Reset the environment if the reset interval has been reached
+            if self.reset_interval and self.steps_done % self.reset_interval == 0 and self.steps_done != 0:
+                self.reset_env()
+                just_reset = True
+
+            # Reset the environment to human render mode if the render start has been reached
+            if self.steps_done == self.render_start:
+                self.env_params["render_mode"] = "human"
+                self.env: GridEnv | gym.Env = gym.make("GridEnv", **self.env_params)
+                self.reset_env()
+                just_reset = True
+
+            action = self.select_action(self.state, eps_greedy=False)
+
+            if self.env_params["distinguishable_particles"]:
+                (next_observation, _), _, terminated, truncated, info = self.env.step(action.item())
+                next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+            else:
+                (_, next_observation), _, terminated, truncated, info = self.env.step(
+                    action.item()) # Perform action and get reward, reaction and next state
+                next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+            self.state = next_state
+
+            if self.steps_done % self.plot_interval == 0 and not just_reset and self.steps_done != 0:
+                self.currents.append(info['current'])
+                self.timesteps.append(self.steps_done)
+                pbar.set_description(f"Current: {self.currents[-1]:.2f}")
                 if self.do_plot:
                     plt.plot(self.timesteps, self.currents)
                     plt.show(block=False)
@@ -268,6 +323,9 @@ class Trainer:
             file = file.replace(".pt", f"_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.pt")
         if "models/" not in file:
             file = f"models/{file}"
+        # create directory if it doesn't exist
+        if not os.path.exists(os.path.dirname(file)):
+            os.makedirs(os.path.dirname(file))
         torch.save(self.policy_net.state_dict(), file)
 
     def save_plot(self, file: str = None, append_timestamp=True):
@@ -277,6 +335,9 @@ class Trainer:
             file.replace(".png", f"_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.png")
         if "plots/" not in file:
             file = f"plots/{file}"
+        # create directory if it doesn't exist
+        if not os.path.exists(os.path.dirname(file)):
+            os.makedirs(os.path.dirname(file))
         plt.plot(self.timesteps, self.currents)
         plt.savefig(file)
         plt.cla()
@@ -289,5 +350,8 @@ class Trainer:
             file.replace(".npy", f"_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.npy")
         if "data/" not in file:
             file = f"data/{file}"
+        # create directory if it doesn't exist
+        if not os.path.exists(os.path.dirname(file)):
+            os.makedirs(os.path.dirname(file))
         np.save(file, self.currents)
         np.save(file.replace(".npy", "_timesteps.npy"), self.timesteps)
