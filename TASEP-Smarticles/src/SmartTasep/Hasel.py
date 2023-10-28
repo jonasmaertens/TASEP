@@ -1,4 +1,4 @@
-# TODO Attribution https://github.com/sumartoyo/hasel
+#https://github.com/sumartoyo/hasel
 import numpy as np
 import threading
 import multiprocessing
@@ -33,6 +33,7 @@ def hsl2rgb(hsl, astype):
             t[t < 0] += 1
             t[t > 1] -= 1
             t_lt_per_6 = t < per_6
+            # don't change to is False or not because it will be a numpy array
             t_lt_half = (t_lt_per_6 == False) * (t < 0.5)
             t_lt_two_per_3 = (t_lt_half == False) * (t < two_per_3)
             t_mul_6 = t * 6

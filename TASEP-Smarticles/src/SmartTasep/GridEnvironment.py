@@ -287,6 +287,8 @@ class GridEnv(gym.Env):
             self._current = self.avg_window_forward / self.average_window
             self.avg_window_time = 0
             self.avg_window_forward = 0
+        if self.total_timesteps < self.average_window and self.total_timesteps > 50:
+            self._current = self.total_forward / self.total_timesteps
         if action == 0:  # forward
             # when using speeds, the probability to move forward is the speed of the particle
             if not self.use_speeds or self.np_random.random() < self.state[*self.current_mover] % 1:

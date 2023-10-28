@@ -1,3 +1,5 @@
+# import sys
+# sys.path.append('src/SmartTasep/') # uncomment this line if PYTHNONPATH is not set in IDE
 from Trainer import Trainer, Hyperparams, EnvParams
 import itertools
 from tqdm import tqdm

@@ -112,8 +112,8 @@ def simulate_sigma_vs_steady_state_current(sigmas):
 
 
 def evaluate():
-    currents = np.load("data/sigma_vs_current.npy")
-    sigmas = np.load("data/sigma_vs_current_sigmas.npy")
+    currents = np.load("data/sigma_vs_current_128x32.npy")
+    sigmas = np.load("data/sigma_vs_current_sigmas_128x32.npy")
     print(len(currents))
     plt.cla()
     plt.plot(sigmas, currents)
@@ -121,21 +121,21 @@ def evaluate():
     plt.ylabel(f"Steady state current")
     plt.title(f"Average current over {runsNumber} runs")
     plt.xscale("log")
-    plt.savefig(f"plots/different_speeds/steady_state_current_log.png")
+    plt.savefig(f"plots/different_speeds/steady_state_current_log_128x32.png")
     plt.cla()
     plt.xlabel("Sigma")
     plt.xscale("linear")
     plt.ylabel(f"Steady state current")
     plt.title(f"Average current over {runsNumber} runs")
     plt.plot(sigmas[70:], currents[70:])
-    plt.savefig(f"plots/different_speeds/steady_state_current.png")
+    plt.savefig(f"plots/different_speeds/steady_state_current_128x32.png")
     # take log(1/currents-1/0.0585)
     plt.cla()
     plt.plot(sigmas, np.log(1 / currents - 1 / 0.0585))
     plt.xlabel("Sigma")
     plt.ylabel(f"ln(1/I - 1/I_0)")
     plt.title(f"Average current over {runsNumber} runs")
-    plt.savefig(f"plots/different_speeds//ln_fixed_sigma.png")
+    plt.savefig(f"plots/different_speeds//ln_fixed_sigma_128x32.png")
 
 
 def calc_sigma_vs_current():
@@ -144,8 +144,8 @@ def calc_sigma_vs_current():
     print(sigmas)
     currents = simulate_sigma_vs_steady_state_current(sigmas)
     # save data
-    np.save("data/sigma_vs_current.npy", currents)
-    np.save("data/sigma_vs_current_sigmas.npy", sigmas)
+    np.save("data/sigma_vs_current_128x32.npy", currents)
+    np.save("data/sigma_vs_current_sigmas_128x32.npy", sigmas)
 
 
 def calc_indivual_sigmas():
@@ -160,13 +160,13 @@ def calc_indivual_sigmas():
     plt.xlabel("Time")
     plt.ylabel(f"Current (last {current_averaging_time} moves averaged)")
     plt.title(f"Average current over {runsNumber} runs")
-    plt.savefig(f"plots/different_speeds/individual_sigmas/currents_fixed_sigma.png")
+    plt.savefig(f"plots/different_speeds/individual_sigmas/currents_fixed_sigma_128x32.png")
 
 
 if __name__ == '__main__':
     totalMCS = 70  # Total number of Monte Carlo steps per single run
     runsNumber = 200  # Number of runs to average over
-    Lx = 128  # Number of rows , width
+    Lx = 32  # Number of rows , width
     Ly = 128  # Number of columns , length
     N = Lx * Ly // 2
     size = Lx * Ly
@@ -176,7 +176,7 @@ if __name__ == '__main__':
     plt.rcParams["figure.dpi"] = 300
     plt.rcParams["font.size"] = 11
 
-    # calc_indivual_sigmas()
+    calc_indivual_sigmas()
     calc_sigma_vs_current()
     evaluate()
 
