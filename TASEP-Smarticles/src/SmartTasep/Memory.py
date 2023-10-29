@@ -5,22 +5,33 @@ Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
 
+def transpose(batch):
+    return Transition(*zip(*batch))
+
+
 class ReplayMemory(object):
     def __init__(self, capacity):
-        self.memory = deque([], maxlen=capacity)
+        self.buffer = [None] * capacity
+        self.max_size = capacity
+        self.index = 0
+        self.size = 0
 
     def push(self, *args):
         """Save a transition"""
-        self.memory.append(Transition(*args))
+        self.buffer[self.index] = Transition(*args)
+        self.size = min(self.size + 1, self.max_size)
+        self.index = (self.index + 1) % self.max_size
 
     def sample(self, batch_size):
         # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
         # detailed explanation). This converts batch-array of Transitions
         # to Transition of batch-arrays.
-        return Transition(*zip(*random.sample(self.memory, batch_size)))
+        # return Transition(*zip(*random.sample(self.memory, batch_size)))
+        indices = random.sample(range(self.size), batch_size)
+        return transpose([self.buffer[index] for index in indices])
 
     def __len__(self):
-        return len(self.memory)
+        return self.size
 
 
 """

@@ -24,10 +24,10 @@ if __name__ == '__main__':
                               MEMORY_SIZE=100000)
 
     trainer = Trainer(envParams, hyperparams, reset_interval=40000,
-                      total_steps=300000, do_plot=True, plot_interval=2500)
+                      total_steps=3000000, do_plot=True, plot_interval=2500)
 
     trainer.train()
 
-    #trainer.save_plot()
+    # trainer.save_plot()
 
-    #trainer.save("example_model_distinguishable.pt")
+    # trainer.save("example_model_distinguishable.pt")

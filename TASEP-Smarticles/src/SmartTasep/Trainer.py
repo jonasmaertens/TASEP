@@ -44,7 +44,7 @@ class Hyperparams(TypedDict):
 class Trainer:
     def __init__(self, env_params: EnvParams, hyperparams: Hyperparams | None = None, reset_interval: int = None,
                  total_steps: int = 100000, render_start: int = None, do_plot: bool = True, plot_interval: int = 10000,
-                 model: str | None = None):
+                 model: str | None = None, progress_bar: bool = True):
         """
         :param env_params: The parameters for the environment. Of type GridEnv.EnvParams
         :param hyperparams: The hyperparameters for the agent. Of type Trainer.Hyperparams
@@ -54,10 +54,12 @@ class Trainer:
         :param do_plot: Whether to plot the current value of the current at regular intervals
         :param plot_interval: The interval at which to plot the current value
         :param model: The path to a model to load
+        :param progress_bar: Whether to show a progress bar
         """
         self.env_params = env_params
         assert hyperparams is not None or model is not None, "Either hyperparams or model must be specified"
         self.hyperparams = hyperparams
+        self.progress_bar = progress_bar
         self.model = model
         self.reset_interval = reset_interval
         self.total_steps = total_steps
@@ -79,6 +81,11 @@ class Trainer:
         self.steps_done = 0
 
     def _init_env(self) -> GridEnv:
+        # if self.env_params["distinguishable_particles"] and self.env_params["render_mode"] is None:
+        #     # delete render_mode from env_params so that it doesn't get passed to the GridEnv constructor
+        #     del self.env_params["render_mode"]
+        #     env: GridEnv | GridEnvJIT = GridEnvJIT(**self.env_params)
+        # else:
         if "GridEnv" not in gym.envs.registry:
             gym.envs.registration.register(
                 id='GridEnv',
@@ -99,7 +106,10 @@ class Trainer:
 
     def _init_model(self) -> tuple[DQN, DQN, optim.AdamW, ReplayMemory, nn.SmoothL1Loss]:
         # Get number of actions from environment action space
-        n_actions = self.env.action_space.n
+        try:
+            n_actions = self.env.action_space.n
+        except AttributeError:  # GridEnvJIT doesn't have an action space
+            n_actions = self.env.action_space
         # Get the number of observed grid cells
         self.reset_env()
         n_observations = self.state.size()[1]
@@ -158,19 +168,14 @@ class Trainer:
                 # ==> pick action with the largest expected reward
                 return self.policy_net(state).max(1)[1].view(1, 1)
         else:
-            return torch.tensor([[self.env.action_space.sample()]], device=self.device, dtype=torch.long)
+            return torch.tensor([[np.random.randint(3)]], device=self.device, dtype=torch.long)
 
     def optimize_model(self):
         if len(self.memory) < self.hyperparams['BATCH_SIZE']:
             return
         batch = self.memory.sample(self.hyperparams['BATCH_SIZE'])
 
-        # Compute a mask of non-final states and concatenate the batch elements
-        # (a final state would've been the one after which simulation ended)
-        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                                batch.next_state)), device=self.device, dtype=torch.bool)
-        non_final_next_states = torch.cat([s for s in batch.next_state
-                                           if s is not None])
+        non_final_next_states = torch.cat(batch.next_state)
         state_batch = torch.cat(batch.state)
         action_batch = torch.cat(batch.action)
         reward_batch = torch.cat(batch.reward)
@@ -187,7 +192,7 @@ class Trainer:
         # state value or 0 in case the state was final.
         next_state_values = torch.zeros(self.hyperparams['BATCH_SIZE'], device=self.device)
         with torch.no_grad():
-            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
+            next_state_values = self.target_net(non_final_next_states).max(1)[0]
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * self.hyperparams['GAMMA']) + reward_batch
 
@@ -217,7 +222,7 @@ class Trainer:
         """
         # print(f"Training for {self.total_steps} timesteps on {self.device}")
         # Training loop
-        for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps", leave=False)):
+        for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps", leave=False, disable=not self.progress_bar)):
             just_reset = False
             # Reset the environment if the reset interval has been reached
             if self.reset_interval and self.steps_done % self.reset_interval == 0 and self.steps_done != 0:
@@ -280,7 +285,7 @@ class Trainer:
         """
         Runs the simulation for the specified number of steps
         """
-        for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps", leave=False)):
+        for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps", leave=False, disable=not self.progress_bar)):
             # TODO: Avoid code duplication
             just_reset = False
             # Reset the environment if the reset interval has been reached
