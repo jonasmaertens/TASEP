@@ -1,5 +1,6 @@
 import os
 import datetime
+import time
 
 import gymnasium as gym
 import math
@@ -44,7 +45,7 @@ class Hyperparams(TypedDict):
 class Trainer:
     def __init__(self, env_params: EnvParams, hyperparams: Hyperparams | None = None, reset_interval: int = None,
                  total_steps: int = 100000, render_start: int = None, do_plot: bool = True, plot_interval: int = 10000,
-                 model: str | None = None, progress_bar: bool = True):
+                 model: str | None = None, progress_bar: bool = True, wait_initial: bool = False):
         """
         :param env_params: The parameters for the environment. Of type GridEnv.EnvParams
         :param hyperparams: The hyperparameters for the agent. Of type Trainer.Hyperparams
@@ -55,8 +56,10 @@ class Trainer:
         :param plot_interval: The interval at which to plot the current value
         :param model: The path to a model to load
         :param progress_bar: Whether to show a progress bar
+        :param wait_initial: Whether to wait 30 seconds before starting the simulation
         """
         self.env_params = env_params
+        self.wait_initial = wait_initial
         assert hyperparams is not None or model is not None, "Either hyperparams or model must be specified"
         self.hyperparams = hyperparams
         self.progress_bar = progress_bar
@@ -277,7 +280,7 @@ class Trainer:
                 self.timesteps.append(self.steps_done)
                 pbar.set_description(f"Eps.: {self._get_current_eps():.2f}, Current: {self.currents[-1]:.2f}")
                 if self.do_plot:
-                    plt.plot(self.timesteps, self.currents)
+                    plt.plot(self.timesteps, self.currents, color="blue")
                     plt.show(block=False)
                     plt.pause(0.01)
 
@@ -288,6 +291,12 @@ class Trainer:
         for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps", leave=False, disable=not self.progress_bar)):
             # TODO: Avoid code duplication
             just_reset = False
+            if self.wait_initial and self.steps_done == 101:
+                plt.show(block=False)
+                plt.pause(0.1)
+                self.env.render()
+                time.sleep(30)
+
             # Reset the environment if the reset interval has been reached
             if self.reset_interval and self.steps_done % self.reset_interval == 0 and self.steps_done != 0:
                 self.reset_env()
@@ -317,7 +326,7 @@ class Trainer:
                 self.timesteps.append(self.steps_done)
                 pbar.set_description(f"Current: {self.currents[-1]:.2f}")
                 if self.do_plot:
-                    plt.plot(self.timesteps, self.currents)
+                    plt.plot(self.timesteps, self.currents, color="blue")
                     plt.show(block=False)
                     plt.pause(0.01)
 

@@ -16,6 +16,7 @@
 - Experience replay for improved learning
 - Training visualization with Pygame
 - Saving the trained network
+- Loading and running pretrained simulations
 
 ## Files
 
@@ -24,6 +25,7 @@
 - `Memory.py`: Class for storing and sampling from experiences
 - `Trainer.py`: Wrapper class for training the network
 - `example_training.py`: Sample training script that plots progress, visualizes with Pygame, and saves the network at the end
+- `example_run_pretrained.py`: Sample script for loading and running a pretrained network
 
 ## Setup
 
@@ -31,7 +33,7 @@
 
    - [PyTorch Installation](https://pytorch.org/get-started/locally/)
 
-   Note: If you're on a Mac, consider using Metal Performance Shaders (MPS) instead of CUDA and modify the code accordingly. ([PyTorch on Apple Silicon](https://developer.apple.com/metal/pytorch/))
+   Note: If you're on a Mac, CPU is probably faster than Metal Performance Shaders (MPS) ([PyTorch on Apple Silicon](https://developer.apple.com/metal/pytorch/))
 
 2. Install the following Python packages using Conda or Pip:
 
