@@ -3,19 +3,20 @@
 from Trainer import Trainer, Hyperparams, EnvParams
 
 if __name__ == '__main__':
-    envParams = EnvParams(render_mode=None,
+    envParams = EnvParams(render_mode="human",
                           length=128,
-                          width=32,
-                          moves_per_timestep=20,
-                          window_height=256,
-                          observation_distance=2,
+                          width=48,
+                          moves_per_timestep=40,
+                          window_height=512,
+                          observation_distance=3,
                           initial_state_template="checkerboard",
                           distinguishable_particles=True,
-                          use_speeds=True,
-                          sigma=0.5,
-                          average_window=2500)
+                          use_speeds=False,
+                          sigma=1,
+                          average_window=2500,
+                          allow_wait=True)
     hyperparams = Hyperparams(BATCH_SIZE=256,
-                              GAMMA=0.9,
+                              GAMMA=0.99,
                               EPS_START=0.9,
                               EPS_END=0.01,
                               EPS_DECAY=40000,
@@ -23,11 +24,11 @@ if __name__ == '__main__':
                               LR=0.005,
                               MEMORY_SIZE=100000)
 
-    trainer = Trainer(envParams, hyperparams, reset_interval=40000,
-                      total_steps=3000000, do_plot=True, plot_interval=2500)
+    trainer = Trainer(envParams, hyperparams, reset_interval=60000,
+                      total_steps=200000, do_plot=True, plot_interval=2500)
 
     trainer.train()
 
-    # trainer.save_plot()
+    #trainer.save_plot()
 
-    # trainer.save("example_model_distinguishable.pt")
+    trainer.save("models/different_speeds/allow_wait/model_500000_steps_sigma_1.pt")
