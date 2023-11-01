@@ -14,12 +14,12 @@ if __name__ == '__main__':
                           use_speeds=True,
                           sigma=0.5,
                           average_window=2500)
-    hyperparams = Hyperparams(BATCH_SIZE=512,
+    hyperparams = Hyperparams(BATCH_SIZE=256,
                               GAMMA=0.9,
                               EPS_START=0.9,
                               EPS_END=0.01,
                               EPS_DECAY=40000,
-                              TAU=0.0001,
+                              TAU=0.005,
                               LR=0.005,
                               MEMORY_SIZE=100000)
 
