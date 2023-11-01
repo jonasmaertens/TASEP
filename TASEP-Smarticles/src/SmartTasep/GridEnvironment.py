@@ -26,6 +26,7 @@ class EnvParams(TypedDict):
         use_speeds: Whether to use speeds or not
         sigma: The standard deviation of the normal distribution to draw speeds from
         average_window: The number of timesteps to average over for the current. If None, the whole episode is averaged
+        allow_wait: Whether to allow the agent to wait or not
     """
     render_mode: NotRequired[str | None]
     length: int
@@ -39,6 +40,7 @@ class EnvParams(TypedDict):
     use_speeds: bool
     sigma: NotRequired[float]
     average_window: NotRequired[int]
+    allow_wait: NotRequired[bool]
 
 
 def truncated_normal_single(mean, std_dev):
@@ -61,9 +63,10 @@ class GridEnv(gym.Env):
 
     def __init__(self, render_mode=None, length=64, width=16, moves_per_timestep=5, window_height=256,
                  observation_distance=3, initial_state=None, initial_state_template=None,
-                 distinguishable_particles=False, use_speeds=False, sigma=None, average_window=1000):
+                 distinguishable_particles=False, use_speeds=False, sigma=None, average_window=1000, allow_wait=False):
         self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
         self.current_mover: Optional[np.ndarray] = None
+        self.allow_wait = allow_wait
         self.length = length  # The length of the grid
         self.width = width  # The number of "lanes"
         self.window_height = window_height  # The height of the PyGame window
@@ -111,7 +114,10 @@ class GridEnv(gym.Env):
             self.observation_space: spaces.Tuple[ObsType, ObsType] = spaces.Tuple((single_obs, single_obs))
 
         # We have 3 actions, corresponding to "forward", "up", "down"
-        self.action_space: spaces.Discrete = spaces.Discrete(3)
+        if self.allow_wait:
+            self.action_space: spaces.Discrete = spaces.Discrete(4)
+        else:
+            self.action_space: spaces.Discrete = spaces.Discrete(3)
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -305,11 +311,13 @@ class GridEnv(gym.Env):
             has_moved = self._move_if_possible((above, self.current_mover[1]))
             if not has_moved:
                 reward = -1
-        else:  # down
+        elif action == 2:  # down
             below = 0 if self.current_mover[0] == self.width - 1 else self.current_mover[0] + 1
             has_moved = self._move_if_possible((below, self.current_mover[1]))
             if not has_moved:
                 reward = -1
+        elif action == 3:  # wait
+            pass
 
         if not self.distinguishable_particles:
             react_observation = self._get_obs(new_mover=False)
