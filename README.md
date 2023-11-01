@@ -37,6 +37,7 @@
 
 2. Install the following Python packages using Conda or Pip:
 
+   - torchrl (you might have to install this before pytorch depending on the version) 
    - gymnasium
    - matplotlib
    - tqdm

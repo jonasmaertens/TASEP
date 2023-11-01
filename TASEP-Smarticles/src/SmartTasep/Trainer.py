@@ -11,13 +11,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from tensordict import TensorDict
 from tqdm import tqdm
 
 from DQN import DQN
-from Memory import ReplayMemory
 from GridEnvironment import GridEnv, EnvParams
 
 from typing import TypedDict, Optional
+
+from torchrl.data import LazyTensorStorage, TensorDictReplayBuffer
 
 
 class Hyperparams(TypedDict):
@@ -107,7 +109,7 @@ class Trainer:
             (state, _), info = self.env.reset()
             self.state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
 
-    def _init_model(self) -> tuple[DQN, DQN, optim.AdamW, ReplayMemory, nn.SmoothL1Loss]:
+    def _init_model(self) -> tuple[DQN, DQN, optim.AdamW, TensorDictReplayBuffer, nn.SmoothL1Loss]:
         # Get number of actions from environment action space
         try:
             n_actions = self.env.action_space.n
@@ -134,7 +136,8 @@ class Trainer:
 
         if self.hyperparams:
             optimizer = optim.AdamW(policy_net.parameters(), lr=self.hyperparams['LR'], amsgrad=True)
-            memory = ReplayMemory(self.hyperparams['MEMORY_SIZE'])
+            memory = TensorDictReplayBuffer(storage=LazyTensorStorage(self.hyperparams['MEMORY_SIZE']),
+                                            batch_size=self.hyperparams['BATCH_SIZE'])
             criterion = nn.SmoothL1Loss()
         else:
             optimizer = None
@@ -176,12 +179,12 @@ class Trainer:
     def optimize_model(self):
         if len(self.memory) < self.hyperparams['BATCH_SIZE']:
             return
-        batch = self.memory.sample(self.hyperparams['BATCH_SIZE'])
+        batch = self.memory.sample()
 
-        non_final_next_states = torch.cat(batch.next_state)
-        state_batch = torch.cat(batch.state)
-        action_batch = torch.cat(batch.action)
-        reward_batch = torch.cat(batch.reward)
+        non_final_next_states = batch["next_state"]
+        state_batch = batch["state"]
+        action_batch = batch["action"]
+        reward_batch = batch["reward"]
 
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
         # columns of actions taken. These are the actions which would've been taken
@@ -193,7 +196,6 @@ class Trainer:
         # on the "older" target_net; selecting their best reward with max(1)[0].
         # This is merged based on the mask, such that we'll have either the expected
         # state value or 0 in case the state was final.
-        next_state_values = torch.zeros(self.hyperparams['BATCH_SIZE'], device=self.device)
         with torch.no_grad():
             next_state_values = self.target_net(non_final_next_states).max(1)[0]
         # Compute the expected Q values
@@ -225,7 +227,8 @@ class Trainer:
         """
         # print(f"Training for {self.total_steps} timesteps on {self.device}")
         # Training loop
-        for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps", leave=False, disable=not self.progress_bar)):
+        for self.steps_done in (
+                pbar := tqdm(range(self.total_steps), unit="steps", leave=False, disable=not self.progress_bar)):
             just_reset = False
             # Reset the environment if the reset interval has been reached
             if self.reset_interval and self.steps_done % self.reset_interval == 0 and self.steps_done != 0:
@@ -247,8 +250,13 @@ class Trainer:
                 reward = torch.tensor([reward], device=self.device)
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
                 if next_mover in self.last_states:
-                    self.memory.push(self.last_states[next_mover][0], self.last_states[next_mover][1],
-                                     next_state, self.last_states[next_mover][2])
+                    transition = TensorDict({
+                        "state": self.last_states[next_mover][0],
+                        "action": self.last_states[next_mover][1],
+                        "next_state": next_state,
+                        "reward": self.last_states[next_mover][2],
+                    }, batch_size=1, device=self.device)
+                    self.memory.extend(transition)
                 self.last_states[self.mover] = (self.state, action, reward)
                 self.mover = next_mover
             else:
@@ -258,7 +266,14 @@ class Trainer:
                 reward = torch.tensor([reward], device=self.device)
                 react_state = torch.tensor(react_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
                 # Store the transition in memory
-                self.memory.push(self.state, action, react_state, reward)
+                transition = TensorDict({
+                    "state": self.state,
+                    "action": action,
+                    "next_state": next_state,
+                    "reward": reward,
+                    "react_state": react_state
+                }, batch_size=1, device=self.device)
+                self.memory.extend(transition)
 
             # Move to the next state
             self.state = next_state
@@ -266,14 +281,8 @@ class Trainer:
             # Perform one step of the optimization (on the policy network)
             self.optimize_model()
 
-            # Soft update of the target network's weights
-            # θ′ ← τ θ + (1 −τ )θ′
-            target_net_state_dict = self.target_net.state_dict()
-            policy_net_state_dict = self.policy_net.state_dict()
-            for key in policy_net_state_dict:
-                target_net_state_dict[key] = policy_net_state_dict[key] * self.hyperparams["TAU"] + \
-                                             target_net_state_dict[
-                                                 key] * (1 - self.hyperparams["TAU"])
+            # Update the target network
+            self.soft_update()
 
             if self.steps_done % self.plot_interval == 0 and not just_reset and self.steps_done != 0:
                 self.currents.append(info['current'])
@@ -284,11 +293,19 @@ class Trainer:
                     plt.show(block=False)
                     plt.pause(0.01)
 
+    def soft_update(self):
+        # Soft update of the target network's weights
+        # θ′ ← τ θ + (1 −τ )θ′
+        for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
+            target_param.data.copy_(
+                self.hyperparams['TAU'] * policy_param.data + (1 - self.hyperparams['TAU']) * target_param.data)
+
     def run(self):
         """
         Runs the simulation for the specified number of steps
         """
-        for self.steps_done in (pbar := tqdm(range(self.total_steps), unit="steps", leave=False, disable=not self.progress_bar)):
+        for self.steps_done in (
+                pbar := tqdm(range(self.total_steps), unit="steps", leave=False, disable=not self.progress_bar)):
             # TODO: Avoid code duplication
             just_reset = False
             if self.wait_initial and self.steps_done == 101:
@@ -316,7 +333,7 @@ class Trainer:
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
             else:
                 (_, next_observation), _, terminated, truncated, info = self.env.step(
-                    action.item()) # Perform action and get reward, reaction and next state
+                    action.item())  # Perform action and get reward, reaction and next state
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
 
             self.state = next_state
