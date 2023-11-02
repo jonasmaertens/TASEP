@@ -136,8 +136,9 @@ class Trainer:
 
         if self.hyperparams:
             optimizer = optim.AdamW(policy_net.parameters(), lr=self.hyperparams['LR'], amsgrad=True)
-            memory = TensorDictReplayBuffer(storage=LazyTensorStorage(self.hyperparams['MEMORY_SIZE']),
-                                            batch_size=self.hyperparams['BATCH_SIZE'])
+            memory = TensorDictReplayBuffer(
+                storage=LazyTensorStorage(self.hyperparams['MEMORY_SIZE'], device=self.device),
+                batch_size=self.hyperparams['BATCH_SIZE'])
             criterion = nn.SmoothL1Loss()
         else:
             optimizer = None
