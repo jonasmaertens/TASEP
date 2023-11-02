@@ -24,6 +24,7 @@
 - `GridEnvironment.py`: Environment class that computes states, transitions, and rewards
 - `Memory.py`: Class for storing and sampling from experiences
 - `Trainer.py`: Wrapper class for training the network
+- `Playground.py`: Script for testing a learned policy interactively
 - `example_training.py`: Sample training script that plots progress, visualizes with Pygame, and saves the network at the end
 - `example_run_pretrained.py`: Sample script for loading and running a pretrained network
 
