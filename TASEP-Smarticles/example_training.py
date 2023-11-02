@@ -16,7 +16,7 @@ if __name__ == '__main__':
                           average_window=2500,
                           allow_wait=True)
     hyperparams = Hyperparams(BATCH_SIZE=256,
-                              GAMMA=0.99,
+                              GAMMA=0,
                               EPS_START=0.9,
                               EPS_END=0.01,
                               EPS_DECAY=40000,
@@ -31,4 +31,4 @@ if __name__ == '__main__':
 
     #trainer.save_plot()
 
-    trainer.save("models/different_speeds/allow_wait/model_500000_steps_sigma_1.pt")
+    trainer.save("models/different_speeds/allow_wait/model_200000_steps_sigma_1_no_gamma.pt", append_timestamp=False)
