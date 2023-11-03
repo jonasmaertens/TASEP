@@ -16,18 +16,19 @@ if __name__ == '__main__':
     plt.title(f"Smart TASEP for sigma = {sigma}")
     plt.xlabel("Time")
     plt.ylabel(f"Current (last {average_window} moves averaged)")
-    model = f"models/different_speeds/individual_sigmas/model_100000_steps_sigma_1.00e+01_20231028170511.pt"
+    model = f"models/same_speeds/allow_wait/model_200000_steps_sigma_1_no_gamma.pt"
     env_params = EnvParams(render_mode="human",
                            length=128,
                            width=32,
                            moves_per_timestep=400,
-                           window_height=300,
-                           observation_distance=2,
+                           window_height=256,
+                           observation_distance=3,
                            initial_state_template="checkerboard",
                            distinguishable_particles=True,
-                           use_speeds=True,
+                           use_speeds=False,
                            sigma=sigma,
-                           average_window=average_window)
+                           average_window=average_window,
+                           allow_wait=True)
     trainer = Trainer(env_params, model=model, total_steps=300_000, do_plot=True, plot_interval=average_window,
-                      progress_bar=True, wait_initial=True)
+                      progress_bar=True, wait_initial=False)
     trainer.run()

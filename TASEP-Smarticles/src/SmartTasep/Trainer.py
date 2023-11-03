@@ -47,7 +47,8 @@ class Hyperparams(TypedDict):
 class Trainer:
     def __init__(self, env_params: EnvParams, hyperparams: Hyperparams | None = None, reset_interval: int = None,
                  total_steps: int = 100000, render_start: int = None, do_plot: bool = True, plot_interval: int = 10000,
-                 model: str | None = None, progress_bar: bool = True, wait_initial: bool = False):
+                 model: str | None = None, progress_bar: bool = True, wait_initial: bool = False,
+                 random_density: bool = False):
         """
         :param env_params: The parameters for the environment. Of type GridEnv.EnvParams
         :param hyperparams: The hyperparameters for the agent. Of type Trainer.Hyperparams
@@ -59,9 +60,11 @@ class Trainer:
         :param model: The path to a model to load
         :param progress_bar: Whether to show a progress bar
         :param wait_initial: Whether to wait 30 seconds before starting the simulation
+        :param random_density: Whether to use a random density for the initial state
         """
         self.env_params = env_params
         self.wait_initial = wait_initial
+        self.random_density = random_density
         assert hyperparams is not None or model is not None, "Either hyperparams or model must be specified"
         self.hyperparams = hyperparams
         self.progress_bar = progress_bar
@@ -102,11 +105,11 @@ class Trainer:
 
     def reset_env(self):
         if self.env_params["distinguishable_particles"]:
-            (state, mover), info = self.env.reset()
+            (state, mover), info = self.env.reset(random_density=self.random_density)
             self.mover = mover
             self.state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
         else:
-            (state, _), info = self.env.reset()
+            (state, _), info = self.env.reset(random_density=self.random_density)
             self.state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
 
     def _init_model(self) -> tuple[DQN, DQN, optim.AdamW, TensorDictReplayBuffer, nn.SmoothL1Loss]:
@@ -248,7 +251,7 @@ class Trainer:
 
             if self.env_params["distinguishable_particles"]:
                 (next_observation, next_mover), reward, terminated, truncated, info = self.env.step(action.item())
-                reward = torch.tensor([reward], device=self.device)
+                reward = torch.tensor([reward], device=self.device, dtype=torch.float32)
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
                 if next_mover in self.last_states:
                     transition = TensorDict({
@@ -264,7 +267,7 @@ class Trainer:
                 (react_observation, next_observation), reward, terminated, truncated, info = self.env.step(
                     action.item())  # Perform action and get reward, reaction and next state
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
-                reward = torch.tensor([reward], device=self.device)
+                reward = torch.tensor([reward], device=self.device, dtype=torch.float32)
                 react_state = torch.tensor(react_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
                 # Store the transition in memory
                 transition = TensorDict({
@@ -288,7 +291,8 @@ class Trainer:
             if self.steps_done % self.plot_interval == 0 and not just_reset and self.steps_done != 0:
                 self.currents.append(info['current'])
                 self.timesteps.append(self.steps_done)
-                pbar.set_description(f"Eps.: {self._get_current_eps():.2f}, Current: {self.currents[-1]:.2f}")
+                pbar.set_description(
+                    f"Eps.: {self._get_current_eps():.2f}, Current: {self.currents[-1]:.2f}, rho={self.env.unwrapped.density:.2f}")
                 if self.do_plot:
                     plt.plot(self.timesteps, self.currents, color="blue")
                     plt.show(block=False)
