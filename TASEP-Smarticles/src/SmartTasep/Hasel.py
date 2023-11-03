@@ -5,7 +5,7 @@ import multiprocessing
 import math
 
 
-def hsl2rgb(hsl, astype):
+def hsl2rgb(hsl, astype=np.float32):
     def core(_hsl, _frgb):
 
         h, s, l = _hsl[:, :, 0], _hsl[:, :, 1], _hsl[:, :, 2]
