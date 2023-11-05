@@ -150,5 +150,6 @@ class Playground:
 if __name__ == '__main__':
     # model = "models/same_speeds/allow_wait/model_500000_steps_sigma_1_render3.pt"
     # model = "models/same_speeds/allow_wait/model_200000_steps_sigma_1_no_gamma_2.pt"
-    model = "models/same_speeds/allow_wait/model_1500000_steps_social_0.6_different_rho.pt"
+    #model = "models/same_speeds/allow_wait/model_1500000_steps_social_0.6_different_rho.pt"
+    model = "models/different_speeds/allow_wait/model_1500000_steps_social_0.6_different_rho.pt"
     Playground(model, observation_distance=3, actions=4)

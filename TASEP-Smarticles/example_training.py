@@ -3,15 +3,15 @@
 from Trainer import Trainer, Hyperparams, EnvParams
 
 if __name__ == '__main__':
-    envParams = EnvParams(render_mode="human",
+    envParams = EnvParams(render_mode=None,
                           length=128,
                           width=32,
                           moves_per_timestep=400,
                           window_height=400,
                           observation_distance=3,
                           distinguishable_particles=True,
-                          use_speeds=False,
-                          #sigma=1,
+                          use_speeds=True,
+                          sigma=1,
                           average_window=2500,
                           allow_wait=True,
                           social_reward=0.6)
@@ -25,10 +25,6 @@ if __name__ == '__main__':
                               MEMORY_SIZE=100000)
 
     trainer = Trainer(envParams, hyperparams, reset_interval=50000,
-                      total_steps=1500000, do_plot=True, plot_interval=2500, random_density=True, )
+                      total_steps=150_000, do_plot=True, plot_interval=2500, random_density=True, )
 
-    trainer.train()
-
-    # trainer.save_plot()
-
-    trainer.save("models/same_speeds/allow_wait/model_1500000_steps_social_0.6_different_rho.pt", append_timestamp=True)
+    trainer.train_and_safe()
