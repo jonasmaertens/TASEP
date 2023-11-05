@@ -77,7 +77,8 @@ def simulate(System, SystemSnapshot, Corr, CorrTot):
                     dice = np.random.randint(4)
                     if dice == 0:  # hop forward
                         System[X, Y], System[X, yNext] = System[X, yNext], System[X, Y]
-                        total_forward += 1
+                        if System[X, Y] == 0:
+                            total_forward += 1
                     elif dice == 2:  # hop up
                         System[X, Y], System[xPrev, Y] = System[xPrev, Y], System[X, Y]
                         total_up += 1
