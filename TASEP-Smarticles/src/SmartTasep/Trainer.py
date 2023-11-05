@@ -1,12 +1,15 @@
+import json
 import os
 import datetime
 import time
+from collections import namedtuple
 
 import gymnasium as gym
 import math
 import random
 import matplotlib.pyplot as plt
 import numpy as np
+from tabulate import tabulate, TableFormat
 
 import torch
 import torch.nn as nn
@@ -47,7 +50,8 @@ class Hyperparams(TypedDict):
 class Trainer:
     def __init__(self, env_params: EnvParams, hyperparams: Hyperparams | None = None, reset_interval: int = None,
                  total_steps: int = 100000, render_start: int = None, do_plot: bool = True, plot_interval: int = 10000,
-                 model: str | None = None, progress_bar: bool = True, wait_initial: bool = False):
+                 model: str | None = None, progress_bar: bool = True, wait_initial: bool = False,
+                 random_density: bool = False):
         """
         :param env_params: The parameters for the environment. Of type GridEnv.EnvParams
         :param hyperparams: The hyperparameters for the agent. Of type Trainer.Hyperparams
@@ -59,9 +63,11 @@ class Trainer:
         :param model: The path to a model to load
         :param progress_bar: Whether to show a progress bar
         :param wait_initial: Whether to wait 30 seconds before starting the simulation
+        :param random_density: Whether to use a random density for the initial state
         """
         self.env_params = env_params
         self.wait_initial = wait_initial
+        self.random_density = random_density
         assert hyperparams is not None or model is not None, "Either hyperparams or model must be specified"
         self.hyperparams = hyperparams
         self.progress_bar = progress_bar
@@ -85,12 +91,71 @@ class Trainer:
         self.policy_net, self.target_net, self.optimizer, self.memory, self.criterion = self._init_model()
         self.steps_done = 0
 
+    @classmethod
+    def load(cls, model_id: int = None):
+        """
+        Loads a model from the models directory
+        :param model_id: The id of the model to load. If None, the user will
+            be prompted to select a model from a table of all models
+        """
+        if model_id is None:
+            # load all_models.json
+            with open("models/all_models.json", "r") as f:
+                all_models = json.load(f)
+            # create table with all models
+            table = []
+            for key, value in all_models.items():
+                table.append([key,
+                              value["total_steps"],
+                              value["hyperparams"]["BATCH_SIZE"],
+                              value["hyperparams"]["GAMMA"],
+                              value["hyperparams"]["EPS_START"],
+                              value["hyperparams"]["EPS_END"],
+                              value["hyperparams"]["EPS_DECAY"],
+                              value["hyperparams"]["TAU"],
+                              value["hyperparams"]["LR"],
+                              value["hyperparams"]["MEMORY_SIZE"],
+                              value["env_params"]["length"],
+                              value["env_params"]["width"],
+                              value["env_params"]["observation_distance"],
+                              value["env_params"]["distinguishable_particles"],
+                              value["env_params"]["use_speeds"],
+                              value["env_params"]["sigma"],
+                              value["env_params"]["average_window"],
+                              value["env_params"]["allow_wait"],
+                              value["env_params"]["social_reward"],
+                              ])
+            tabulate.MIN_PADDING = 0
+            Line = namedtuple("Line", ["begin", "hline", "sep", "end"])
+            DataRow = namedtuple("DataRow", ["begin", "sep", "end"])
+            grid = TableFormat(
+                lineabove=Line("╒", "═", "╤", "╕"),
+                linebelowheader=Line("╞", "═", "╪", "╡"),
+                linebetweenrows=Line("├", "─", "┼", "┤"),
+                linebelow=Line("╘", "═", "╧", "╛"),
+                headerrow=DataRow("│", "│", "│"),
+                datarow=DataRow("│", "│", "│"),
+                padding=0,
+                with_header_hide=None,
+            )
+            print(tabulate(table, headers=[
+                "id", "tot_step", "BATCH", "γ", "ε_0", "ε_end", "ε_dec", "τ",
+                "LR", "MEM", "len", "width", "r_obs", "disting.",
+                "speeds",
+                "σ", "avg_wdw", "wait", "horn"
+            ], tablefmt=grid))
+            # prompt user to select a model
+            model_id = int(input("Enter model id: "))
+        # load model
+        with open(f"models/by_id/{model_id}/hyperparams.json", "r") as f:
+            hyperparams = json.load(f)
+        with open(f"models/by_id/{model_id}/env_params.json", "r") as f:
+            env_params = json.load(f)
+        trainer = cls(env_params, hyperparams, model=f"models/by_id/{model_id}/policy_net.pt",
+                      total_steps=hyperparams["EPS_DECAY"], do_plot=False, progress_bar=False)
+        return trainer
+
     def _init_env(self) -> GridEnv:
-        # if self.env_params["distinguishable_particles"] and self.env_params["render_mode"] is None:
-        #     # delete render_mode from env_params so that it doesn't get passed to the GridEnv constructor
-        #     del self.env_params["render_mode"]
-        #     env: GridEnv | GridEnvJIT = GridEnvJIT(**self.env_params)
-        # else:
         if "GridEnv" not in gym.envs.registry:
             gym.envs.registration.register(
                 id='GridEnv',
@@ -102,11 +167,11 @@ class Trainer:
 
     def reset_env(self):
         if self.env_params["distinguishable_particles"]:
-            (state, mover), info = self.env.reset()
+            (state, mover), info = self.env.reset(random_density=self.random_density)
             self.mover = mover
             self.state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
         else:
-            (state, _), info = self.env.reset()
+            (state, _), info = self.env.reset(random_density=self.random_density)
             self.state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
 
     def _init_model(self) -> tuple[DQN, DQN, optim.AdamW, TensorDictReplayBuffer, nn.SmoothL1Loss]:
@@ -248,7 +313,7 @@ class Trainer:
 
             if self.env_params["distinguishable_particles"]:
                 (next_observation, next_mover), reward, terminated, truncated, info = self.env.step(action.item())
-                reward = torch.tensor([reward], device=self.device)
+                reward = torch.tensor([reward], device=self.device, dtype=torch.float32)
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
                 if next_mover in self.last_states:
                     transition = TensorDict({
@@ -264,7 +329,7 @@ class Trainer:
                 (react_observation, next_observation), reward, terminated, truncated, info = self.env.step(
                     action.item())  # Perform action and get reward, reaction and next state
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
-                reward = torch.tensor([reward], device=self.device)
+                reward = torch.tensor([reward], device=self.device, dtype=torch.float32)
                 react_state = torch.tensor(react_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
                 # Store the transition in memory
                 transition = TensorDict({
@@ -288,7 +353,8 @@ class Trainer:
             if self.steps_done % self.plot_interval == 0 and not just_reset and self.steps_done != 0:
                 self.currents.append(info['current'])
                 self.timesteps.append(self.steps_done)
-                pbar.set_description(f"Eps.: {self._get_current_eps():.2f}, Current: {self.currents[-1]:.2f}")
+                pbar.set_description(
+                    f"Eps.: {self._get_current_eps():.2f}, Current: {self.currents[-1]:.2f}, rho={self.env.unwrapped.density:.2f}")
                 if self.do_plot:
                     plt.plot(self.timesteps, self.currents, color="blue")
                     plt.show(block=False)
@@ -348,7 +414,66 @@ class Trainer:
                     plt.show(block=False)
                     plt.pause(0.01)
 
-    def save(self, file: str = None, append_timestamp=True):
+    def save(self):
+        # create models directory if it doesn't exist
+        if not os.path.exists(os.path.dirname("models/")):
+            os.makedirs(os.path.dirname("models/"))
+        # create by_id directory if it doesn't exist
+        if not os.path.exists(os.path.dirname("models/by_id/")):
+            os.makedirs(os.path.dirname("models/by_id/"))
+        # create all_models.json if it doesn't exist
+        if not os.path.exists("models/all_models.json"):
+            with open("models/all_models.json", "w") as f:
+                f.write("{}")
+            model_id = 0
+            all_models = {}
+        else:
+            # load all_models.json
+            with open("models/all_models.json", "r") as f:
+                all_models = json.load(f)
+            # create unique model id, one higher than the highest existing id
+            model_id = max([int(key) for key in all_models.keys()]) + 1
+        # create model directory
+        os.makedirs(os.path.dirname(f"models/by_id/{model_id}/"))
+        # save model policy net and target net
+        torch.save(self.policy_net.state_dict(), f"models/by_id/{model_id}/policy_net.pt")
+        torch.save(self.target_net.state_dict(), f"models/by_id/{model_id}/target_net.pt")
+        # save hyperparams
+        with open(f"models/by_id/{model_id}/hyperparams.json", "w") as f:
+            json.dump(self.hyperparams, f)
+        # save env params
+        with open(f"models/by_id/{model_id}/env_params.json", "w") as f:
+            json.dump(self.env_params, f)
+        # save currents
+        np.save(f"models/by_id/{model_id}/currents.npy", self.currents)
+        # save timesteps
+        np.save(f"models/by_id/{model_id}/timesteps.npy", self.timesteps)
+        # save plot
+        plt.plot(self.timesteps, self.currents)
+        plt.xlabel("Time")
+        plt.ylabel("Current")
+        plt.title(f"Current over time for model {model_id}")
+        plt.savefig(f"models/by_id/{model_id}/plot.png")
+        plt.cla()
+        plt.close()
+        # save model path and metadata to all_models.json
+        all_models[str(model_id)] = {
+            "path": f"models/by_id/{model_id}/",
+            "hyperparams": self.hyperparams,
+            "env_params": self.env_params,
+            "total_steps": self.total_steps,
+            "plot_interval": self.plot_interval,
+            "render_start": self.render_start,
+            "reset_interval": self.reset_interval,
+            "model_id": model_id,
+            "timestamp": datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        }
+        with open("models/all_models.json", "w") as f:
+            json.dump(all_models, f)
+        print(f"Saved model with id {model_id} to models/by_id/{model_id}/")
+        print(f"Load model with `trainer = Trainer.load({model_id})`")
+
+    def _save(self, file: str = None, append_timestamp=True):
         if file is None:
             file = f"models/policy_net_trained_{self.total_steps}_steps.pt"
         if append_timestamp:
@@ -360,7 +485,7 @@ class Trainer:
             os.makedirs(os.path.dirname(file))
         torch.save(self.policy_net.state_dict(), file)
 
-    def save_plot(self, file: str = None, append_timestamp=True):
+    def _save_plot(self, file: str = None, append_timestamp=True):
         if file is None:
             file = f"plots/plot_{self.total_steps}_steps.png"
         if append_timestamp:
@@ -375,7 +500,7 @@ class Trainer:
         plt.cla()
         plt.close()
 
-    def save_currents(self, file: str = None, append_timestamp=True):
+    def _save_currents(self, file: str = None, append_timestamp=True):
         if file is None:
             file = f"data/currents_{self.total_steps}_steps.npy"
         if append_timestamp:
@@ -387,3 +512,7 @@ class Trainer:
             os.makedirs(os.path.dirname(file))
         np.save(file, self.currents)
         np.save(file.replace(".npy", "_timesteps.npy"), self.timesteps)
+
+    def train_and_safe(self):
+        self.train()
+        self.save()

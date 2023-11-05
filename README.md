@@ -44,6 +44,7 @@
    - tqdm
    - pygame
    - numpy
+   - tabulate
 
 ## Usage
 

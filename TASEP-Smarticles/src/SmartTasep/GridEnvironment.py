@@ -27,6 +27,9 @@ class EnvParams(TypedDict):
         sigma: The standard deviation of the normal distribution to draw speeds from
         average_window: The number of timesteps to average over for the current. If None, the whole episode is averaged
         allow_wait: Whether to allow the agent to wait or not
+        social_reward: The absolute value of the negative reward for moving into a cell with a particle behind it
+        density: The density of particles in the system [0, 1]
+
     """
     render_mode: NotRequired[str | None]
     length: int
@@ -41,6 +44,8 @@ class EnvParams(TypedDict):
     sigma: NotRequired[float]
     average_window: NotRequired[int]
     allow_wait: NotRequired[bool]
+    social_reward: NotRequired[float]
+    density: NotRequired[float]
 
 
 def truncated_normal_single(mean, std_dev):
@@ -63,8 +68,11 @@ class GridEnv(gym.Env):
 
     def __init__(self, render_mode=None, length=64, width=16, moves_per_timestep=5, window_height=256,
                  observation_distance=3, initial_state=None, initial_state_template=None,
-                 distinguishable_particles=False, use_speeds=False, sigma=None, average_window=1000, allow_wait=False):
+                 distinguishable_particles=False, use_speeds=False, sigma=None, average_window=1000, allow_wait=False,
+                 social_reward=None, density=0.5):
         self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
+        self.social_reward = social_reward
+        self.density = density
         self.current_mover: Optional[np.ndarray] = None
         self.allow_wait = allow_wait
         self.length = length  # The length of the grid
@@ -236,7 +244,7 @@ class GridEnv(gym.Env):
         else:  # rgb_array
             return rgb_array
 
-    def reset(self, seed=None, options=None) -> tuple[WholeObsType, dict[str, Any]]:
+    def reset(self, seed=None, options=None, random_density=False) -> tuple[WholeObsType, dict[str, Any]]:
         # We need the following line to seed self.np_random (for reproducibility)
         super().reset(seed=seed)
 
@@ -254,7 +262,11 @@ class GridEnv(gym.Env):
                 self.state = np.zeros((self.width, self.length), dtype=self.use_dtype)
                 self.state[::3, ::3] = 1
             else:
-                self.state = self.np_random.integers(2, size=(self.width, self.length), dtype=self.use_dtype)
+                self.density = self.density if not random_density else self.np_random.uniform(0.1, 0.7)
+                self.state = self.np_random.random(size=(self.width, self.length), dtype=np.float32)
+                self.state[self.state < self.density] = 1
+                self.state[self.state != 1] = 0
+                self.state = self.state.astype(self.use_dtype)
         else:
             self.state = self.initial_state
         if self.distinguishable_particles:
@@ -298,8 +310,8 @@ class GridEnv(gym.Env):
         if action == 0:  # forward
             # when using speeds, the probability to move forward is the speed of the particle
             if not self.use_speeds or self.np_random.random() < self.state[*self.current_mover] % 1:
-                next_y = 0 if self.current_mover[1] == self.length - 1 else self.current_mover[1] + 1
-                has_moved = self._move_if_possible((self.current_mover[0], next_y))
+                next_x = 0 if self.current_mover[1] == self.length - 1 else self.current_mover[1] + 1
+                has_moved = self._move_if_possible((self.current_mover[0], next_x))
                 if not has_moved:
                     reward = -1
                 else:
@@ -318,6 +330,15 @@ class GridEnv(gym.Env):
                 reward = -1
         elif action == 3:  # wait
             pass
+        if self.social_reward:
+            if action == 1:
+                prev_x = self.length - 1 if self.current_mover[1] == 0 else self.current_mover[1] - 1
+                if self.state[above, prev_x] != 0:
+                    reward -= self.social_reward if not self.use_speeds else (self.state[above, prev_x] % 1) / 2
+            elif action == 2:
+                prev_x = self.length - 1 if self.current_mover[1] == 0 else self.current_mover[1] - 1
+                if self.state[below, prev_x] != 0:
+                    reward -= self.social_reward if not self.use_speeds else (self.state[below, prev_x] % 1) / 2
 
         if not self.distinguishable_particles:
             react_observation = self._get_obs(new_mover=False)
