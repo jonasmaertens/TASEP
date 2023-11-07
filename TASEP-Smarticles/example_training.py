@@ -10,21 +10,22 @@ if __name__ == '__main__':
                           window_height=400,
                           observation_distance=3,
                           distinguishable_particles=True,
+                          initial_state_template="checkerboard",
                           use_speeds=True,
                           sigma=1,
-                          average_window=2500,
+                          average_window=5000,
                           allow_wait=True,
                           social_reward=0.6)
     hyperparams = Hyperparams(BATCH_SIZE=256,
-                              GAMMA=0.8,
+                              GAMMA=0.99,
                               EPS_START=0.9,
                               EPS_END=0.01,
-                              EPS_DECAY=40000,
+                              EPS_DECAY=160000,
                               TAU=0.005,
                               LR=0.005,
-                              MEMORY_SIZE=100000)
+                              MEMORY_SIZE=300_000)
 
-    trainer = Trainer(envParams, hyperparams, reset_interval=50000,
-                      total_steps=150_000, do_plot=True, plot_interval=2500, random_density=True, )
+    trainer = Trainer(envParams, hyperparams, reset_interval=80000,
+                      total_steps=500_000, do_plot=True, plot_interval=5000, random_density=False, )
 
     trainer.train_and_safe()

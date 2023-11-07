@@ -1,86 +1,55 @@
 # import sys
 # sys.path.append('src/SmartTasep/') # uncomment this line if PYTHNONPATH is not set in IDE
-import glob
-import os
 import multiprocessing as mp
 
 import matplotlib.pyplot as plt
 
-from Trainer import Trainer, Hyperparams, EnvParams
+from Trainer import Trainer
 import numpy as np
+from functools import partial
 
 
-def train_model():
-    for sigma in sigmas:
-        print(f"sigma = {sigma:.2e}")
-        env_params = EnvParams(render_mode=None,
-                               length=128,
-                               width=32,
-                               moves_per_timestep=20,
-                               window_height=256,
-                               observation_distance=2,
-                               initial_state_template="checkerboard",
-                               distinguishable_particles=True,
-                               use_speeds=True,
-                               sigma=sigma,
-                               average_window=3500)
-        hyperparams = Hyperparams(BATCH_SIZE=512,
-                                  GAMMA=0.9,
-                                  EPS_START=0.9,
-                                  EPS_END=0.01,
-                                  EPS_DECAY=40000,
-                                  TAU=0.0001,
-                                  LR=0.005,
-                                  MEMORY_SIZE=100000)
-
-        trainer = Trainer(env_params, hyperparams, reset_interval=40000,
-                          total_steps=155_000, do_plot=False, plot_interval=3500)
-
-        trainer.train()
-
-        trainer.save_plot(f"plots/different_speeds/individual_sigmas/long/long_sigma_{sigma:.2e}.png")
-
-        trainer.save(f"models/different_speeds/individual_sigmas/long/model_long_151_000_steps_sigma_{sigma:.2e}.pt")
-
-
-def run_trainer(sigma):
-    possible_files = glob.glob(
-        f"models/different_speeds/individual_sigmas/model_100000_steps_sigma_1.00e+01*.pt")
-    if len(possible_files) != 1:
-        print(f"Could not find model for sigma = {sigma}")
-    file = possible_files[0]
-    # print(f"Found model for sigma = {sigma:2e}")
-    env_params = EnvParams(render_mode=None,
-                           length=128,
-                           width=32,
-                           moves_per_timestep=300,
-                           window_height=256,
-                           observation_distance=2,
-                           initial_state_template="checkerboard",
-                           distinguishable_particles=True,
-                           use_speeds=True,
-                           sigma=sigma,
-                           average_window=5000)
-    currents = np.zeros(40)
-    for i in range(20):
-        print(f"Run {i+1}/20 for sigma = {sigma:.2e}")
-        trainer = Trainer(env_params, model=file, total_steps=201_000, do_plot=False, plot_interval=5000, progress_bar=False)
+def run_trainer(sigma, model_id, runsNumber, len_currs, steps):
+    currents = np.zeros(len_currs)
+    for i in range(runsNumber):
+        print(f"Run {i + 1}/{runsNumber} for sigma = {sigma:.2e}")
+        trainer = Trainer.load(model_id, total_steps=steps, sigma=sigma)
         trainer.run()
         currents += np.array(trainer.currents)
-    currents /= 20
-    np.save(f"data/different_speeds/individual_sigmas/currents_onlysigma10_sigma_{sigma:.2e}.npy", currents)
-    return np.mean(currents[-31:])
+    currents /= runsNumber
+    np.save(f"data/different_speeds/individual_sigmas/currents_fixed_2_sigma_{sigma:.2e}.npy", currents)
+    return np.mean(currents[-int(len_currs * 3 / 4):])
+
+
+def plot_results(runsNumber):
+    sigmas = np.load("data/different_speeds/sigmas_tot.npy")
+    current_means = np.load("data/different_speeds/current_means_fixed_tot.npy")
+    plt.plot(sigmas[5:-12], current_means[5:-12])
+    plt.xlabel("Sigma")
+    plt.ylabel(f"Steady state current")
+    plt.title(f"Average current over {runsNumber} runs of smart TASEP (128x32)")
+    plt.xscale("log")
+    plt.savefig(f"plots/different_speeds/steady_state_current_log_fixed.png")
 
 
 if __name__ == '__main__':
-    sigmas = np.logspace(-1.25, 1.3, 55, dtype=np.float32)
-    print([f"{sigma:.2e}" for sigma in sigmas])
+    sigmas1 = np.logspace(-1.5, 1.5, 50, dtype=np.float32)
+    sigmas2 = np.logspace(-3.5, -1, 10, dtype=np.float32)
+    runsNumber = 10
+    steps = 250000
+    print([f"{sigma:.2e}" for sigma in sigmas2])
     plt.rcParams["figure.figsize"] = (8, 4)
     plt.rcParams["figure.dpi"] = 300
     plt.rcParams["font.size"] = 7
-    pool = mp.Pool(processes=10)  # Change the number of processes as needed
-    current_means = pool.map(run_trainer, sigmas)
-    np.save("data/different_speeds/current_means_onlysigma10.npy", current_means)
+    # model_id = 1  # Trainer.choose_model()
+    # trainer = Trainer.load(model_id, total_steps=steps)
+    # trainer.run()
+    # len_currs = len(trainer.currents)
+    # print(f"len_currs = {len_currs}")
+    # run_trainer_partial = partial(run_trainer, model_id=model_id, runsNumber=runsNumber, len_currs=len_currs,
+    #                               steps=steps)
+    # pool = mp.Pool(processes=10)  # Change the number of processes as needed
+    # current_means = pool.map(run_trainer_partial, sigmas)
+    #np.save("data/different_speeds/current_means_fixed_2.npy", current_means)
 
-
-
+    plot_results(runsNumber)

@@ -92,67 +92,88 @@ class Trainer:
         self.steps_done = 0
 
     @classmethod
-    def load(cls, model_id: int = None):
+    def choose_model(cls):
+        """
+        Prints a table of all models and prompts the user to select one
+        """
+        with open("models/all_models.json", "r") as f:
+            all_models = json.load(f)
+        # create table with all models
+        table = []
+        for key, value in all_models.items():
+            table.append([key,
+                          value["total_steps"],
+                          value["hyperparams"]["BATCH_SIZE"],
+                          value["hyperparams"]["GAMMA"],
+                          value["hyperparams"]["EPS_START"],
+                          value["hyperparams"]["EPS_END"],
+                          value["hyperparams"]["EPS_DECAY"],
+                          value["hyperparams"]["TAU"],
+                          value["hyperparams"]["LR"],
+                          value["hyperparams"]["MEMORY_SIZE"],
+                          value["env_params"]["length"],
+                          value["env_params"]["width"],
+                          value["env_params"]["observation_distance"],
+                          value["env_params"]["distinguishable_particles"],
+                          value["env_params"]["use_speeds"],
+                          value["env_params"]["sigma"],
+                          value["env_params"]["average_window"],
+                          value["env_params"]["allow_wait"],
+                          value["env_params"]["social_reward"],
+                          ])
+        tabulate.MIN_PADDING = 0
+        Line = namedtuple("Line", ["begin", "hline", "sep", "end"])
+        DataRow = namedtuple("DataRow", ["begin", "sep", "end"])
+        grid = TableFormat(
+            lineabove=Line("╒", "═", "╤", "╕"),
+            linebelowheader=Line("╞", "═", "╪", "╡"),
+            linebetweenrows=Line("├", "─", "┼", "┤"),
+            linebelow=Line("╘", "═", "╧", "╛"),
+            headerrow=DataRow("│", "│", "│"),
+            datarow=DataRow("│", "│", "│"),
+            padding=0,
+            with_header_hide=None,
+        )
+        print(tabulate(table, headers=[
+            "id", "tot_step", "BATCH", "γ", "ε_0", "ε_end", "ε_dec", "τ",
+            "LR", "MEM", "len", "width", "r_obs", "disting.",
+            "speeds",
+            "σ", "avg_wdw", "wait", "horn"
+        ], tablefmt=grid))
+        # prompt user to select a model
+        model_id = int(input("Enter model id: "))
+        return model_id
+
+    @classmethod
+    def load(cls, model_id: int = None, sigma: float = None, total_steps: int = None, average_window=None) -> "Trainer":
         """
         Loads a model from the models directory
         :param model_id: The id of the model to load. If None, the user will
             be prompted to select a model from a table of all models
+        :param sigma: Overrides the sigma value in the loaded model
+        :param total_steps: Overrides the total_steps value in the loaded model
+        :param average_window: Overrides the average_window value in the loaded model
         """
+        # load all_models.json
+        with open("models/all_models.json", "r") as f:
+            all_models = json.load(f)
         if model_id is None:
-            # load all_models.json
-            with open("models/all_models.json", "r") as f:
-                all_models = json.load(f)
-            # create table with all models
-            table = []
-            for key, value in all_models.items():
-                table.append([key,
-                              value["total_steps"],
-                              value["hyperparams"]["BATCH_SIZE"],
-                              value["hyperparams"]["GAMMA"],
-                              value["hyperparams"]["EPS_START"],
-                              value["hyperparams"]["EPS_END"],
-                              value["hyperparams"]["EPS_DECAY"],
-                              value["hyperparams"]["TAU"],
-                              value["hyperparams"]["LR"],
-                              value["hyperparams"]["MEMORY_SIZE"],
-                              value["env_params"]["length"],
-                              value["env_params"]["width"],
-                              value["env_params"]["observation_distance"],
-                              value["env_params"]["distinguishable_particles"],
-                              value["env_params"]["use_speeds"],
-                              value["env_params"]["sigma"],
-                              value["env_params"]["average_window"],
-                              value["env_params"]["allow_wait"],
-                              value["env_params"]["social_reward"],
-                              ])
-            tabulate.MIN_PADDING = 0
-            Line = namedtuple("Line", ["begin", "hline", "sep", "end"])
-            DataRow = namedtuple("DataRow", ["begin", "sep", "end"])
-            grid = TableFormat(
-                lineabove=Line("╒", "═", "╤", "╕"),
-                linebelowheader=Line("╞", "═", "╪", "╡"),
-                linebetweenrows=Line("├", "─", "┼", "┤"),
-                linebelow=Line("╘", "═", "╧", "╛"),
-                headerrow=DataRow("│", "│", "│"),
-                datarow=DataRow("│", "│", "│"),
-                padding=0,
-                with_header_hide=None,
-            )
-            print(tabulate(table, headers=[
-                "id", "tot_step", "BATCH", "γ", "ε_0", "ε_end", "ε_dec", "τ",
-                "LR", "MEM", "len", "width", "r_obs", "disting.",
-                "speeds",
-                "σ", "avg_wdw", "wait", "horn"
-            ], tablefmt=grid))
-            # prompt user to select a model
-            model_id = int(input("Enter model id: "))
+            model_id = cls.choose_model()
         # load model
         with open(f"models/by_id/{model_id}/hyperparams.json", "r") as f:
             hyperparams = json.load(f)
         with open(f"models/by_id/{model_id}/env_params.json", "r") as f:
             env_params = json.load(f)
+        if sigma is not None:
+            env_params["sigma"] = sigma
+        tot_steps = total_steps if total_steps else all_models[str(model_id)]["total_steps"]
+        if average_window is not None:
+            env_params["average_window"] = average_window
+            plot_interval = average_window
+        else:
+            plot_interval = all_models[str(model_id)]["env_params"]["average_window"]
         trainer = cls(env_params, hyperparams, model=f"models/by_id/{model_id}/policy_net.pt",
-                      total_steps=hyperparams["EPS_DECAY"], do_plot=False, progress_bar=False)
+                      total_steps=tot_steps, do_plot=False, progress_bar=False, plot_interval=plot_interval)
         return trainer
 
     def _init_env(self) -> GridEnv:
