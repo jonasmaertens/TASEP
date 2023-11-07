@@ -301,55 +301,78 @@ class GridEnv(gym.Env):
         reward = 0
         self.total_timesteps += 1
         self.avg_window_time += 1
-        if self.avg_window_time >= self.average_window:
-            self._current = self.avg_window_forward / self.average_window
-            self.avg_window_time = 0
-            self.avg_window_forward = 0
-        if self.total_timesteps < self.average_window and self.total_timesteps > 50:
-            self._current = self.total_forward / self.total_timesteps
-        if action == 0:  # forward
-            # when using speeds, the probability to move forward is the speed of the particle
-            if not self.use_speeds or self.np_random.random() < self.state[*self.current_mover] % 1:
-                next_x = 0 if self.current_mover[1] == self.length - 1 else self.current_mover[1] + 1
-                has_moved = self._move_if_possible((self.current_mover[0], next_x))
-                if not has_moved:
-                    reward = -1
-                else:
-                    reward = 1
-                    self.total_forward += 1
-                    self.avg_window_forward += 1
-        elif action == 1:  # up
-            above = self.width - 1 if self.current_mover[0] == 0 else self.current_mover[0] - 1
-            has_moved = self._move_if_possible((above, self.current_mover[1]))
-            if not has_moved:
-                reward = -1
-        elif action == 2:  # down
-            below = 0 if self.current_mover[0] == self.width - 1 else self.current_mover[0] + 1
-            has_moved = self._move_if_possible((below, self.current_mover[1]))
-            if not has_moved:
-                reward = -1
-        elif action == 3:  # wait
-            pass
-        if self.social_reward:
-            if action == 1:
-                prev_x = self.length - 1 if self.current_mover[1] == 0 else self.current_mover[1] - 1
-                if self.state[above, prev_x] != 0:
-                    reward -= self.social_reward if not self.use_speeds else (self.state[above, prev_x] % 1) / 2
-            elif action == 2:
-                prev_x = self.length - 1 if self.current_mover[1] == 0 else self.current_mover[1] - 1
-                if self.state[below, prev_x] != 0:
-                    reward -= self.social_reward if not self.use_speeds else (self.state[below, prev_x] % 1) / 2
-
+        self._update_current()
+        self._update_current_for_timesteps()
+        if not self.use_speeds or self.np_random.random() < self.state[*self.current_mover] % 1:
+            reward = self._perform_action(action)
         if not self.distinguishable_particles:
             react_observation = self._get_obs(new_mover=False)
         info = self._get_info()
         next_observation = self._get_obs(new_mover=True)
-
-        if self.render_mode == "human" and self.total_timesteps % self.moves_per_timestep == 0:
-            self._render_frame()
+        self._render_if_human()
         if self.distinguishable_particles:
             return (next_observation, int(self.state[*self.current_mover])), reward, False, False, info
         return (react_observation, next_observation), reward, False, False, info
+
+    def _update_current(self):
+        if self.avg_window_time >= self.average_window:
+            self._current = self.avg_window_forward / self.average_window
+            self.avg_window_time = 0
+            self.avg_window_forward = 0
+
+    def _update_current_for_timesteps(self):
+        if self.total_timesteps < self.average_window and self.total_timesteps > 50:
+            self._current = self.total_forward / self.total_timesteps
+
+    def _perform_action(self, action):
+        if action == 0:  # forward
+            reward = self._move_forward()
+        elif action == 1:  # up
+            reward = self._move_up()
+            if self.social_reward:
+                reward += self._calculate_social_reward(self.current_mover[0] - 1)
+        elif action == 2:  # down
+            reward = self._move_down()
+            if self.social_reward:
+                reward += self._calculate_social_reward(self.current_mover[0] + 1)
+        else:  # wait
+            reward = 0
+        return reward
+
+    def _calculate_social_reward(self, position):
+        prev_x = self.length - 1 if self.current_mover[1] == 0 else self.current_mover[1] - 1
+        if self.state[position, prev_x] != 0:
+            return -self.social_reward if not self.use_speeds else -(self.state[position, prev_x] % 1) / 2
+        return 0
+
+    def _move_forward(self):
+        # when using speeds, the probability to move forward is the speed of the particle
+        next_x = 0 if self.current_mover[1] == self.length - 1 else self.current_mover[1] + 1
+        has_moved = self._move_if_possible((self.current_mover[0], next_x))
+        if not has_moved:
+            return -1
+        else:
+            self.total_forward += 1
+            self.avg_window_forward += 1
+            return 1
+
+    def _move_up(self):
+        above = self.width - 1 if self.current_mover[0] == 0 else self.current_mover[0] - 1
+        has_moved = self._move_if_possible((above, self.current_mover[1]))
+        if not has_moved:
+            return -1
+        return 0
+
+    def _move_down(self):
+        below = 0 if self.current_mover[0] == self.width - 1 else self.current_mover[0] + 1
+        has_moved = self._move_if_possible((below, self.current_mover[1]))
+        if not has_moved:
+            return -1
+        return 0
+
+    def _render_if_human(self):
+        if self.render_mode == "human" and self.total_timesteps % self.moves_per_timestep == 0:
+            self._render_frame()
 
     def close(self):
         if self.window is not None:

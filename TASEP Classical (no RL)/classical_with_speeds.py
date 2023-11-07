@@ -1,6 +1,7 @@
 import numpy as np
 from numba import njit
 import matplotlib.pyplot as plt
+import os
 
 
 @njit
@@ -25,20 +26,28 @@ def simulate(sigma, log=True):
     for iwalk in range(runsNumber):
         if log:
             print(f"Run number: {iwalk}/{runsNumber}\r")
-        # Clearing arrays from the last run ////
-        system = np.zeros(Lx * Ly, dtype=np.float32)
-        # Filling the lattice with particles alternatively
-        system[::2] = 1
+        # Clearing arrays from the last run
+        system = np.zeros((Lx, Ly), dtype=np.float32)
+        # Filling the lattice as checkerboard
+        system[::2, ::2] = 1
+        system[1::2, 1::2] = 1
+        # Flatten the system in order to be able to assign speeds without
+        # multidimensional indexing (which is not supported by numba)
+        system = system.reshape((Lx * Ly))
         # Give each particle a random speed (between 0 and 1)
         # from a uniform distribution
         speeds = truncated_normal(0.5, sigma, N)
         system[system == 1] = speeds
+        # Reshape the system back to 2D
         system = system.reshape((Lx, Ly))
         currents = []
-        # Beginning of a single run ////
+        # Beginning of a single run
         for steps_done in range(1, totalMCS):
             total_forward = 0
             for move_attempt in range(N):
+                if move_attempt % current_averaging_time == 0 and move_attempt > 0:
+                    currents.append(total_forward / current_averaging_time)
+                    total_forward = 0
                 dice = np.random.randint(Lx * Ly)  # Picks the random spin in the array
                 x = dice // Ly
                 y = dice - x * Ly
@@ -46,22 +55,21 @@ def simulate(sigma, log=True):
                     dice = np.random.randint(Lx * Ly)
                     x = dice // Ly
                     y = dice - x * Ly
+                # throw second dice from truncated normal that has to be less than the speed
+                dice2 = np.random.random()
+                if dice2 > system[x, y]:
+                    continue
                 # Simple implementation of Periodic boundary conditions
                 x_prev = Lx - 1 if x == 0 else x - 1
                 x_next = 0 if x == Lx - 1 else x + 1
                 y_next = 0 if y == Ly - 1 else y + 1
                 # Simulating exchange dynamics
                 dice = np.random.randint(4)
-                if dice == 0:  # hop forward
+                if dice <= 1:  # hop forward with probability 1/2
                     # check if there is a particle in front
                     if system[x, y_next] == 0:
-                        # throw second dice from truncated normal that has to be less than the speed
-                        dice2 = np.random.random()
-                        if dice2 < system[x, y]:
-                            # if system[x,y] < 0.1:
-                            # print("slow particle moved")
-                            system[x, y], system[x, y_next] = system[x, y_next], system[x, y]
-                            total_forward += 1
+                        system[x, y], system[x, y_next] = system[x, y_next], system[x, y]
+                        total_forward += 1
                 elif dice == 2:  # hop up
                     # check if there is a particle above
                     if system[x_prev, y] == 0:
@@ -70,9 +78,6 @@ def simulate(sigma, log=True):
                     # check if there is a particle below
                     if system[x_next, y] == 0:
                         system[x, y], system[x_next, y] = system[x_next, y], system[x, y]
-                if move_attempt % current_averaging_time == 0 and move_attempt > 0:
-                    currents.append(total_forward / current_averaging_time)
-                    total_forward = 0
 
         currents_arrays.append(currents)
     return currents_arrays
@@ -112,40 +117,40 @@ def simulate_sigma_vs_steady_state_current(sigmas):
 
 
 def evaluate():
-    currents = np.load("data/sigma_vs_current_128x32.npy")
-    sigmas = np.load("data/sigma_vs_current_sigmas_128x32.npy")
+    currents = np.load(f"data/fixed/sigma_vs_current_{Ly}x{Lx}.npy")
+    sigmas = np.load(f"data/fixed/sigma_vs_current_sigmas_{Ly}x{Lx}.npy")
     print(len(currents))
     plt.cla()
     plt.plot(sigmas, currents)
     plt.xlabel("Sigma (log scale)")
     plt.ylabel(f"Steady state current")
-    plt.title(f"Average current over {runsNumber} runs")
+    plt.title(f"Average current over {runsNumber} runs ({Ly}x{Lx})")
     plt.xscale("log")
-    plt.savefig(f"plots/different_speeds/steady_state_current_log_128x32.png")
+    plt.savefig(f"plots/fixed/different_speeds/steady_state_current_log_{Ly}x{Lx}.png")
     plt.cla()
     plt.xlabel("Sigma")
     plt.xscale("linear")
     plt.ylabel(f"Steady state current")
-    plt.title(f"Average current over {runsNumber} runs")
+    plt.title(f"Average current over {runsNumber} runs ({Ly}x{Lx})")
     plt.plot(sigmas[70:], currents[70:])
-    plt.savefig(f"plots/different_speeds/steady_state_current_128x32.png")
+    plt.savefig(f"plots/fixed/different_speeds/steady_state_current_{Ly}x{Lx}.png")
     # take log(1/currents-1/0.0585)
     plt.cla()
     plt.plot(sigmas, np.log(1 / currents - 1 / 0.0585))
     plt.xlabel("Sigma")
     plt.ylabel(f"ln(1/I - 1/I_0)")
-    plt.title(f"Average current over {runsNumber} runs")
-    plt.savefig(f"plots/different_speeds//ln_fixed_sigma_128x32.png")
+    plt.title(f"Average current over {runsNumber} runs ({Ly}x{Lx})")
+    plt.savefig(f"plots/fixed/different_speeds/ln_fixed_sigma_{Ly}x{Lx}.png")
 
 
 def calc_sigma_vs_current():
     plt.cla()
-    sigmas = np.logspace(-4, 1, 150, dtype=np.float32)
+    sigmas = np.logspace(-4, 1, 200, dtype=np.float32)
     print(sigmas)
     currents = simulate_sigma_vs_steady_state_current(sigmas)
     # save data
-    np.save("data/sigma_vs_current_128x32.npy", currents)
-    np.save("data/sigma_vs_current_sigmas_128x32.npy", sigmas)
+    np.save(f"data/fixed/sigma_vs_current_{Ly}x{Lx}.npy", currents)
+    np.save(f"data/fixed/sigma_vs_current_sigmas_{Ly}x{Lx}.npy", sigmas)
 
 
 def calc_indivual_sigmas():
@@ -160,14 +165,20 @@ def calc_indivual_sigmas():
     plt.xlabel("Time")
     plt.ylabel(f"Current (last {current_averaging_time} moves averaged)")
     plt.title(f"Average current over {runsNumber} runs")
-    plt.savefig(f"plots/different_speeds/individual_sigmas/currents_fixed_sigma_128x32.png")
+    plt.savefig(f"plots/fixed/different_speeds/individual_sigmas/currents_fixed_sigma_{Ly}x{Lx}.png")
+
+
+def test_truncated_normal(sigma):
+    samples = truncated_normal(0.5, sigma, 1000000)
+    plt.hist(samples, bins=100)
+    plt.show()
 
 
 if __name__ == '__main__':
     totalMCS = 70  # Total number of Monte Carlo steps per single run
-    runsNumber = 200  # Number of runs to average over
-    Lx = 32  # Number of rows , width
-    Ly = 128  # Number of columns , length
+    runsNumber = 500  # Number of runs to average over
+    Lx = 20  # Number of rows , width
+    Ly = 40  # Number of columns , length
     N = Lx * Ly // 2
     size = Lx * Ly
     current_averaging_time = int(N / 2) - 1  # Number of MCS to average over
@@ -176,9 +187,17 @@ if __name__ == '__main__':
     plt.rcParams["figure.dpi"] = 300
     plt.rcParams["font.size"] = 11
 
-    calc_indivual_sigmas()
-    calc_sigma_vs_current()
+    # create all directories if they don't exist
+    os.makedirs("plots/fixed/different_speeds/individual_sigmas", exist_ok=True)
+    os.makedirs("data/fixed", exist_ok=True)
+
+    #calc_indivual_sigmas()
+    #calc_sigma_vs_current()
     evaluate()
+    # test_truncated_normal(0.01)
+    # test_truncated_normal(0.1)
+    # test_truncated_normal(0.5)
+    # test_truncated_normal(2)
 
 
 
