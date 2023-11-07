@@ -328,13 +328,15 @@ class GridEnv(gym.Env):
         if action == 0:  # forward
             reward = self._move_forward()
         elif action == 1:  # up
-            reward = self._move_up()
+            above = self.width - 1 if self.current_mover[0] == 0 else self.current_mover[0] - 1
+            reward = self._move_up_down(above)
             if self.social_reward:
-                reward += self._calculate_social_reward(self.current_mover[0] - 1)
+                reward += self._calculate_social_reward(above)
         elif action == 2:  # down
-            reward = self._move_down()
+            below = 0 if self.current_mover[0] == self.width - 1 else self.current_mover[0] + 1
+            reward = self._move_up_down(below)
             if self.social_reward:
-                reward += self._calculate_social_reward(self.current_mover[0] + 1)
+                reward += self._calculate_social_reward(below)
         else:  # wait
             reward = 0
         return reward
@@ -356,16 +358,8 @@ class GridEnv(gym.Env):
             self.avg_window_forward += 1
             return 1
 
-    def _move_up(self):
-        above = self.width - 1 if self.current_mover[0] == 0 else self.current_mover[0] - 1
-        has_moved = self._move_if_possible((above, self.current_mover[1]))
-        if not has_moved:
-            return -1
-        return 0
-
-    def _move_down(self):
-        below = 0 if self.current_mover[0] == self.width - 1 else self.current_mover[0] + 1
-        has_moved = self._move_if_possible((below, self.current_mover[1]))
+    def _move_up_down(self, x_pos):
+        has_moved = self._move_if_possible((x_pos, self.current_mover[1]))
         if not has_moved:
             return -1
         return 0
