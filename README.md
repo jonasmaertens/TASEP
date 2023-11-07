@@ -11,7 +11,7 @@
 ## Features
 
 - TASEP simulation with RL agents
-- Double Deep Q Learning (DDQN)
+- Double Deep Q Learning (dDQN)
 - Policy network and target network with soft updates
 - Experience replay for improved learning
 - Training visualization with Pygame
