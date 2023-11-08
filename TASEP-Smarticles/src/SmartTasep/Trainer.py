@@ -145,7 +145,8 @@ class Trainer:
         return model_id
 
     @classmethod
-    def load(cls, model_id: int = None, sigma: float = None, total_steps: int = None, average_window=None) -> "Trainer":
+    def load(cls, model_id: int = None, sigma: float = None, total_steps: int = None, average_window=None, do_plot=None,
+             wait_initial=None, render_start=None, window_height=None, moves_per_timestep=None) -> "Trainer":
         """
         Loads a model from the models directory
         :param model_id: The id of the model to load. If None, the user will
@@ -153,6 +154,11 @@ class Trainer:
         :param sigma: Overrides the sigma value in the loaded model
         :param total_steps: Overrides the total_steps value in the loaded model
         :param average_window: Overrides the average_window value in the loaded model
+        :param do_plot: Overrides the do_plot value in the loaded model
+        :param wait_initial: Overrides the wait_initial value in the loaded model
+        :param render_start: Overrides the render_start value in the loaded model
+        :param window_height: Overrides the window_height value in the loaded model
+        :param moves_per_timestep: Overrides the moves_per_timestep value in the loaded model
         """
         # load all_models.json
         with open("models/all_models.json", "r") as f:
@@ -172,8 +178,16 @@ class Trainer:
             plot_interval = average_window
         else:
             plot_interval = all_models[str(model_id)]["env_params"]["average_window"]
+        if window_height is not None:
+            env_params["window_height"] = window_height
+        if moves_per_timestep is not None:
+            env_params["moves_per_timestep"] = moves_per_timestep
+        render_start = render_start if render_start is not None else all_models[str(model_id)]["render_start"]
+        do_plot = do_plot if do_plot is not None else all_models[str(model_id)]["do_plot"]
+        wait_initial = wait_initial if wait_initial is not None else all_models[str(model_id)]["wait_initial"]
         trainer = cls(env_params, hyperparams, model=f"models/by_id/{model_id}/policy_net.pt",
-                      total_steps=tot_steps, do_plot=False, progress_bar=False, plot_interval=plot_interval)
+                      total_steps=tot_steps, do_plot=do_plot, progress_bar=False, plot_interval=plot_interval,
+                      wait_initial=wait_initial, render_start=render_start)
         return trainer
 
     def _init_env(self) -> GridEnv:
