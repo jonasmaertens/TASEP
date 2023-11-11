@@ -47,28 +47,160 @@ class Hyperparams(TypedDict):
     MEMORY_SIZE: int
 
 
+def choose_model() -> int:
+    """
+    Prints a table of all models and prompts the user to select one
+    """
+    with open("models/all_models.json", "r") as f:
+        all_models = json.load(f)
+    # create table with all models
+    table = []
+    for key, value in all_models.items():
+        table.append([key,
+                      value["total_steps"],
+                      value["hyperparams"]["BATCH_SIZE"],
+                      value["hyperparams"]["GAMMA"],
+                      value["hyperparams"]["EPS_START"],
+                      value["hyperparams"]["EPS_END"],
+                      value["hyperparams"]["EPS_DECAY"],
+                      value["hyperparams"]["TAU"],
+                      value["hyperparams"]["LR"],
+                      value["hyperparams"]["MEMORY_SIZE"],
+                      value["env_params"]["length"],
+                      value["env_params"]["width"],
+                      value["env_params"]["observation_distance"],
+                      value["env_params"]["distinguishable_particles"],
+                      value["env_params"]["use_speeds"],
+                      value["env_params"]["sigma"],
+                      value["env_params"]["average_window"],
+                      value["env_params"]["allow_wait"],
+                      value["env_params"]["social_reward"],
+                      ])
+    tabulate.MIN_PADDING = 0
+    Line = namedtuple("Line", ["begin", "hline", "sep", "end"])
+    DataRow = namedtuple("DataRow", ["begin", "sep", "end"])
+    # noinspection PyTypeChecker
+    grid = TableFormat(
+        lineabove=Line("╒", "═", "╤", "╕"),
+        linebelowheader=Line("╞", "═", "╪", "╡"),
+        linebetweenrows=Line("├", "─", "┼", "┤"),
+        linebelow=Line("╘", "═", "╧", "╛"),
+        headerrow=DataRow("│", "│", "│"),
+        datarow=DataRow("│", "│", "│"),
+        padding=0,
+        with_header_hide=None,
+    )
+    print(tabulate(table, headers=[
+        "id", "tot_step", "BATCH", "γ", "ε_0", "ε_end", "ε_dec", "τ",
+        "LR", "MEM", "len", "width", "r_obs", "disting.",
+        "speeds",
+        "σ", "avg_wdw", "wait", "horn"
+    ], tablefmt=grid))
+    # prompt user to select a model
+    model_id = int(input("Enter model id: "))
+    return model_id
+
+
 class Trainer:
     def __init__(self, env_params: EnvParams, hyperparams: Hyperparams | None = None, reset_interval: int = None,
                  total_steps: int = 100000, render_start: int = None, do_plot: bool = True, plot_interval: int = 10000,
                  model: str | None = None, progress_bar: bool = True, wait_initial: bool = False,
                  random_density: bool = False):
         """
-        :param env_params: The parameters for the environment. Of type GridEnv.EnvParams
-        :param hyperparams: The hyperparameters for the agent. Of type Trainer.Hyperparams
-        :param reset_interval: The interval at which the environment should be reset
-        :param total_steps: The total number of steps to train for
-        :param render_start: The step at which the environment should be rendered in human mode
-        :param do_plot: Whether to plot the current value of the current at regular intervals
-        :param plot_interval: The interval at which to plot the current value
-        :param model: The path to a model to load
-        :param progress_bar: Whether to show a progress bar
-        :param wait_initial: Whether to wait 30 seconds before starting the simulation
-        :param random_density: Whether to use a random density for the initial state
+
+        **The TASEP-Smarticles Trainer class**
+
+        ==================================
+
+        Description
+        -----------
+        The Trainer class can be used to train networks and run simulations on the 2D TASEP "GridEnv" environment.
+        For training, the agent uses a Deep Q-Network (DQN) with a replay buffer and a target network. The agent
+        interacts with the environment using an epsilon-greedy policy. The value of epsilon decays over a specified
+        number of timesteps. The agent can be trained for a specified number of steps and the current value of the
+        current can be plotted at regular intervals. The agent can also be run for a specified number of steps
+        without training. During training or running, the environment can be reset at regular intervals. The
+        environment can also be reset to human render mode at a specified step.
+
+        =======
+
+        Usage
+        -----
+        **Training**
+            To train an agent, create a Trainer object providing the environment_params, hyperparams and Trainer params.
+            Then call the ``train_and_safe()`` method. The ``train_and_safe()`` method will train the agent and save the
+            model, plot and currents to the models directory.
+
+            **Example:**
+
+            >>> from Trainer import Trainer, Hyperparams, EnvParams
+            >>> envParams = EnvParams(
+                                    render_mode=None,
+                                    length=128,
+                                    width=32,
+                                    moves_per_timestep=400,
+                                    window_height=400,
+                                    observation_distance=3,
+                                    distinguishable_particles=True,
+                                    initial_state_template=None,
+                                    use_speeds=True,
+                                    sigma=5,
+                                    average_window=5000,
+                                    allow_wait=True,
+                                    social_reward=0.6)
+            >>> hyperparams = Hyperparams(
+                                    BATCH_SIZE=256,
+                                    GAMMA=0.99,
+                                    EPS_START=0.9,
+                                    EPS_END=0.01,
+                                    EPS_DECAY=240000,
+                                    TAU=0.005,
+                                    LR=0.005,
+                                    MEMORY_SIZE=900_000)
+            >>> trainer = Trainer(
+                                    envParams,
+                                    hyperparams,
+                                    reset_interval=80000,
+                                    total_steps=1_500_000,
+                                    do_plot=True,
+                                    plot_interval=5000,
+                                    random_density=True)
+            >>> trainer.train_and_safe()
+
+        **Running**
+            To run a simulation with a pre-trained agent, use the ``load()`` method to load a model and then call the
+            ``run()`` method. The ``load()`` method takes the id of the model to load as an argument. If no id is
+            provided, the user will be prompted to select a model from a table of all models.
+
+            **Example:**
+
+            >>> from Trainer import Trainer
+            >>> trainer = Trainer.load(
+                    do_plot=True,
+                    render_start=0,
+                    total_steps=400000,
+                    moves_per_timestep=400,
+                    window_height=300,
+                    average_window=3000)
+            >>> trainer.run()
+
+        =======
+
+        Args:
+            env_params: The parameters for the environment. Of type GridEnv.EnvParams
+            hyperparams: The hyperparameters for the agent. Of type Trainer.Hyperparams
+            reset_interval: The interval at which the environment should be reset
+            total_steps: The total number of steps to train for
+            render_start: The step at which the environment should be rendered in human mode
+            do_plot: Whether to plot the current value of the current at regular intervals
+            plot_interval: The interval at which to plot the current value
+            progress_bar: Whether to show a progress bar
+            wait_initial: Whether to wait 30 seconds before starting the simulation
+            random_density: Whether to use a random density for the initial state
         """
         self.env_params = env_params
         self.wait_initial = wait_initial
         self.random_density = random_density
-        assert hyperparams is not None or model is not None, "Either hyperparams or model must be specified"
         self.hyperparams = hyperparams
         self.progress_bar = progress_bar
         self.model = model
@@ -77,6 +209,10 @@ class Trainer:
         self.render_start = render_start
         self.do_plot = do_plot
         self.plot_interval = plot_interval
+        if plot_interval is not None and env_params["average_window"] is None:
+            self.env_params["average_window"] = plot_interval
+        if plot_interval is None and env_params["average_window"] is not None:
+            self.plot_interval = env_params["average_window"]
 
         self.currents = []
         self.timesteps = []
@@ -92,73 +228,22 @@ class Trainer:
         self.steps_done = 0
 
     @classmethod
-    def choose_model(cls):
-        """
-        Prints a table of all models and prompts the user to select one
-        """
-        with open("models/all_models.json", "r") as f:
-            all_models = json.load(f)
-        # create table with all models
-        table = []
-        for key, value in all_models.items():
-            table.append([key,
-                          value["total_steps"],
-                          value["hyperparams"]["BATCH_SIZE"],
-                          value["hyperparams"]["GAMMA"],
-                          value["hyperparams"]["EPS_START"],
-                          value["hyperparams"]["EPS_END"],
-                          value["hyperparams"]["EPS_DECAY"],
-                          value["hyperparams"]["TAU"],
-                          value["hyperparams"]["LR"],
-                          value["hyperparams"]["MEMORY_SIZE"],
-                          value["env_params"]["length"],
-                          value["env_params"]["width"],
-                          value["env_params"]["observation_distance"],
-                          value["env_params"]["distinguishable_particles"],
-                          value["env_params"]["use_speeds"],
-                          value["env_params"]["sigma"],
-                          value["env_params"]["average_window"],
-                          value["env_params"]["allow_wait"],
-                          value["env_params"]["social_reward"],
-                          ])
-        tabulate.MIN_PADDING = 0
-        Line = namedtuple("Line", ["begin", "hline", "sep", "end"])
-        DataRow = namedtuple("DataRow", ["begin", "sep", "end"])
-        grid = TableFormat(
-            lineabove=Line("╒", "═", "╤", "╕"),
-            linebelowheader=Line("╞", "═", "╪", "╡"),
-            linebetweenrows=Line("├", "─", "┼", "┤"),
-            linebelow=Line("╘", "═", "╧", "╛"),
-            headerrow=DataRow("│", "│", "│"),
-            datarow=DataRow("│", "│", "│"),
-            padding=0,
-            with_header_hide=None,
-        )
-        print(tabulate(table, headers=[
-            "id", "tot_step", "BATCH", "γ", "ε_0", "ε_end", "ε_dec", "τ",
-            "LR", "MEM", "len", "width", "r_obs", "disting.",
-            "speeds",
-            "σ", "avg_wdw", "wait", "horn"
-        ], tablefmt=grid))
-        # prompt user to select a model
-        model_id = int(input("Enter model id: "))
-        return model_id
-
-    @classmethod
     def load(cls, model_id: int = None, sigma: float = None, total_steps: int = None, average_window=None, do_plot=None,
              wait_initial=None, render_start=None, window_height=None, moves_per_timestep=None) -> "Trainer":
         """
-        Loads a model from the models directory
-        :param model_id: The id of the model to load. If None, the user will
-            be prompted to select a model from a table of all models
-        :param sigma: Overrides the sigma value in the loaded model
-        :param total_steps: Overrides the total_steps value in the loaded model
-        :param average_window: Overrides the average_window value in the loaded model
-        :param do_plot: Overrides the do_plot value in the loaded model
-        :param wait_initial: Overrides the wait_initial value in the loaded model
-        :param render_start: Overrides the render_start value in the loaded model
-        :param window_height: Overrides the window_height value in the loaded model
-        :param moves_per_timestep: Overrides the moves_per_timestep value in the loaded model
+        Loads a model from the models directory and returns a Trainer object with the loaded model. Specify extra args
+        to override the values in the loaded model.
+        Args:
+            model_id: The id of the model to load. If None, the user will
+                be prompted to select a model from a table of all models
+            sigma: Overrides the sigma value in the loaded model
+            total_steps: Overrides the total_steps value in the loaded model
+            average_window: Overrides the average_window value in the loaded model
+            do_plot: Overrides the do_plot value in the loaded model
+            wait_initial: Overrides the wait_initial value in the loaded model
+            render_start: Overrides the render_start value in the loaded model
+            window_height: Overrides the window_height value in the loaded model
+            moves_per_timestep: Overrides the moves_per_timestep value in the loaded model
         """
         # load all_models.json
         with open("models/all_models.json", "r") as f:
@@ -255,7 +340,7 @@ class Trainer:
         return self.hyperparams['EPS_END'] + (self.hyperparams['EPS_START'] - self.hyperparams['EPS_END']) * \
             math.exp(-1. * self.steps_done / self.hyperparams['EPS_DECAY'])
 
-    def select_action(self, state: torch.Tensor, eps_greedy=True) -> torch.Tensor:
+    def _select_action(self, state: torch.Tensor, eps_greedy=True) -> torch.Tensor:
         """
         Selects an action using an epsilon-greedy policy
         :param state: Current state
@@ -277,7 +362,7 @@ class Trainer:
         else:
             return torch.tensor([[np.random.randint(3)]], device=self.device, dtype=torch.long)
 
-    def optimize_model(self):
+    def _optimize_model(self):
         if len(self.memory) < self.hyperparams['BATCH_SIZE']:
             return
         batch = self.memory.sample()
@@ -324,9 +409,8 @@ class Trainer:
 
     def train(self):
         """
-        Trains the agent
+        Trains the agent for the specified number of steps. Does not save the model.
         """
-        # print(f"Training for {self.total_steps} timesteps on {self.device}")
         # Training loop
         for self.steps_done in (
                 pbar := tqdm(range(self.total_steps), unit="steps", leave=False, disable=not self.progress_bar)):
@@ -344,7 +428,7 @@ class Trainer:
                 just_reset = True
 
             # Select action for current state
-            action = self.select_action(self.state)
+            action = self._select_action(self.state)
 
             if self.env_params["distinguishable_particles"]:
                 (next_observation, next_mover), reward, terminated, truncated, info = self.env.step(action.item())
@@ -380,10 +464,10 @@ class Trainer:
             self.state = next_state
 
             # Perform one step of the optimization (on the policy network)
-            self.optimize_model()
+            self._optimize_model()
 
             # Update the target network
-            self.soft_update()
+            self._soft_update()
 
             if self.steps_done % self.plot_interval == 0 and not just_reset and self.steps_done != 0:
                 self.currents.append(info['current'])
@@ -395,7 +479,7 @@ class Trainer:
                     plt.show(block=False)
                     plt.pause(0.01)
 
-    def soft_update(self):
+    def _soft_update(self):
         # Soft update of the target network's weights
         # θ′ ← τ θ + (1 −τ )θ′
         for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
@@ -404,7 +488,8 @@ class Trainer:
 
     def run(self):
         """
-        Runs the simulation for the specified number of steps
+        Runs the simulation for the specified number of steps. Does not train the agent. Epsilon-greedy policy is
+        disabled.
         """
         for self.steps_done in (
                 pbar := tqdm(range(self.total_steps), unit="steps", leave=False, disable=not self.progress_bar)):
@@ -428,7 +513,7 @@ class Trainer:
                 self.reset_env()
                 just_reset = True
 
-            action = self.select_action(self.state, eps_greedy=False)
+            action = self._select_action(self.state, eps_greedy=False)
 
             if self.env_params["distinguishable_particles"]:
                 (next_observation, _), _, terminated, truncated, info = self.env.step(action.item())
@@ -549,5 +634,9 @@ class Trainer:
         np.save(file.replace(".npy", "_timesteps.npy"), self.timesteps)
 
     def train_and_safe(self):
+        """
+        Trains the agent for the specified number of steps and saves the model, plot and currents to the models
+        directory.
+        """
         self.train()
         self.save()

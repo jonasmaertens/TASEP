@@ -42,42 +42,49 @@ def simulate(sigma, log=True):
         system = system.reshape((Lx, Ly))
         currents = []
         # Beginning of a single run
-        for steps_done in range(1, totalMCS):
-            total_forward = 0
-            for move_attempt in range(N):
-                if move_attempt % current_averaging_time == 0 and move_attempt > 0:
-                    currents.append(total_forward / current_averaging_time)
-                    total_forward = 0
-                dice = np.random.randint(Lx * Ly)  # Picks the random spin in the array
+        total_forward = 0
+        for move_attempt in range(N * totalMCS):
+            # print("\n\n")
+            # print(system)
+            # print(move_attempt)
+            if move_attempt % current_averaging_time == 0 and move_attempt > 0:
+                currents.append(total_forward / current_averaging_time)
+                total_forward = 0
+            dice = np.random.randint(Lx * Ly)  # Picks the random spin in the array
+            x = dice // Ly
+            y = dice - x * Ly
+            while system[x, y] == 0:
+                dice = np.random.randint(Lx * Ly)
                 x = dice // Ly
                 y = dice - x * Ly
-                while system[x, y] == 0:
-                    dice = np.random.randint(Lx * Ly)
-                    x = dice // Ly
-                    y = dice - x * Ly
-                # throw second dice from truncated normal that has to be less than the speed
-                dice2 = np.random.random()
-                if dice2 > system[x, y]:
-                    continue
-                # Simple implementation of Periodic boundary conditions
-                x_prev = Lx - 1 if x == 0 else x - 1
-                x_next = 0 if x == Lx - 1 else x + 1
-                y_next = 0 if y == Ly - 1 else y + 1
-                # Simulating exchange dynamics
-                dice = np.random.randint(4)
-                if dice <= 1:  # hop forward with probability 1/2
-                    # check if there is a particle in front
-                    if system[x, y_next] == 0:
-                        system[x, y], system[x, y_next] = system[x, y_next], system[x, y]
-                        total_forward += 1
-                elif dice == 2:  # hop up
-                    # check if there is a particle above
-                    if system[x_prev, y] == 0:
-                        system[x, y], system[x_prev, y] = system[x_prev, y], system[x, y]
-                elif dice == 3:  # hop down
-                    # check if there is a particle below
-                    if system[x_next, y] == 0:
-                        system[x, y], system[x_next, y] = system[x_next, y], system[x, y]
+            # print(f"Chosen particle: {x}, {y}")
+            # throw second dice from truncated normal that has to be less than the speed
+            dice2 = np.random.random()
+            if dice2 > system[x, y]:
+                # print("no move")
+                continue
+            # Simple implementation of Periodic boundary conditions
+            x_prev = Lx - 1 if x == 0 else x - 1
+            x_next = 0 if x == Lx - 1 else x + 1
+            y_next = 0 if y == Ly - 1 else y + 1
+            # Simulating exchange dynamics
+            dice = np.random.randint(4)
+            if dice <= 1:  # hop forward with probability 1/2
+                # check if there is a particle in front
+                if system[x, y_next] == 0:
+                    system[x, y], system[x, y_next] = system[x, y_next], system[x, y]
+                    total_forward += 1
+                    # print("forward")
+            elif dice == 2:  # hop up
+                # check if there is a particle above
+                if system[x_prev, y] == 0:
+                    system[x, y], system[x_prev, y] = system[x_prev, y], system[x, y]
+                    # print("hop up")
+            elif dice == 3:  # hop down
+                # check if there is a particle below
+                if system[x_next, y] == 0:
+                    system[x, y], system[x_next, y] = system[x_next, y], system[x, y]
+                    # print("hop down")
 
         currents_arrays.append(currents)
     return currents_arrays
@@ -102,6 +109,7 @@ def np_apply_along_axis(func1d, axis, arr):
 def np_mean(array, axis):
     return np_apply_along_axis(np.mean, axis, array)
 
+
 @njit
 def simulate_sigma_vs_steady_state_current(sigmas):
     currents = []
@@ -112,7 +120,7 @@ def simulate_sigma_vs_steady_state_current(sigmas):
         currents_arrays = simulate(sigma, log=False)
         currents_single = np_mean(np.array(currents_arrays), axis=0)
         # print(len(currents_single))
-        currents.append(np.mean(currents_single[-int(len(currents_single)/3):]))
+        currents.append(np.mean(currents_single[-int(len(currents_single) / 3):]))
     return currents
 
 
@@ -183,24 +191,23 @@ if __name__ == '__main__':
     size = Lx * Ly
     current_averaging_time = int(N / 2) - 1  # Number of MCS to average over
 
-    plt.rcParams["figure.figsize"] = (8, 4)
+    plt.rcParams["figure.figsize"] = (4, 2)
     plt.rcParams["figure.dpi"] = 300
-    plt.rcParams["font.size"] = 11
+    plt.rcParams["font.size"] = 6
 
     # create all directories if they don't exist
     os.makedirs("plots/fixed/different_speeds/individual_sigmas", exist_ok=True)
     os.makedirs("data/fixed", exist_ok=True)
 
-    #calc_indivual_sigmas()
-    #calc_sigma_vs_current()
-    evaluate()
+    # calc_indivual_sigmas()
+    calc_sigma_vs_current()
+    # evaluate()
     # test_truncated_normal(0.01)
     # test_truncated_normal(0.1)
     # test_truncated_normal(0.5)
     # test_truncated_normal(2)
 
-
-
-
-
-
+    # test numpy_mean
+    # for i in range(20):
+    #     a = np.random.random((78, 116))
+    #     print(np_mean(a, 0) == np.mean(a, 0))

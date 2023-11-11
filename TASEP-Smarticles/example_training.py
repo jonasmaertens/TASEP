@@ -10,9 +10,9 @@ if __name__ == '__main__':
                           window_height=400,
                           observation_distance=3,
                           distinguishable_particles=True,
-                          initial_state_template="checkerboard",
+                          #initial_state_template="checkerboard",
                           use_speeds=True,
-                          sigma=1,
+                          sigma=5,
                           average_window=5000,
                           allow_wait=True,
                           social_reward=0.6)
@@ -20,12 +20,12 @@ if __name__ == '__main__':
                               GAMMA=0.99,
                               EPS_START=0.9,
                               EPS_END=0.01,
-                              EPS_DECAY=160000,
+                              EPS_DECAY=240000,
                               TAU=0.005,
                               LR=0.005,
-                              MEMORY_SIZE=300_000)
+                              MEMORY_SIZE=900_000)
 
     trainer = Trainer(envParams, hyperparams, reset_interval=80000,
-                      total_steps=500_000, do_plot=True, plot_interval=5000, random_density=False, )
+                      total_steps=1_500_000, do_plot=True, plot_interval=5000, random_density=True)
 
     trainer.train_and_safe()

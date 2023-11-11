@@ -1,11 +1,21 @@
-#https://github.com/sumartoyo/hasel
+# https://github.com/sumartoyo/hasel
 import numpy as np
 import threading
 import multiprocessing
 import math
 
 
-def hsl2rgb(hsl, astype=np.float32):
+def hsl2rgb(hsl: np.ndarray, astype: type = np.float32):
+    """
+    Convert HSL to RGB color space
+    Args:
+        hsl (numpy.ndarray): HSL color space image array with shape (height, width, 3)
+        astype: data type of the output image array
+
+    Returns:
+        numpy.ndarray: RGB color space image array with shape (height, width, 3)
+    """
+
     def core(_hsl, _frgb):
 
         h, s, l = _hsl[:, :, 0], _hsl[:, :, 1], _hsl[:, :, 2]
