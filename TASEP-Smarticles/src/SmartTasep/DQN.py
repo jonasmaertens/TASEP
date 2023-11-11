@@ -4,6 +4,12 @@ import torch.nn.functional as F
 
 class DQN(nn.Module):
     def __init__(self, n_observations, n_actions):
+        """
+        The DQN class defines the policy network. It is a simple fully connected neural network with one hidden layer.
+        Args:
+            n_observations: The number of observations in the state. This is equal to the size of the first layer.
+            n_actions: The number of actions. This is equal to the size of the output layer.
+        """
         super(DQN, self).__init__()
         self.layer1 = nn.Linear(n_observations, 128)
         self.layer2 = nn.Linear(128, 128)

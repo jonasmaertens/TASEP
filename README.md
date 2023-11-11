@@ -20,13 +20,16 @@
 
 ## Files
 
-- `DQN.py`: Neural network RL agent class
-- `GridEnvironment.py`: Environment class that computes states, transitions, and rewards
-- `Memory.py`: Class for storing and sampling from experiences
-- `Trainer.py`: Wrapper class for training the network
-- `Playground.py`: Script for testing a learned policy interactively
+Files in TASEP-Smarticles:
 - `example_training.py`: Sample training script that plots progress, visualizes with Pygame, and saves the network at the end
 - `example_run_pretrained.py`: Sample script for loading and running a pretrained network
+- `example_playground.py`: Sample script for testing a learned policy interactively
+
+Files in src:
+- `DQN.py`: Neural network RL agent class
+- `GridEnvironment.py`: Environment class that computes states, transitions, and rewards
+- `Trainer.py`: Wrapper class for training the network
+- `Playground.py`: Wrapper class for testing learned policies interactively
 
 ## Setup
 
@@ -45,6 +48,7 @@
    - pygame
    - numpy
    - tabulate
+   - json
 
 ## Usage
 
@@ -53,14 +57,27 @@
    ```bash
    git clone https://github.com/jonasmaertens/TASEP
    cd TASEP
+   cd TASEP-Smarticles
 
 2. Install the required dependencies as mentioned in the Setup section.
 
 3. Run the training script:
 
     ```bash
-    cd TASEP-Smarticles
     python example_training.py
+   
+4. Run the script for loading and running a pretrained network:
+
+    ```bash
+    python example_run_pretrained.py
+   
+5. Run the script for testing a learned policy interactively:
+
+    ```bash
+    python example_playground.py
+   
+6. Create your own training script by following the example in `example_training.py`. Check the documentation of the classes in the files mentioned in the Files section for more information on the parameters.
+   
 
 ## Author
 Jonas Märtens
@@ -69,3 +86,6 @@ Email: ***REMOVED***
 
 ## Version
 Current Version: 0.1.0
+
+## License
+This project is licensed under the MIT License - see the LICENSE.md file for details
