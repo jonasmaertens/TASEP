@@ -74,8 +74,11 @@ class Playground:
                             np.linalg.norm(np.array(pygame.mouse.get_pos()) - np.array(self.mouse_down_pos)) / 100, 1)
                         pos = self.mouse_down_pos
                         # only change the speed of the particle if the initial click is inside the left matrix
-                        if (not (pos[0] > 50 * self.length or pos[1] > 50 * self.length)
+                        if (not (pos[0] > 50 * self.length or pos[1] > 50 * self.length or (
+                                pos[0] // 50 == self.observation_distance
+                                and pos[1] // 50 == self.observation_distance))
                                 and self.dragging_distance > 0.05):
+                            # prevent user from removing the particle at the center
                             self.state.T[pos[0] // 50, pos[1] // 50] = self.dragging_distance
                         text = self.font.render(f"{self.dragging_distance:.2f}", True, (0, 0, 0))
                         # redraw everything so the changes are visible
@@ -90,7 +93,9 @@ class Playground:
                     pos = self.mouse_down_pos
                     # only toggle the particle if the initial click is inside the left matrix and the mouse was not
                     # dragged. If the mouse was dragged, the particle speed is already set
-                    if self.dragging_distance < 0.05 and not (pos[0] > 50 * self.length or pos[1] > 50 * self.length):
+                    if self.dragging_distance < 0.05 and not (
+                            pos[0] > 50 * self.length or pos[1] > 50 * self.length or (
+                            pos[0] // 50 == self.observation_distance and pos[1] // 50 == self.observation_distance)):
                         self.state.T[pos[0] // 50, pos[1] // 50] = 1 if self.state.T[
                                                                             pos[0] // 50, pos[1] // 50] == 0 else 0
                     # stop dragging measurement and redraw the left matrix
