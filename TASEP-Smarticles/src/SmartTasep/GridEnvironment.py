@@ -42,6 +42,7 @@ class EnvParams(TypedDict):
                 observation. Defaults to False.
             speed_observation_threshold (float, optional): The value that a particle with speed 1 should have in the
                 observation. Defaults to 0.35.
+            punish_inhomogeneities (bool, optional): Whether to punish speed inhomogeneity in the observation. Defaults to False.
     """
     render_mode: NotRequired[str | None]
     length: int
@@ -60,6 +61,7 @@ class EnvParams(TypedDict):
     density: NotRequired[float]
     invert_speed_observation: NotRequired[bool]
     speed_observation_threshold: NotRequired[float]
+    punish_inhomogeneities: NotRequired[bool]
 
 
 def truncated_normal_single(mean, std_dev) -> float:
@@ -132,7 +134,8 @@ class GridEnv(gym.Env):
                  social_reward: bool = None,
                  density: float = 0.5,
                  invert_speed_observation: bool = False,
-                 speed_observation_threshold: float = 0.35):
+                 speed_observation_threshold: float = 0.35,
+                 punish_inhomogeneities: bool = False):
         """
         The GridEnvironment class implements a grid environment with particles that can move forward, up,
         down or wait. It is a 2D version of the TASEP (Totally Asymmetric Simple Exclusion Process) model for use
@@ -172,9 +175,11 @@ class GridEnv(gym.Env):
                 observation. Defaults to False.
             speed_observation_threshold (float, optional): The value that a particle with speed 1 should have in the
                 observation. Defaults to 0.35.
+            punish_inhomogeneities (bool, optional): Whether to punish speed inhomogeneity in the observation. Defaults to False.
         """
         self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
         self.social_reward = social_reward
+        self.punish_inhomogeneities = punish_inhomogeneities
         self.density = density
         self.current_mover: Optional[np.ndarray] = None
         self.allow_wait = allow_wait
@@ -188,7 +193,9 @@ class GridEnv(gym.Env):
         self.average_window = average_window
         self.avg_window_time = 0
         self.avg_window_forward = 0
+        self.avg_window_reward = 0
         self._current = 0
+        self._avg_reward = 0
         self.moves_per_timestep = moves_per_timestep
         self.distinguishable_particles = distinguishable_particles
         self.use_speeds = use_speeds
@@ -313,6 +320,7 @@ class GridEnv(gym.Env):
             # "N": self.n,
             # "rho": self.rho,
             "current": self._get_current(),
+            "avg_reward": self._avg_reward
         }
 
     def render(self) -> Optional[np.ndarray]:
@@ -391,6 +399,7 @@ class GridEnv(gym.Env):
         self.total_timesteps = 0
         self.avg_window_time = 0
         self.avg_window_forward = 0
+        self.avg_window_reward = 0
 
         # Set the initial state of the environment
         # If no initial state is given, we set the initial state to be a checkerboard
@@ -449,8 +458,10 @@ class GridEnv(gym.Env):
         self._update_current_initial()
         if not self.use_speeds or self.np_random.random() < self.state[*self.current_mover] % 1:
             reward = self._perform_action(action)
-        if not self.distinguishable_particles:
-            react_observation = self._get_obs(new_mover=False)
+        react_observation = self._get_obs(new_mover=False)
+        if self.punish_inhomogeneities:
+            reward += self._calc_inhomo_reward(react_observation)
+        self.avg_window_reward += reward
         info = self._get_info()
         next_observation = self._get_obs(new_mover=True)
         self._render_if_human()
@@ -465,8 +476,10 @@ class GridEnv(gym.Env):
         """
         if self.avg_window_time >= self.average_window:
             self._current = self.avg_window_forward / self.average_window
+            self._avg_reward = self.avg_window_reward / self.average_window
             self.avg_window_time = 0
             self.avg_window_forward = 0
+            self.avg_window_reward = 0
 
     def _update_current_initial(self):
         """
@@ -475,6 +488,7 @@ class GridEnv(gym.Env):
         """
         if self.average_window > self.total_timesteps > 50:
             self._current = self.total_forward / self.total_timesteps
+            self._avg_reward = self.avg_window_reward / self.total_timesteps
 
     def _perform_action(self, action: int) -> int | float:
         """
@@ -513,6 +527,12 @@ class GridEnv(gym.Env):
         if self.state[row, prev_x] != 0:
             return -self.social_reward if not self.use_speeds else -(self.state[row, prev_x] % 1) * self.social_reward
         return 0
+
+    def _calc_inhomo_reward(self, obs: np.ndarray) -> float:
+        mover_speed = self.state[*self.current_mover] % 1
+        # calculate the average of the absolute differences between the speeds of the mover and the other particles
+        reward = -np.abs(obs[obs != 0] - mover_speed).mean()
+        return reward
 
     def _move_forward(self) -> int:
         """

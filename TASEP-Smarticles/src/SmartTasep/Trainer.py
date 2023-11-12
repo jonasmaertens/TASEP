@@ -203,6 +203,8 @@ class Trainer:
         """
         self.env_params = env_params
         self.wait_initial = wait_initial
+        if self.env_params["initial_state_template"] or self.env_params["initial_state"]:
+            random_density = False
         self.random_density = random_density
         self.hyperparams = hyperparams
         self.progress_bar = progress_bar
@@ -212,12 +214,29 @@ class Trainer:
         self.render_start = render_start
         self.do_plot = do_plot
         self.plot_interval = plot_interval
-        if plot_interval is not None and env_params["average_window"] is None:
+        if plot_interval is not None and "average_window" not in env_params:
             self.env_params["average_window"] = plot_interval
-        if plot_interval is None and env_params["average_window"] is not None:
+        if plot_interval is None and "average_window" in env_params:
             self.plot_interval = env_params["average_window"]
 
+        # set up matplotlib figure with two axes
+        plt.rcParams["font.size"] = 4
+        plt.style.use("dark_background")
+        plt.rcParams["toolbar"] = "None"
+        fig, self.ax_current = plt.subplots(figsize=(4, 1.6), dpi=300)
+        self.ax_current.set_title(f"Current and reward over time for sigma = {self.env_params['sigma']}")
+        self.ax_reward = self.ax_current.twinx()
+        self.ax_current.set_xlabel("Time")
+        self.ax_current.set_ylabel("Current")
+        self.ax_reward.set_ylabel("Reward")
+        self.ax_current.tick_params(axis="y", labelcolor="blue")
+        self.ax_reward.tick_params(axis="y", labelcolor="red")
+        plt.tight_layout()
+        plt.subplots_adjust(right=0.9)
+        plt.subplots_adjust(left=0.1)
+
         self.currents = []
+        self.rewards = []
         self.timesteps = []
         if self.env_params["distinguishable_particles"]:
             self.last_states: dict[int, tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = dict()
@@ -474,11 +493,14 @@ class Trainer:
 
             if self.steps_done % self.plot_interval == 0 and not just_reset and self.steps_done != 0:
                 self.currents.append(info['current'])
+                self.rewards.append(info['avg_reward'])
                 self.timesteps.append(self.steps_done)
                 pbar.set_description(
                     f"Eps.: {self._get_current_eps():.2f}, Current: {self.currents[-1]:.2f}, rho={self.env.unwrapped.density:.2f}")
                 if self.do_plot:
-                    plt.plot(self.timesteps, self.currents, color="blue")
+                    # plot on same figure but different axes
+                    self.ax_current.plot(self.timesteps, self.currents, color="blue")
+                    self.ax_reward.plot(self.timesteps, self.rewards, color="red")
                     plt.show(block=False)
                     plt.pause(0.01)
 
@@ -530,10 +552,12 @@ class Trainer:
 
             if self.steps_done % self.plot_interval == 0 and not just_reset and self.steps_done != 0:
                 self.currents.append(info['current'])
+                self.rewards.append(info['avg_reward'])
                 self.timesteps.append(self.steps_done)
                 pbar.set_description(f"Current: {self.currents[-1]:.2f}")
                 if self.do_plot:
-                    plt.plot(self.timesteps, self.currents, color="blue")
+                    self.ax_current.plot(self.timesteps, self.currents, color="blue")
+                    self.ax_reward.plot(self.timesteps, self.rewards, color="red")
                     plt.show(block=False)
                     plt.pause(0.01)
 
