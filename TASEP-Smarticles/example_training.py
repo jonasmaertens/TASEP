@@ -28,6 +28,6 @@ if __name__ == '__main__':
                               MEMORY_SIZE=900_000)
 
     trainer = Trainer(envParams, hyperparams, reset_interval=80000,
-                      total_steps=400_000, do_plot=True, plot_interval=5000, random_density=True)
+                      total_steps=300_000, do_plot=True, plot_interval=5000, random_density=True)
 
     trainer.train_and_save()

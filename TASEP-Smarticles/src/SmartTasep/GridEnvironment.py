@@ -15,22 +15,33 @@ class EnvParams(TypedDict):
     """
     Environment Params for GridEnvironment
     Attributes:
-        render_mode: The mode to render the environment in, either "human" or "rgb_array"
-        length: The length of the grid
-        width: The number of "lanes"
-        moves_per_timestep: The number of moves per timestep
-        window_height: The height of the PyGame window
-        observation_distance: The distance from the agent to the edge of the observation square
-        initial_state_template: The template to use for the initial state, either "checkerboard" or "everyThird"
-        distinguishable_particles: Whether particles should be distinguishable or not
-        use_speeds: Whether to use speeds or not
-        sigma: The standard deviation of the normal distribution to draw speeds from
-        average_window: The number of timesteps to average over for the current. If None, the whole episode is averaged
-        allow_wait: Whether to allow the agent to wait or not
-        social_reward: The absolute value of the negative reward for moving into a cell with a particle behind it
-        density: The density of particles in the system [0, 1]
-        invert_speed_observation: Whether to invert the speed observation or not
-        speed_observation_threshold: The threshold for the speed observation
+        render_mode (str, optional): The mode in which the environment is rendered. Defaults to None. Can be "human"
+                or "rgb_array".
+            length (int, optional): The length of the grid. Defaults to 64.
+            width (int, optional): The number of "lanes". Defaults to 16.
+            moves_per_timestep (int, optional): The number of moves per timestep. Defaults to 5.
+            window_height (int, optional): The height of the PyGame window. Defaults to 256.
+            observation_distance (int, optional): The agent's observation radius. Defaults to 3.
+            initial_state (np.ndarray, optional): The initial state of the grid. Defaults to None.
+            initial_state_template (np.ndarray, optional): The template for the initial state of the grid. Defaults to
+                None. Can be "checkerboard" or "everyThird".
+            distinguishable_particles (bool, optional): Whether the particles are distinguishable. Defaults to False.
+                If True, a transition is stored when after same agent is picked again. s' then includes the movements
+                of the other agents.
+            use_speeds (bool, optional): Whether agents should have different speeds. Defaults to False.
+            sigma (float, optional): The standard deviation of the truncated normal distribution to draw speeds from.
+                Defaults to None.
+            average_window (int, optional): The size of the time averaging period. Defaults to 1000.
+            allow_wait (bool, optional): Whether to allow the agents to wait. Defaults to False.
+            social_reward (float, optional): If specified, agents get a negative reward for moving into a cell with a
+                particle behind it. When using speeds, the reward is scaled the speed of the particle behind.
+                Defaults to None.
+            density (float, optional): The density of the grid. Defaults to 0.5. Used for random initial states when
+                initial_state and initial_state_template are None.
+            invert_speed_observation (bool, optional): If True, higher speeds are represented by lower values in the
+                observation. Defaults to False.
+            speed_observation_threshold (float, optional): The value that a particle with speed 1 should have in the
+                observation. Defaults to 0.35.
     """
     render_mode: NotRequired[str | None]
     length: int
@@ -153,7 +164,7 @@ class GridEnv(gym.Env):
             average_window (int, optional): The size of the time averaging period. Defaults to 1000.
             allow_wait (bool, optional): Whether to allow the agents to wait. Defaults to False.
             social_reward (float, optional): If specified, agents get a negative reward for moving into a cell with a
-                particle behind it. When using speeds, the reward is the speed of the particle behind divided by 2.
+                particle behind it. When using speeds, the reward is scaled the speed of the particle behind.
                 Defaults to None.
             density (float, optional): The density of the grid. Defaults to 0.5. Used for random initial states when
                 initial_state and initial_state_template are None.
@@ -500,7 +511,7 @@ class GridEnv(gym.Env):
         """
         prev_x = self.length - 1 if self.current_mover[1] == 0 else self.current_mover[1] - 1
         if self.state[row, prev_x] != 0:
-            return -self.social_reward if not self.use_speeds else -(self.state[row, prev_x] % 1) / 2
+            return -self.social_reward if not self.use_speeds else -(self.state[row, prev_x] % 1) * self.social_reward
         return 0
 
     def _move_forward(self) -> int:

@@ -1,0 +1,17 @@
+{
+    "render_mode": null,
+    "length": 128,
+    "width": 32,
+    "moves_per_timestep": 400,
+    "window_height": 400,
+    "observation_distance": 3,
+    "distinguishable_particles": true,
+    "initial_state_template": "checkerboard",
+    "use_speeds": true,
+    "sigma": 5,
+    "average_window": 5000,
+    "allow_wait": true,
+    "social_reward": 0.8,
+    "invert_speed_observation": true,
+    "speed_observation_threshold": 0.35
+}
