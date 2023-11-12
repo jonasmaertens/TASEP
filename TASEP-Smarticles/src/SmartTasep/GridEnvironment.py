@@ -29,7 +29,8 @@ class EnvParams(TypedDict):
         allow_wait: Whether to allow the agent to wait or not
         social_reward: The absolute value of the negative reward for moving into a cell with a particle behind it
         density: The density of particles in the system [0, 1]
-
+        invert_speed_observation: Whether to invert the speed observation or not
+        speed_observation_threshold: The threshold for the speed observation
     """
     render_mode: NotRequired[str | None]
     length: int
@@ -46,6 +47,8 @@ class EnvParams(TypedDict):
     allow_wait: NotRequired[bool]
     social_reward: NotRequired[float]
     density: NotRequired[float]
+    invert_speed_observation: NotRequired[bool]
+    speed_observation_threshold: NotRequired[float]
 
 
 def truncated_normal_single(mean, std_dev) -> float:
@@ -84,17 +87,41 @@ def truncated_normal(mean, std_dev, size) -> np.ndarray:
     return samples
 
 
+def invert_speed_observation(observation: np.ndarray, threshold: float) -> np.ndarray:
+    """
+    Inverts the speed observation. Higher speeds are represented by lower values in the observation.
+    Args:
+        observation: The observation to invert.
+        threshold: The value that a particle with speed 1 should have in the observation.
+
+    Returns:
+        np.ndarray: The inverted observation.
+    """
+    observation[observation != 0] = 1 - observation[observation != 0] + threshold
+    return observation
+
+
 class GridEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 144,
                 "initial_state_templates": ["checkerboard", "everyThird"]}
 
-    def __init__(self, render_mode: str = None, length: int = 64, width: int = 16, moves_per_timestep: int = 5,
+    def __init__(self, render_mode: str = None,
+                 length: int = 64,
+                 width: int = 16,
+                 moves_per_timestep: int = 5,
                  window_height: int = 256,
-                 observation_distance: int = 3, initial_state: np.ndarray = None, initial_state_template: str = None,
-                 distinguishable_particles: bool = False, use_speeds: bool = False, sigma: float = None,
+                 observation_distance: int = 3,
+                 initial_state: np.ndarray = None,
+                 initial_state_template: str = None,
+                 distinguishable_particles: bool = False,
+                 use_speeds: bool = False,
+                 sigma: float = None,
                  average_window: int = 1000,
                  allow_wait: bool = False,
-                 social_reward: bool = None, density: float = 0.5):
+                 social_reward: bool = None,
+                 density: float = 0.5,
+                 invert_speed_observation: bool = False,
+                 speed_observation_threshold: float = 0.35):
         """
         The GridEnvironment class implements a grid environment with particles that can move forward, up,
         down or wait. It is a 2D version of the TASEP (Totally Asymmetric Simple Exclusion Process) model for use
@@ -107,21 +134,33 @@ class GridEnv(gym.Env):
             - -social_reward for moving into a cell with a particle behind it (only if social_reward is specified)
 
         Args:
-            render_mode (str, optional): The mode in which the environment is rendered. Defaults to None. Can be "human" or "rgb_array".
+            render_mode (str, optional): The mode in which the environment is rendered. Defaults to None. Can be "human"
+                or "rgb_array".
             length (int, optional): The length of the grid. Defaults to 64.
             width (int, optional): The number of "lanes". Defaults to 16.
             moves_per_timestep (int, optional): The number of moves per timestep. Defaults to 5.
             window_height (int, optional): The height of the PyGame window. Defaults to 256.
             observation_distance (int, optional): The agent's observation radius. Defaults to 3.
             initial_state (np.ndarray, optional): The initial state of the grid. Defaults to None.
-            initial_state_template (np.ndarray, optional): The template for the initial state of the grid. Defaults to None. Can be "checkerboard" or "everyThird".
-            distinguishable_particles (bool, optional): Whether the particles are distinguishable. Defaults to False. If True, a transition is stored when after same agent is picked again. s' then includes the movements of the other agents.
+            initial_state_template (np.ndarray, optional): The template for the initial state of the grid. Defaults to
+                None. Can be "checkerboard" or "everyThird".
+            distinguishable_particles (bool, optional): Whether the particles are distinguishable. Defaults to False.
+                If True, a transition is stored when after same agent is picked again. s' then includes the movements
+                of the other agents.
             use_speeds (bool, optional): Whether agents should have different speeds. Defaults to False.
-            sigma (float, optional): The standard deviation of the truncated normal distribution to draw speeds from. Defaults to None.
+            sigma (float, optional): The standard deviation of the truncated normal distribution to draw speeds from.
+                Defaults to None.
             average_window (int, optional): The size of the time averaging period. Defaults to 1000.
             allow_wait (bool, optional): Whether to allow the agents to wait. Defaults to False.
-            social_reward (float, optional): If specified, agents get a negative reward for moving into a cell with a particle behind it. When using speeds, the reward is the speed of the particle behind divided by 2. Defaults to None.
-            density (float, optional): The density of the grid. Defaults to 0.5. Used for random initial states when initial_state and initial_state_template are None.
+            social_reward (float, optional): If specified, agents get a negative reward for moving into a cell with a
+                particle behind it. When using speeds, the reward is the speed of the particle behind divided by 2.
+                Defaults to None.
+            density (float, optional): The density of the grid. Defaults to 0.5. Used for random initial states when
+                initial_state and initial_state_template are None.
+            invert_speed_observation (bool, optional): If True, higher speeds are represented by lower values in the
+                observation. Defaults to False.
+            speed_observation_threshold (float, optional): The value that a particle with speed 1 should have in the
+                observation. Defaults to 0.35.
         """
         self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
         self.social_reward = social_reward
@@ -147,6 +186,10 @@ class GridEnv(gym.Env):
             if sigma is None:
                 raise ValueError("sigma must be specified if use_speeds is True")
         self.sigma = sigma
+        self.invert_speed_observation = invert_speed_observation
+        self.speed_observation_threshold = speed_observation_threshold
+        if self.invert_speed_observation and not self.use_speeds:
+            raise ValueError("invert_speed_observation can only be True if use_speeds is True")
         self.initial_state_template = initial_state_template
         self.initial_state = initial_state
 
@@ -158,14 +201,15 @@ class GridEnv(gym.Env):
         # observation space and the number of the agent
         if self.distinguishable_particles:
             self.use_dtype = np.float32 if self.use_speeds else np.int32
-            single_obs = spaces.Box(low=0, high=1, shape=((self.obs_dist * 2 + 1) ** 2,), dtype=self.use_dtype)
-            self.observation_space: spaces.Tuple[ObsType,] = spaces.Tuple(
-                (single_obs, spaces.Discrete(self.length * self.width)))
-        elif self.use_speeds:  # binary observation space -> speed observation space
-            self.use_dtype = np.float32
-            single_obs = spaces.Box(low=0, high=1, shape=((self.obs_dist * 2 + 1) ** 2,), dtype=self.use_dtype)
-            self.observation_space: spaces.Tuple[ObsType,] = spaces.Tuple(
-                (single_obs, spaces.Box(low=0, high=1, shape=(1,), dtype=self.use_dtype)))
+            if self.invert_speed_observation:
+                single_obs = spaces.Box(low=0, high=1 + self.speed_observation_threshold,
+                                        shape=((self.obs_dist * 2 + 1) ** 2,), dtype=self.use_dtype)
+                self.observation_space: spaces.Tuple[ObsType,] = spaces.Tuple(
+                    (single_obs, spaces.Discrete(self.length * self.width)))
+            else:
+                single_obs = spaces.Box(low=0, high=1, shape=((self.obs_dist * 2 + 1) ** 2,), dtype=self.use_dtype)
+                self.observation_space: spaces.Tuple[ObsType,] = spaces.Tuple(
+                    (single_obs, spaces.Discrete(self.length * self.width)))
         else:
             self.use_dtype = np.uint8
             single_obs = spaces.Box(low=0, high=1, shape=((self.obs_dist * 2 + 1) ** 2,), dtype=self.use_dtype)
@@ -219,6 +263,8 @@ class GridEnv(gym.Env):
             obs[obs != 0] = 1
         if self.use_speeds:
             obs[obs != 0] = obs[obs != 0] % 1
+            if self.invert_speed_observation:
+                obs = invert_speed_observation(obs, self.speed_observation_threshold)
         return obs.flatten()
 
     @property

@@ -75,6 +75,9 @@ def choose_model() -> int:
                       value["env_params"]["average_window"],
                       value["env_params"]["allow_wait"],
                       value["env_params"]["social_reward"],
+                      value["env_params"]["invert_speed_observation"],
+                      value["env_params"]["speed_observation_threshold"],
+                      value["random_density"]
                       ])
     tabulate.MIN_PADDING = 0
     Line = namedtuple("Line", ["begin", "hline", "sep", "end"])
@@ -94,7 +97,7 @@ def choose_model() -> int:
         "id", "tot_step", "BATCH", "γ", "ε_0", "ε_end", "ε_dec", "τ",
         "LR", "MEM", "len", "width", "r_obs", "disting.",
         "speeds",
-        "σ", "avg_wdw", "wait", "horn"
+        "σ", "avg_wdw", "wait", "horn", "inv_spd", "spd_thld", "rnd_ρ"
     ], tablefmt=grid))
     # prompt user to select a model
     model_id = int(input("Enter model id: "))
@@ -128,7 +131,7 @@ class Trainer:
         -----
         **Training**
             To train an agent, create a Trainer object providing the environment_params, hyperparams and Trainer params.
-            Then call the ``train_and_safe()`` method. The ``train_and_safe()`` method will train the agent and save the
+            Then call the ``train_and_save()`` method. The ``train_and_save()`` method will train the agent and save the
             model, plot and currents to the models directory.
 
             **Example:**
@@ -165,7 +168,7 @@ class Trainer:
                                     do_plot=True,
                                     plot_interval=5000,
                                     random_density=True)
-            >>> trainer.train_and_safe()
+            >>> trainer.train_and_save()
 
         **Running**
             To run a simulation with a pre-trained agent, use the ``load()`` method to load a model and then call the
@@ -560,10 +563,10 @@ class Trainer:
         torch.save(self.target_net.state_dict(), f"models/by_id/{model_id}/target_net.pt")
         # save hyperparams
         with open(f"models/by_id/{model_id}/hyperparams.json", "w") as f:
-            json.dump(self.hyperparams, f)
+            json.dump(self.hyperparams, f, indent=4)
         # save env params
         with open(f"models/by_id/{model_id}/env_params.json", "w") as f:
-            json.dump(self.env_params, f)
+            json.dump(self.env_params, f, indent=4)
         # save currents
         np.save(f"models/by_id/{model_id}/currents.npy", self.currents)
         # save timesteps
@@ -585,11 +588,12 @@ class Trainer:
             "plot_interval": self.plot_interval,
             "render_start": self.render_start,
             "reset_interval": self.reset_interval,
+            "random_density": self.random_density,
             "model_id": model_id,
             "timestamp": datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         }
         with open("models/all_models.json", "w") as f:
-            json.dump(all_models, f)
+            json.dump(all_models, f, indent=4)
         print(f"Saved model with id {model_id} to models/by_id/{model_id}/")
         print(f"Load model with `trainer = Trainer.load({model_id})`")
 
@@ -633,7 +637,7 @@ class Trainer:
         np.save(file, self.currents)
         np.save(file.replace(".npy", "_timesteps.npy"), self.timesteps)
 
-    def train_and_safe(self):
+    def train_and_save(self):
         """
         Trains the agent for the specified number of steps and saves the model, plot and currents to the models
         directory.
