@@ -5,6 +5,7 @@ import torch
 import os
 from Hasel import hsl2rgb
 from Trainer import choose_model
+from GridEnvironment import invert_speed_observation
 import json
 
 
@@ -30,6 +31,8 @@ class Playground:
         self.model = model
         self.observation_distance = self.model["env_params"]["observation_distance"]
         self.actions = 4 if self.model["env_params"]["allow_wait"] else 3
+        self.invert_speed_observation = self.model["env_params"]["invert_speed_observation"]
+        self.speed_observation_threshold = self.model["env_params"]["speed_observation_threshold"]
         self.length = self.observation_distance * 2 + 1
         self.state = np.zeros((self.length, self.length), dtype=np.float32)
         self.next_state = self.state.copy()
@@ -106,6 +109,8 @@ class Playground:
                     # map the state to the observation space of the policy network and select an action
                     corrected_state = self.state.copy()
                     corrected_state[self.observation_distance, self.observation_distance] = 1
+                    if self.invert_speed_observation:
+                        corrected_state = invert_speed_observation(corrected_state, self.speed_observation_threshold)
                     action = self.select_action(
                         torch.tensor(corrected_state, dtype=torch.float32).flatten().unsqueeze(0).to(self.device))
                     self.calc_next_state(action)
