@@ -89,7 +89,9 @@ def choose_model() -> int:
                       value["env_params"]["social_reward"],
                       value["env_params"]["invert_speed_observation"],
                       value["env_params"]["speed_observation_threshold"],
-                      value["random_density"]
+                      value["random_density"],
+                      value["env_params"]["punish_inhomogeneities"],
+                      value["env_params"]["speed_gradient_reward"],
                       ])
     tabulate.MIN_PADDING = 0
     Line = namedtuple("Line", ["begin", "hline", "sep", "end"])
@@ -109,7 +111,7 @@ def choose_model() -> int:
         "id", "tot_step", "BATCH", "γ", "ε_0", "ε_end", "ε_dec", "τ",
         "LR", "MEM", "len", "width", "r_obs", "disting.",
         "speeds",
-        "σ", "avg_wdw", "wait", "horn", "inv_spd", "spd_thld", "rnd_ρ"
+        "σ", "avg_wdw", "wait", "horn", "inv_spd", "spd_thld", "rnd_ρ", "inhom", "spd_grad"
     ], tablefmt=grid))
     # prompt user to select a model
     model_id = int(input("Enter model id: "))
@@ -264,6 +266,7 @@ class Trainer:
         window_width = self.env.unwrapped.window_width
         window_width_inches = window_width / dpi
         window_height_inches = window_width_inches / 2.5
+        print(window_height_inches)
         plt.rcParams["font.size"] = 3.5
         plt.style.use("dark_background")
         plt.rcParams["toolbar"] = "None"
@@ -288,7 +291,7 @@ class Trainer:
 
     @classmethod
     def load(cls, model_id: int = None, sigma: float = None, total_steps: int = None, average_window=None, do_plot=None,
-             wait_initial=None, render_start=None, window_height=None, moves_per_timestep=None) -> "Trainer":
+             wait_initial=None, render_start=None, window_height=None, moves_per_timestep=None, progress_bar=True) -> "Trainer":
         """
         Loads a model from the models directory and returns a Trainer object with the loaded model. Specify extra args
         to override the values in the loaded model.
@@ -308,7 +311,7 @@ class Trainer:
         with open("models/all_models.json", "r") as f:
             all_models = json.load(f)
         if model_id is None:
-            model_id = cls.choose_model()
+            model_id = choose_model()
         # load model
         with open(f"models/by_id/{model_id}/hyperparams.json", "r") as f:
             hyperparams = json.load(f)
@@ -327,10 +330,10 @@ class Trainer:
         if moves_per_timestep is not None:
             env_params["moves_per_timestep"] = moves_per_timestep
         render_start = render_start if render_start is not None else all_models[str(model_id)]["render_start"]
-        do_plot = do_plot if do_plot is not None else all_models[str(model_id)]["do_plot"]
-        wait_initial = wait_initial if wait_initial is not None else all_models[str(model_id)]["wait_initial"]
+        do_plot = do_plot if do_plot is not None else True
+        wait_initial = wait_initial if wait_initial is not None else False
         trainer = cls(env_params, hyperparams, model=f"models/by_id/{model_id}/policy_net.pt",
-                      total_steps=tot_steps, do_plot=do_plot, progress_bar=False, plot_interval=plot_interval,
+                      total_steps=tot_steps, do_plot=do_plot, progress_bar=progress_bar, plot_interval=plot_interval,
                       wait_initial=wait_initial, render_start=render_start)
         return trainer
 

@@ -243,6 +243,9 @@ class GridEnv(gym.Env):
         self.initial_state_template = initial_state_template
         self.initial_state = initial_state
 
+        if self.speed_gradient_reward and not self.use_speeds:
+            raise ValueError("speed_gradient_reward can only be True if use_speeds is True")
+
         # The agent perceives part of the surrounding grid, it has a square view
         # with viewing distance `self.observation_size`
         self.obs_dist = observation_distance
@@ -493,6 +496,8 @@ class GridEnv(gym.Env):
         react_observation = self._get_obs(new_mover=False)
         if self.punish_inhomogeneities:
             reward += self._calc_inhomo_reward(react_observation)
+        if self.speed_gradient_reward:
+            reward += self._calculate_speed_gradient_reward()
         self.avg_window_reward += reward
         info = self._get_info()
         next_observation = self._get_obs(new_mover=True)
@@ -566,6 +571,19 @@ class GridEnv(gym.Env):
         reward = -np.abs(obs[obs != 0] - mover_speed).mean() * 3
         return reward
 
+    def _calculate_speed_gradient_reward(self) -> float:
+        """
+        Calculates the reward for the speed gradient.
+        Returns:
+            float: The reward for the speed gradient.
+        """
+        speed = self.state[*self.current_mover] % 1
+        row = self.current_mover[0]
+        desired_row = speed * (self.width - 1)
+        rw = -np.abs(row - desired_row)/self.width * 100
+        #print(speed, row, desired_row, rw)
+        return rw
+
     def _move_forward(self) -> int:
         """
         Moves the agent forward if possible and return the reward.
@@ -577,6 +595,7 @@ class GridEnv(gym.Env):
         if not has_moved:
             return -1
         else:
+            self.current_mover[1] = next_x
             self.total_forward += 1
             self.avg_window_forward += 1
             return 1
@@ -592,6 +611,7 @@ class GridEnv(gym.Env):
         has_moved = self._move_if_possible((x_pos, self.current_mover[1]))
         if not has_moved:
             return -1
+        self.current_mover[0] = x_pos
         return 0
 
     def _render_if_human(self):
