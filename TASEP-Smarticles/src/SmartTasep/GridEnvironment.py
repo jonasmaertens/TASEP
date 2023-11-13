@@ -11,6 +11,28 @@ from typing import SupportsFloat, TypeVar, Any, TypedDict, Optional, TypeAlias, 
 ObsType = TypeVar("ObsType")
 WholeObsType: TypeAlias = tuple[ObsType, ObsType] | tuple[ObsType, int]
 
+default_env_params = {
+    "render_mode": None,
+    "length": 64,
+    "width": 16,
+    "moves_per_timestep": 5,
+    "window_height": 256,
+    "observation_distance": 3,
+    "initial_state": None,
+    "initial_state_template": None,
+    "distinguishable_particles": False,
+    "use_speeds": False,
+    "sigma": None,
+    "average_window": 1000,
+    "allow_wait": False,
+    "social_reward": None,
+    "density": 0.5,
+    "invert_speed_observation": False,
+    "speed_observation_threshold": 0.35,
+    "punish_inhomogeneities": False,
+    "speed_gradient_reward": False
+}
+
 
 class EnvParams(TypedDict):
     """
@@ -43,7 +65,9 @@ class EnvParams(TypedDict):
                 observation. Defaults to False.
             speed_observation_threshold (float, optional): The value that a particle with speed 1 should have in the
                 observation. Defaults to 0.35.
-            punish_inhomogeneities (bool, optional): Whether to punish speed inhomogeneity in the observation. Defaults to False.
+            punish_inhomogeneities (bool, optional): Whether to punish speed inhomogeneity in the observation.
+                Defaults to False.
+            speed_gradient_reward (bool, optional): Whether to encourage a vertical speed gradient in the system.
     """
     render_mode: NotRequired[str | None]
     length: int
@@ -63,6 +87,7 @@ class EnvParams(TypedDict):
     invert_speed_observation: NotRequired[bool]
     speed_observation_threshold: NotRequired[float]
     punish_inhomogeneities: NotRequired[bool]
+    speed_gradient_reward: NotRequired[bool]
 
 
 def truncated_normal_single(mean, std_dev) -> float:
@@ -136,7 +161,8 @@ class GridEnv(gym.Env):
                  density: float = 0.5,
                  invert_speed_observation: bool = False,
                  speed_observation_threshold: float = 0.35,
-                 punish_inhomogeneities: bool = False):
+                 punish_inhomogeneities: bool = False,
+                 speed_gradient_reward: bool = False):
         """
         The GridEnvironment class implements a grid environment with particles that can move forward, up,
         down or wait. It is a 2D version of the TASEP (Totally Asymmetric Simple Exclusion Process) model for use
@@ -176,7 +202,9 @@ class GridEnv(gym.Env):
                 observation. Defaults to False.
             speed_observation_threshold (float, optional): The value that a particle with speed 1 should have in the
                 observation. Defaults to 0.35.
-            punish_inhomogeneities (bool, optional): Whether to punish speed inhomogeneity in the observation. Defaults to False.
+            punish_inhomogeneities (bool, optional): Whether to punish speed inhomogeneity in the observation.
+                Defaults to False.
+            speed_gradient_reward (bool, optional): Whether to encourage a vertical speed gradient in the system.
         """
         self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
         self.social_reward = social_reward
@@ -202,6 +230,7 @@ class GridEnv(gym.Env):
         self.moves_per_timestep = moves_per_timestep
         self.distinguishable_particles = distinguishable_particles
         self.use_speeds = use_speeds
+        self.speed_gradient_reward = speed_gradient_reward
         if self.use_speeds:
             self.distinguishable_particles = True
             if sigma is None:

@@ -11,12 +11,12 @@ if __name__ == '__main__':
                           observation_distance=3,
                           distinguishable_particles=True,
                           #initial_state_template="checkerboard",
-                          use_speeds=True,
-                          sigma=5,
+                          #use_speeds=True,
+                          #sigma=5,
                           allow_wait=True,
                           # social_reward=0.8,
-                          invert_speed_observation=True,
-                          speed_observation_threshold=0.35,
+                          #invert_speed_observation=True,
+                          #speed_observation_threshold=0.35,
                           punish_inhomogeneities=True,
                           density=0.2)
     hyperparams = Hyperparams(BATCH_SIZE=128,
@@ -29,6 +29,6 @@ if __name__ == '__main__':
                               MEMORY_SIZE=900_000)
 
     trainer = Trainer(envParams, hyperparams, reset_interval=80000,
-                      total_steps=300_000, do_plot=True, plot_interval=2000, random_density=False)
+                      total_steps=3_000, do_plot=True, plot_interval=2000, random_density=False)
 
     trainer.train_and_save()

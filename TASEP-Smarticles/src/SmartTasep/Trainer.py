@@ -58,11 +58,16 @@ def choose_model() -> int:
     """
     Prints a table of all models and prompts the user to select one
     """
+    from GridEnvironment import default_env_params
     with open("models/all_models.json", "r") as f:
         all_models = json.load(f)
     # create table with all models
     table = []
     for key, value in all_models.items():
+        # replace unset params with default values
+        for param in default_env_params:
+            if param not in value["env_params"]:
+                value["env_params"][param] = default_env_params[param]
         table.append([key,
                       value["total_steps"],
                       value["hyperparams"]["BATCH_SIZE"],
@@ -265,7 +270,10 @@ class Trainer:
         plt.rcParams['lines.linewidth'] = 0.5
         fig, self.ax_current = plt.subplots(figsize=(window_width_inches, window_height_inches), dpi=dpi)
         move_figure(fig, 0, 0)
-        self.ax_current.set_title(f"Current and reward over time for sigma = {self.env_params['sigma']}")
+        if "sigma" in self.env_params:
+            self.ax_current.set_title(f"Current and reward over time for sigma = {self.env_params['sigma']}")
+        else:
+            self.ax_current.set_title("Current and reward over time")
         self.ax_reward = self.ax_current.twinx()
         self.ax_current.set_xlabel("Time")
         self.ax_current.set_ylabel("Current")
