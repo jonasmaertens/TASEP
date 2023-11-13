@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import pygame
 
 import gymnasium as gym
@@ -187,6 +188,8 @@ class GridEnv(gym.Env):
         self.width = width if initial_state is None else initial_state.shape[0]  # The number of "lanes"
         self.window_height = window_height  # The height of the PyGame window
         self.window_width = self.window_height * self.length / self.width  # The width of the PyGame window
+        # for pygame window
+        os.environ['SDL_VIDEO_WINDOW_POS'] = f"0,{int(self.window_width / 2.5)+70}"
         self.pix_square_size = (self.window_height / self.width)
         self.total_forward = 0
         self.total_timesteps = 0
@@ -531,7 +534,7 @@ class GridEnv(gym.Env):
     def _calc_inhomo_reward(self, obs: np.ndarray) -> float:
         mover_speed = self.state[*self.current_mover] % 1
         # calculate the average of the absolute differences between the speeds of the mover and the other particles
-        reward = -np.abs(obs[obs != 0] - mover_speed).mean()
+        reward = -np.abs(obs[obs != 0] - mover_speed).mean() * 3
         return reward
 
     def _move_forward(self) -> int:
