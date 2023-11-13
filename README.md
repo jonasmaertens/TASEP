@@ -43,6 +43,7 @@ Files in src:
 
    - torchrl (you might have to install this before pytorch depending on the version) 
    - gymnasium
+   - PyQt6 (if on Mac)
    - matplotlib
    - tqdm
    - pygame

@@ -7,7 +7,6 @@ from collections import namedtuple
 import gymnasium as gym
 import math
 import random
-import matplotlib.pyplot as plt
 import numpy as np
 from tabulate import tabulate, TableFormat
 
@@ -23,6 +22,14 @@ from GridEnvironment import GridEnv, EnvParams
 from typing import TypedDict, Optional
 
 from torchrl.data import LazyTensorStorage, TensorDictReplayBuffer
+
+import matplotlib
+
+backend = matplotlib.get_backend()
+if backend == 'MacOSX':
+    import PyQt6.QtCore
+    matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
 
 
 class Hyperparams(TypedDict):
@@ -102,6 +109,19 @@ def choose_model() -> int:
     # prompt user to select a model
     model_id = int(input("Enter model id: "))
     return model_id
+
+
+def move_figure(f, x, y):
+    """Move figure's upper left corner to pixel (x, y)"""
+    backend = matplotlib.get_backend()
+    if backend == 'TkAgg':
+        f.canvas.manager.window.wm_geometry(f"+{x}+{y}")
+    elif backend == 'WXAgg':
+        f.canvas.manager.window.SetPosition((x, y))
+    else:
+        # This works for QT and GTK
+        # You can also use window.setGeometry
+        f.canvas.manager.window.move(x, y)
 
 
 class Trainer:
@@ -203,7 +223,7 @@ class Trainer:
         """
         self.env_params = env_params
         self.wait_initial = wait_initial
-        if self.env_params["initial_state_template"] or self.env_params["initial_state"]:
+        if "initial_state_template" in self.env_params or "initial_state" in self.env_params:
             random_density = False
         self.random_density = random_density
         self.hyperparams = hyperparams
@@ -219,26 +239,10 @@ class Trainer:
         if plot_interval is None and "average_window" in env_params:
             self.plot_interval = env_params["average_window"]
 
-        # set up matplotlib figure with two axes
-        plt.rcParams["font.size"] = 4
-        plt.style.use("dark_background")
-        plt.rcParams["toolbar"] = "None"
-        fig, self.ax_current = plt.subplots(figsize=(4, 1.6), dpi=300)
-        self.ax_current.set_title(f"Current and reward over time for sigma = {self.env_params['sigma']}")
-        self.ax_reward = self.ax_current.twinx()
-        self.ax_current.set_xlabel("Time")
-        self.ax_current.set_ylabel("Current")
-        self.ax_reward.set_ylabel("Reward")
-        self.ax_current.tick_params(axis="y", labelcolor="blue")
-        self.ax_reward.tick_params(axis="y", labelcolor="red")
-        plt.tight_layout()
-        plt.subplots_adjust(right=0.9)
-        plt.subplots_adjust(left=0.1)
-
         self.currents = []
         self.rewards = []
         self.timesteps = []
-        if self.env_params["distinguishable_particles"]:
+        if "distinguishable_particles" in env_params and self.env_params["distinguishable_particles"]:
             self.last_states: dict[int, tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = dict()
             self.mover: Optional[int] = None
         # if GPU is to be used, CUDA for NVIDIA, MPS for Apple Silicon (not used bc slow)
@@ -248,6 +252,31 @@ class Trainer:
         self.state: Optional[torch.Tensor] = None  # Initialized in self.reset_env() in self._init_model()
         self.policy_net, self.target_net, self.optimizer, self.memory, self.criterion = self._init_model()
         self.steps_done = 0
+
+        # set up matplotlib figure with two axes
+        dpi = 300
+        # noinspection PyUnresolvedReferences
+        window_width = self.env.unwrapped.window_width
+        window_width_inches = window_width / dpi
+        window_height_inches = window_width_inches / 2.5
+        plt.rcParams["font.size"] = 3.5
+        plt.style.use("dark_background")
+        plt.rcParams["toolbar"] = "None"
+        plt.rcParams['lines.linewidth'] = 0.5
+        fig, self.ax_current = plt.subplots(figsize=(window_width_inches, window_height_inches), dpi=dpi)
+        move_figure(fig, 0, 0)
+        self.ax_current.set_title(f"Current and reward over time for sigma = {self.env_params['sigma']}")
+        self.ax_reward = self.ax_current.twinx()
+        self.ax_current.set_xlabel("Time")
+        self.ax_current.set_ylabel("Current")
+        self.ax_reward.set_ylabel("Reward")
+        self.ax_current.tick_params(axis="y", labelcolor="blue")
+        self.ax_reward.tick_params(axis="y", labelcolor="red")
+        self.ax_current.yaxis.label.set_color("blue")
+        self.ax_reward.yaxis.label.set_color("red")
+        plt.tight_layout()
+        plt.subplots_adjust(right=0.9)
+        plt.subplots_adjust(left=0.1)
 
     @classmethod
     def load(cls, model_id: int = None, sigma: float = None, total_steps: int = None, average_window=None, do_plot=None,
