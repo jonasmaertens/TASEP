@@ -19,7 +19,7 @@ if __name__ == '__main__':
                           speed_observation_threshold=0.35,
                           punish_inhomogeneities=False,
                           #density=0.2,
-                          speed_gradient_reward=False,
+                          speed_gradient_reward=True,
                           )
     hyperparams = Hyperparams(BATCH_SIZE=128,
                               GAMMA=0.99,

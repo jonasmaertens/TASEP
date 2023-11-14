@@ -217,7 +217,7 @@ class GridEnv(gym.Env):
         self.window_height = window_height  # The height of the PyGame window
         self.window_width = self.window_height * self.length / self.width  # The width of the PyGame window
         # for pygame window
-        os.environ['SDL_VIDEO_WINDOW_POS'] = f"0,{int(self.window_width / 2.5)+70}"
+        os.environ['SDL_VIDEO_WINDOW_POS'] = f"0,{int(self.window_width / 2.5) + 70}"
         self.pix_square_size = (self.window_height / self.width)
         self.total_forward = 0
         self.total_timesteps = 0
@@ -250,29 +250,7 @@ class GridEnv(gym.Env):
         # with viewing distance `self.observation_size`
         self.obs_dist = observation_distance
 
-        # With distinguishable particles, the observation is a tuple of the binary
-        # observation space and the number of the agent
-        if self.distinguishable_particles:
-            self.use_dtype = np.float32 if self.use_speeds else np.int32
-            if self.invert_speed_observation:
-                single_obs = spaces.Box(low=0, high=1 + self.speed_observation_threshold,
-                                        shape=((self.obs_dist * 2 + 1) ** 2,), dtype=self.use_dtype)
-                self.observation_space: spaces.Tuple[ObsType,] = spaces.Tuple(
-                    (single_obs, spaces.Discrete(self.length * self.width)))
-            else:
-                single_obs = spaces.Box(low=0, high=1, shape=((self.obs_dist * 2 + 1) ** 2,), dtype=self.use_dtype)
-                self.observation_space: spaces.Tuple[ObsType,] = spaces.Tuple(
-                    (single_obs, spaces.Discrete(self.length * self.width)))
-        else:
-            self.use_dtype = np.uint8
-            single_obs = spaces.Box(low=0, high=1, shape=((self.obs_dist * 2 + 1) ** 2,), dtype=self.use_dtype)
-            self.observation_space: spaces.Tuple[ObsType, ObsType] = spaces.Tuple((single_obs, single_obs))
-
-        # We have 3 actions, corresponding to "forward", "up", "down"
-        if self.allow_wait:
-            self.action_space: spaces.Discrete = spaces.Discrete(4)
-        else:
-            self.action_space: spaces.Discrete = spaces.Discrete(3)
+        self._setup_spec()
 
         if render_mode is not None and render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"render_mode must be one of {self.metadata['render_modes']}")
@@ -285,6 +263,34 @@ class GridEnv(gym.Env):
         # first time.
         self.window = None
         self.clock = None
+
+    def _setup_spec(self):
+        # With distinguishable particles, the observation is a tuple of the binary
+        # observation space and the number of the agent
+        if self.distinguishable_particles:
+            self.use_dtype = np.float32 if self.use_speeds else np.int32
+            obs_shape = ((self.obs_dist * 2 + 1) ** 2 + 1,) if self.speed_gradient_reward else (
+                (self.obs_dist * 2 + 1) ** 2,)
+            additional_high = self.width - 2 if self.speed_gradient_reward else 0
+            if self.invert_speed_observation:
+                single_obs = spaces.Box(low=0, high=1 + self.speed_observation_threshold + additional_high,
+                                        shape=obs_shape, dtype=self.use_dtype)
+                self.observation_space: spaces.Tuple[ObsType,] = spaces.Tuple(
+                    (single_obs, spaces.Discrete(self.length * self.width)))
+            else:
+                single_obs = spaces.Box(low=0, high=1 + additional_high, shape=obs_shape,
+                                        dtype=self.use_dtype)
+                self.observation_space: spaces.Tuple[ObsType,] = spaces.Tuple(
+                    (single_obs, spaces.Discrete(self.length * self.width)))
+        else:
+            self.use_dtype = np.uint8
+            single_obs = spaces.Box(low=0, high=1, shape=((self.obs_dist * 2 + 1) ** 2,), dtype=self.use_dtype)
+            self.observation_space: spaces.Tuple[ObsType, ObsType] = spaces.Tuple((single_obs, single_obs))
+        # We have 3 actions, corresponding to "forward", "up", "down"
+        if self.allow_wait:
+            self.action_space: spaces.Discrete = spaces.Discrete(4)
+        else:
+            self.action_space: spaces.Discrete = spaces.Discrete(3)
 
     def _get_obs(self, new_mover: bool = True) -> np.ndarray:
         """
@@ -467,7 +473,11 @@ class GridEnv(gym.Env):
         if self.render_mode == "human":
             self._render_frame()
         if self.distinguishable_particles:
-            return (observation, int(self.state[*self.current_mover])), info
+            if self.speed_gradient_reward:
+                observation = np.append(observation, np.float32(self.current_mover[0]))
+                return (observation, int(self.state[*self.current_mover])), info
+            else:
+                return (observation, int(self.state[*self.current_mover])), info
         return (observation, observation), info
 
     def _move_if_possible(self, position: tuple) -> bool:
@@ -503,7 +513,11 @@ class GridEnv(gym.Env):
         next_observation = self._get_obs(new_mover=True)
         self._render_if_human()
         if self.distinguishable_particles:
-            return (next_observation, int(self.state[*self.current_mover])), reward, False, False, info
+            if self.speed_gradient_reward:
+                next_observation = np.append(next_observation, np.float32(self.current_mover[0]))
+                return (next_observation, int(self.state[*self.current_mover])), reward, False, False, info
+            else:
+                return (next_observation, int(self.state[*self.current_mover])), reward, False, False, info
         return (react_observation, next_observation), reward, False, False, info
 
     def _update_current(self):
@@ -577,12 +591,14 @@ class GridEnv(gym.Env):
         Returns:
             float: The reward for the speed gradient.
         """
+        # the fastest particles should be in the middle lanes and slower particles should be farther to the edges
         speed = self.state[*self.current_mover] % 1
         row = self.current_mover[0]
-        desired_row = speed * (self.width - 1)
-        rw = -np.abs(row - desired_row)/self.width * 100
-        #print(speed, row, desired_row, rw)
-        return rw
+        desired_distance = self.width / 2 * (1 - speed)
+        distance = abs(self.width / 2 - row)
+        reward = -abs(desired_distance - distance) / self.width * 2
+        #print(speed, row, desired_distance, distance, reward)
+        return reward
 
     def _move_forward(self) -> int:
         """

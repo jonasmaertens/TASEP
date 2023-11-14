@@ -223,5 +223,43 @@
         "random_density": false,
         "model_id": 5,
         "timestamp": "20231112155915"
+    },
+    "6": {
+        "path": "models/by_id/6/",
+        "hyperparams": {
+            "BATCH_SIZE": 128,
+            "GAMMA": 0.99,
+            "EPS_START": 0.9,
+            "EPS_END": 0.05,
+            "EPS_DECAY": 50000,
+            "TAU": 0.005,
+            "LR": 0.005,
+            "MEMORY_SIZE": 900000
+        },
+        "env_params": {
+            "render_mode": "human",
+            "length": 128,
+            "width": 32,
+            "moves_per_timestep": 80,
+            "window_height": 300,
+            "observation_distance": 3,
+            "distinguishable_particles": true,
+            "initial_state_template": "checkerboard",
+            "use_speeds": true,
+            "sigma": 5,
+            "allow_wait": true,
+            "invert_speed_observation": true,
+            "speed_observation_threshold": 0.35,
+            "punish_inhomogeneities": false,
+            "speed_gradient_reward": true,
+            "average_window": 2000
+        },
+        "total_steps": 900000,
+        "plot_interval": 2000,
+        "render_start": null,
+        "reset_interval": 900000,
+        "random_density": false,
+        "model_id": 6,
+        "timestamp": "20231114122853"
     }
 }

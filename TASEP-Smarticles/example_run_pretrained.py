@@ -3,12 +3,12 @@
 from Trainer import Trainer
 
 if __name__ == '__main__':
-    trainer = Trainer.load(model_id=5,
-                           total_steps=1000000,
+    trainer = Trainer.load(total_steps=1000000,
                            render_start=0,
                            do_plot=True,
                            average_window=8000,
                            window_height=300,
                            moves_per_timestep=200,
+                           wait_initial=True
                            )
     trainer.run()

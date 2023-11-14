@@ -1,0 +1,1 @@
+ffmpeg -i input.mov -vf "setpts=0.5*PTS,scale=1920x1080" -b:v 6M -minrate 6M -maxrate 6M -bufsize 3M -c:a copy output.mp4
