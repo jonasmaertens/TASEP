@@ -92,6 +92,7 @@ def choose_model() -> int:
                       value["random_density"],
                       value["env_params"]["punish_inhomogeneities"],
                       value["env_params"]["speed_gradient_reward"],
+                      value["env_params"]["speed_gradient_linearity"]
                       ])
     tabulate.MIN_PADDING = 0
     Line = namedtuple("Line", ["begin", "hline", "sep", "end"])
@@ -111,7 +112,7 @@ def choose_model() -> int:
         "id", "tot_step", "BATCH", "γ", "ε_0", "ε_end", "ε_dec", "τ",
         "LR", "MEM", "len", "width", "r_obs", "disting.",
         "speeds",
-        "σ", "avg_wdw", "wait", "horn", "inv_spd", "spd_thld", "rnd_ρ", "inhom", "spd_grad"
+        "σ", "avg_wdw", "wait", "horn", "inv_spd", "spd_thld", "rnd_ρ", "inhom", "spd_grad", "lnrty"
     ], tablefmt=grid))
     # prompt user to select a model
     model_id = int(input("Enter model id: "))
@@ -266,7 +267,6 @@ class Trainer:
         window_width = self.env.unwrapped.window_width
         window_width_inches = window_width / dpi
         window_height_inches = window_width_inches / 2.5
-        print(window_height_inches)
         plt.rcParams["font.size"] = 3.5
         plt.style.use("dark_background")
         plt.rcParams["toolbar"] = "None"
@@ -288,6 +288,8 @@ class Trainer:
         plt.tight_layout()
         plt.subplots_adjust(right=0.9)
         plt.subplots_adjust(left=0.1)
+        plt.show(block=False)
+        plt.ion()
 
     @classmethod
     def load(cls, model_id: int = None, sigma: float = None, total_steps: int = None, average_window=None, do_plot=None,
@@ -541,8 +543,6 @@ class Trainer:
                     # plot on same figure but different axes
                     self.ax_current.plot(self.timesteps, self.currents, color="blue")
                     self.ax_reward.plot(self.timesteps, self.rewards, color="red")
-                    plt.show(block=False)
-                    plt.pause(0.01)
 
     def _soft_update(self):
         # Soft update of the target network's weights
@@ -598,8 +598,6 @@ class Trainer:
                 if self.do_plot:
                     self.ax_current.plot(self.timesteps, self.currents, color="blue")
                     self.ax_reward.plot(self.timesteps, self.rewards, color="red")
-                    plt.show(block=False)
-                    plt.pause(0.01)
 
     def save(self):
         # create models directory if it doesn't exist

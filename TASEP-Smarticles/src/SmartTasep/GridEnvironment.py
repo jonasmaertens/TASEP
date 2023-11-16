@@ -30,7 +30,8 @@ default_env_params = {
     "invert_speed_observation": False,
     "speed_observation_threshold": 0.35,
     "punish_inhomogeneities": False,
-    "speed_gradient_reward": False
+    "speed_gradient_reward": False,
+    "speed_gradient_linearity": 0.1
 }
 
 
@@ -68,6 +69,7 @@ class EnvParams(TypedDict):
             punish_inhomogeneities (bool, optional): Whether to punish speed inhomogeneity in the observation.
                 Defaults to False.
             speed_gradient_reward (bool, optional): Whether to encourage a vertical speed gradient in the system.
+            speed_gradient_linearity (float, optional): The linearity of the speed gradient reward. Defaults to 0.1.
     """
     render_mode: NotRequired[str | None]
     length: int
@@ -88,6 +90,7 @@ class EnvParams(TypedDict):
     speed_observation_threshold: NotRequired[float]
     punish_inhomogeneities: NotRequired[bool]
     speed_gradient_reward: NotRequired[bool]
+    speed_gradient_linearity: NotRequired[float]
 
 
 def truncated_normal_single(mean, std_dev) -> float:
@@ -126,7 +129,7 @@ def truncated_normal(mean, std_dev, size) -> np.ndarray:
     return samples
 
 
-def invert_speed_observation(observation: np.ndarray, threshold: float) -> np.ndarray:
+def invert_speed_obs(observation: np.ndarray, threshold: float) -> np.ndarray:
     """
     Inverts the speed observation. Higher speeds are represented by lower values in the observation.
     Args:
@@ -162,7 +165,8 @@ class GridEnv(gym.Env):
                  invert_speed_observation: bool = False,
                  speed_observation_threshold: float = 0.35,
                  punish_inhomogeneities: bool = False,
-                 speed_gradient_reward: bool = False):
+                 speed_gradient_reward: bool = False,
+                 speed_gradient_linearity: float = 0.1):
         """
         The GridEnvironment class implements a grid environment with particles that can move forward, up,
         down or wait. It is a 2D version of the TASEP (Totally Asymmetric Simple Exclusion Process) model for use
@@ -205,6 +209,7 @@ class GridEnv(gym.Env):
             punish_inhomogeneities (bool, optional): Whether to punish speed inhomogeneity in the observation.
                 Defaults to False.
             speed_gradient_reward (bool, optional): Whether to encourage a vertical speed gradient in the system.
+            speed_gradient_linearity (float, optional): The linearity of the speed gradient reward. Defaults to 0.1.
         """
         self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
         self.social_reward = social_reward
@@ -245,6 +250,8 @@ class GridEnv(gym.Env):
 
         if self.speed_gradient_reward and not self.use_speeds:
             raise ValueError("speed_gradient_reward can only be True if use_speeds is True")
+
+        self.speed_gradient_linearity = speed_gradient_linearity
 
         # The agent perceives part of the surrounding grid, it has a square view
         # with viewing distance `self.observation_size`
@@ -323,7 +330,7 @@ class GridEnv(gym.Env):
         if self.use_speeds:
             obs[obs != 0] = obs[obs != 0] % 1
             if self.invert_speed_observation:
-                obs = invert_speed_observation(obs, self.speed_observation_threshold)
+                obs = invert_speed_obs(obs, self.speed_observation_threshold)
         return obs.flatten()
 
     @property
@@ -585,6 +592,15 @@ class GridEnv(gym.Env):
         reward = -np.abs(obs[obs != 0] - mover_speed).mean() * 3
         return reward
 
+    def _speed_gradient(self, x: float) -> float:
+        """
+        Maps speed to their scaling factor.
+        Args:
+            x: The speed value to calculate the gradient for.
+        """
+        a = self.speed_gradient_linearity
+        return a * ((1 + a) / a) ** x - a
+
     def _calculate_speed_gradient_reward(self) -> float:
         """
         Calculates the reward for the speed gradient.
@@ -593,11 +609,11 @@ class GridEnv(gym.Env):
         """
         # the fastest particles should be in the middle lanes and slower particles should be farther to the edges
         speed = self.state[*self.current_mover] % 1
+        gradient_factor = self._speed_gradient(speed)
         row = self.current_mover[0]
-        desired_distance = self.width / 2 * (1 - speed)
+        desired_distance = self.width / 2 * (1 - gradient_factor)
         distance = abs(self.width / 2 - row)
         reward = -abs(desired_distance - distance) / self.width * 2
-        #print(speed, row, desired_distance, distance, reward)
         return reward
 
     def _move_forward(self) -> int:

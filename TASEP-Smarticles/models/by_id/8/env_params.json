@@ -1,0 +1,19 @@
+{
+    "render_mode": "human",
+    "length": 128,
+    "width": 32,
+    "moves_per_timestep": 80,
+    "window_height": 300,
+    "observation_distance": 3,
+    "distinguishable_particles": true,
+    "initial_state_template": "checkerboard",
+    "use_speeds": true,
+    "sigma": 5,
+    "allow_wait": true,
+    "invert_speed_observation": true,
+    "speed_observation_threshold": 0.35,
+    "punish_inhomogeneities": false,
+    "speed_gradient_reward": true,
+    "speed_gradient_linearity": 0.1,
+    "average_window": 2000
+}

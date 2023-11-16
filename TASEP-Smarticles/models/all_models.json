@@ -26,7 +26,8 @@
             "social_reward": 0.6,
             "invert_speed_observation": false,
             "speed_observation_threshold": 0.35,
-            "punish_inhomogeneities": false
+            "punish_inhomogeneities": false,
+            "speed_gradient_linearity": 100
         },
         "total_steps": 150000,
         "plot_interval": 2500,
@@ -64,7 +65,8 @@
             "social_reward": 0.6,
             "invert_speed_observation": false,
             "speed_observation_threshold": 0.35,
-            "punish_inhomogeneities": false
+            "punish_inhomogeneities": false,
+            "speed_gradient_linearity": 100
         },
         "total_steps": 500000,
         "plot_interval": 5000,
@@ -101,7 +103,8 @@
             "social_reward": 0.6,
             "invert_speed_observation": false,
             "speed_observation_threshold": 0.35,
-            "punish_inhomogeneities": false
+            "punish_inhomogeneities": false,
+            "speed_gradient_linearity": 100
         },
         "total_steps": 1500000,
         "plot_interval": 5000,
@@ -138,7 +141,8 @@
             "social_reward": 0.6,
             "invert_speed_observation": true,
             "speed_observation_threshold": 0.35,
-            "punish_inhomogeneities": false
+            "punish_inhomogeneities": false,
+            "speed_gradient_linearity": 100
         },
         "total_steps": 1500000,
         "plot_interval": 5000,
@@ -176,7 +180,8 @@
             "social_reward": 0.6,
             "invert_speed_observation": true,
             "speed_observation_threshold": 0.35,
-            "punish_inhomogeneities": false
+            "punish_inhomogeneities": false,
+            "speed_gradient_linearity": 100
         },
         "total_steps": 400000,
         "plot_interval": 5000,
@@ -214,7 +219,8 @@
             "social_reward": 0.8,
             "invert_speed_observation": true,
             "speed_observation_threshold": 0.35,
-            "punish_inhomogeneities": false
+            "punish_inhomogeneities": false,
+            "speed_gradient_linearity": 100
         },
         "total_steps": 300000,
         "plot_interval": 5000,
@@ -252,7 +258,8 @@
             "speed_observation_threshold": 0.35,
             "punish_inhomogeneities": false,
             "speed_gradient_reward": true,
-            "average_window": 2000
+            "average_window": 2000,
+            "speed_gradient_linearity": 100
         },
         "total_steps": 900000,
         "plot_interval": 2000,
@@ -261,5 +268,83 @@
         "random_density": false,
         "model_id": 6,
         "timestamp": "20231114122853"
+    },
+    "7": {
+        "path": "models/by_id/7/",
+        "hyperparams": {
+            "BATCH_SIZE": 128,
+            "GAMMA": 0.99,
+            "EPS_START": 0.9,
+            "EPS_END": 0.05,
+            "EPS_DECAY": 50000,
+            "TAU": 0.005,
+            "LR": 0.005,
+            "MEMORY_SIZE": 900000
+        },
+        "env_params": {
+            "render_mode": "human",
+            "length": 128,
+            "width": 32,
+            "moves_per_timestep": 80,
+            "window_height": 300,
+            "observation_distance": 3,
+            "distinguishable_particles": true,
+            "initial_state_template": "checkerboard",
+            "use_speeds": true,
+            "sigma": 5,
+            "allow_wait": true,
+            "invert_speed_observation": true,
+            "speed_observation_threshold": 0.35,
+            "punish_inhomogeneities": false,
+            "speed_gradient_reward": true,
+            "speed_gradient_linearity": 0.4,
+            "average_window": 2000
+        },
+        "total_steps": 900000,
+        "plot_interval": 2000,
+        "render_start": null,
+        "reset_interval": 900000,
+        "random_density": false,
+        "model_id": 7,
+        "timestamp": "20231116114417"
+    },
+    "8": {
+        "path": "models/by_id/8/",
+        "hyperparams": {
+            "BATCH_SIZE": 128,
+            "GAMMA": 0.99,
+            "EPS_START": 0.9,
+            "EPS_END": 0.05,
+            "EPS_DECAY": 50000,
+            "TAU": 0.005,
+            "LR": 0.005,
+            "MEMORY_SIZE": 900000
+        },
+        "env_params": {
+            "render_mode": "human",
+            "length": 128,
+            "width": 32,
+            "moves_per_timestep": 80,
+            "window_height": 300,
+            "observation_distance": 3,
+            "distinguishable_particles": true,
+            "initial_state_template": "checkerboard",
+            "use_speeds": true,
+            "sigma": 5,
+            "allow_wait": true,
+            "invert_speed_observation": true,
+            "speed_observation_threshold": 0.35,
+            "punish_inhomogeneities": false,
+            "speed_gradient_reward": true,
+            "speed_gradient_linearity": 0.1,
+            "average_window": 2000
+        },
+        "total_steps": 900000,
+        "plot_interval": 2000,
+        "render_start": null,
+        "reset_interval": 900000,
+        "random_density": false,
+        "model_id": 8,
+        "timestamp": "20231116121352"
     }
 }
