@@ -64,28 +64,13 @@ def simulate(sigma, log=True):
                 # print("no move")
                 continue
             # Simple implementation of Periodic boundary conditions
-            x_prev = Lx - 1 if x == 0 else x - 1
-            x_next = 0 if x == Lx - 1 else x + 1
             y_next = 0 if y == Ly - 1 else y + 1
             # Simulating exchange dynamics
-            dice = np.random.randint(4)
-            if dice <= 1:  # hop forward with probability 1/2
-                # check if there is a particle in front
-                if system[x, y_next] == 0:
-                    system[x, y], system[x, y_next] = system[x, y_next], system[x, y]
-                    total_forward += 1
-                    # print("forward")
-            elif dice == 2:  # hop up
-                # check if there is a particle above
-                if system[x_prev, y] == 0:
-                    system[x, y], system[x_prev, y] = system[x_prev, y], system[x, y]
-                    # print("hop up")
-            elif dice == 3:  # hop down
-                # check if there is a particle below
-                if system[x_next, y] == 0:
-                    system[x, y], system[x_next, y] = system[x_next, y], system[x, y]
-                    # print("hop down")
-
+            # hop forward with probability 1
+            # check if there is a particle in front
+            if system[x, y_next] == 0:
+                system[x, y], system[x, y_next] = system[x, y_next], system[x, y]
+                total_forward += 1
         currents_arrays.append(currents)
     return currents_arrays
 
@@ -125,8 +110,8 @@ def simulate_sigma_vs_steady_state_current(sigmas):
 
 
 def evaluate():
-    currents = np.load(f"data/fixed/sigma_vs_current_{Ly}x{Lx}.npy")
-    sigmas = np.load(f"data/fixed/sigma_vs_current_sigmas_{Ly}x{Lx}.npy")
+    currents = np.load(f"data/maxcurr/sigma_vs_current_{Ly}x{Lx}.npy")
+    sigmas = np.load(f"data/maxcurr/sigma_vs_current_sigmas_{Ly}x{Lx}.npy")
     print(len(currents))
     plt.cla()
     plt.plot(sigmas, currents)
@@ -134,45 +119,24 @@ def evaluate():
     plt.ylabel(f"Steady state current")
     plt.title(f"Average current over {runsNumber} runs ({Ly}x{Lx})")
     plt.xscale("log")
-    plt.savefig(f"plots/fixed/different_speeds/steady_state_current_log_{Ly}x{Lx}.png")
+    plt.savefig(f"plots/maxcurr/different_speeds/steady_state_current_log_{Ly}x{Lx}.png")
 
 
 def calc_sigma_vs_current():
     plt.cla()
-    sigmas = np.logspace(-4, 1, 200, dtype=np.float32)
+    sigmas = np.logspace(-4, 1, 150, dtype=np.float32)
     print(sigmas)
     currents = simulate_sigma_vs_steady_state_current(sigmas)
     # save data
-    np.save(f"data/fixed/sigma_vs_current_{Ly}x{Lx}.npy", currents)
-    np.save(f"data/fixed/sigma_vs_current_sigmas_{Ly}x{Lx}.npy", sigmas)
-
-
-def calc_indivual_sigmas():
-    for sigma in [0.0001, 0.001, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 5]:
-        currents_arrays = simulate(sigma)
-        times = np.arange(len(currents_arrays[0]))
-        # average over all runs
-        currents = np.mean(currents_arrays, axis=0)
-        # plot
-        plt.plot(times[10:], currents[10:], label=f"sigma = {sigma}")
-    plt.legend()
-    plt.xlabel("Time")
-    plt.ylabel(f"Current (last {current_averaging_time} moves averaged)")
-    plt.title(f"Average current over {runsNumber} runs")
-    plt.savefig(f"plots/fixed/different_speeds/individual_sigmas/currents_fixed_sigma_{Ly}x{Lx}.png")
-
-
-def test_truncated_normal(sigma):
-    samples = truncated_normal(0.5, sigma, 1000000)
-    plt.hist(samples, bins=100)
-    plt.show()
+    np.save(f"data/maxcurr/sigma_vs_current_{Ly}x{Lx}.npy", currents)
+    np.save(f"data/maxcurr/sigma_vs_current_sigmas_{Ly}x{Lx}.npy", sigmas)
 
 
 if __name__ == '__main__':
     totalMCS = 70  # Total number of Monte Carlo steps per single run
     runsNumber = 500  # Number of runs to average over
-    Lx = 20  # Number of rows , width
-    Ly = 40  # Number of columns , length
+    Lx = 32  # Number of rows , width
+    Ly = 128  # Number of columns , length
     N = Lx * Ly // 2
     size = Lx * Ly
     current_averaging_time = int(N / 2) - 1  # Number of MCS to average over
@@ -182,18 +146,9 @@ if __name__ == '__main__':
     plt.rcParams["font.size"] = 6
 
     # create all directories if they don't exist
-    os.makedirs("plots/fixed/different_speeds/individual_sigmas", exist_ok=True)
-    os.makedirs("data/fixed", exist_ok=True)
+    os.makedirs("plots/maxcurr/different_speeds/individual_sigmas", exist_ok=True)
+    os.makedirs("data/maxcurr", exist_ok=True)
 
-    # calc_indivual_sigmas()
     calc_sigma_vs_current()
-    # evaluate()
-    # test_truncated_normal(0.01)
-    # test_truncated_normal(0.1)
-    # test_truncated_normal(0.5)
-    # test_truncated_normal(2)
+    evaluate()
 
-    # test numpy_mean
-    # for i in range(20):
-    #     a = np.random.random((78, 116))
-    #     print(np_mean(a, 0) == np.mean(a, 0))
