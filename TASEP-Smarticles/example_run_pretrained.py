@@ -9,6 +9,6 @@ if __name__ == '__main__':
                            average_window=8000,
                            window_height=300,
                            moves_per_timestep=200,
-                           wait_initial=True
+                           wait_initial=False
                            )
     trainer.run()

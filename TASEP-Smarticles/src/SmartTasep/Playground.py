@@ -5,7 +5,7 @@ import torch
 import os
 from Hasel import hsl2rgb
 from Trainer import choose_model
-from GridEnvironment import invert_speed_observation
+from GridEnvironment import invert_speed_obs
 import json
 
 
@@ -110,7 +110,7 @@ class Playground:
                     corrected_state = self.state.copy()
                     corrected_state[self.observation_distance, self.observation_distance] = 1
                     if self.invert_speed_observation:
-                        corrected_state = invert_speed_observation(corrected_state, self.speed_observation_threshold)
+                        corrected_state = invert_speed_obs(corrected_state, self.speed_observation_threshold)
                     action = self.select_action(
                         torch.tensor(corrected_state, dtype=torch.float32).flatten().unsqueeze(0).to(self.device))
                     self.calc_next_state(action)
