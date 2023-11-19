@@ -1,0 +1,77 @@
+\documentclass[a4paper,11pt,twoside,openright]{report}
+\usepackage[a4paper, bindingoffset=0.5cm, hmargin={2.5cm, 2.5cm},vmargin={2.5cm, 2.5cm}]{geometry}
+
+\usepackage[ngerman]{babel}
+
+\usepackage[pdftex]{graphicx}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{textcomp}
+
+\usepackage{biblatex}
+\addbibresource{bib/bib}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+
+\usepackage[skip=0.2cm, indent=0cm]{parskip}
+
+\usepackage{hyperref}
+\usepackage{lipsum}
+
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\graphicspath{{img/}}
+
+\begin{document}
+
+
+    \include{cover}
+
+
+    \include{acknowledgements}
+
+
+    \include{abstract}
+
+
+    \include{intro}
+
+
+
+
+    \cleardoublepage
+    \addcontentsline{toc}{chapter}{References}
+    \printbibliography
+
+
+    \begin{appendix}
+        \include{appendix}
+    \end{appendix}
+
+
+    \clearpage{\pagestyle{empty}\cleardoublepage}
+    \thispagestyle{empty}
+    \vspace*{1cm}
+    {\huge \textbf{Selbständigkeitserklärung}}\\
+    \vspace*{1.5cm}
+
+    Ich versichere hiermit, die vorliegende Arbeit mit dem Titel
+
+    \begin{center}
+        \textbf{Titel der Arbeit}
+    \end{center}
+
+    selbständig verfasst zu haben und keine anderen als die angegebenen Quellen und Hilfsmittel verwendet zu haben.
+
+    \vspace*{3cm}
+
+    Vorname Name
+
+    \vspace*{1cm}
+    München, den 30.~Juni 2014
+
+\end{document}

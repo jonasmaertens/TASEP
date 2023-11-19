@@ -1,0 +1,72 @@
+\graphicspath{{img/}}
+%% Abschnittsueberschriften auf rechter Seite(odd) links
+%% - Abschnitt - Seitenzahlen aussen
+\lhead[\fancyplain{}{\thepage}]{\fancyplain{}{\rightmark}}
+%% Kapitelueberschriften auf linker Seite(even) rechts
+%% - Kapitel - Seitenzahlen aussen
+\rhead[\fancyplain{}{\leftmark}]{\fancyplain{}{\thepage}}
+\cfoot{}
+\pagenumbering{roman}
+\begin{titlepage}
+    \begin{center}
+        \vspace*{0.65cm}
+        \huge
+        \hspace*{-0.73cm}
+        \textbf{Titel der Arbeit}\\
+        \vspace*{2.2cm}
+
+        \begin{figure}[h]
+            \begin{center}
+                \hspace*{-0.73cm}
+                \includegraphics{lmu_siegel}
+            \end{center}
+            \label{fig:lmulogo}
+        \end{figure}
+%%
+        \vspace*{0.5cm}
+        \Large
+        \hspace*{-0.73cm}
+        \hspace*{-0.5cm}Bachelorarbeit der Fakultät für Physik\\
+        \vspace*{0.1cm}
+        \hspace*{-0.73cm}
+        \hspace*{-0.5cm}der\\
+        \vspace*{0.1cm}
+        \hspace*{-0.73cm}
+        \hspace*{-0.5cm}Ludwig-Maximilians-Universität München\\
+%%
+%\vspace*{3.7cm}
+        \vspace*{3.5cm}
+        \large
+        \hspace*{-0.73cm}
+        \hspace*{-0.8cm} vorgelegt von\\
+        \vspace*{0.1cm}
+        \hspace*{-0.73cm}
+        \hspace*{-0.7cm}\Large \textbf{Jonas Märtens}\\
+        \vspace*{0.15cm}
+        \large
+        \hspace*{-0.73cm}
+        \hspace*{-0.8cm} geboren in Hamburg\\
+        \vspace*{2.5cm}
+        \vspace*{0.4cm}
+        \hspace*{-0.73cm}
+        \hspace*{-0.43cm}München, den 01.02.2024\\
+    \end{center}
+\end{titlepage}
+
+
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+\clearpage{\pagestyle{empty}\cleardoublepage}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%\thispagestyle{empty}
+
+\cleardoublepage
+
+\tableofcontents
+\cleardoublepage
+\pagenumbering{arabic}
+\setcounter{page}{1}
