@@ -1,8 +1,0 @@
-\babel@toc {ngerman}{}\relax 
-\contentsline {chapter}{\numberline {1}Introduction}{5}{chapter.1}%
-\contentsline {section}{\numberline {1.1}Artificial Intelligence}{5}{section.1.1}%
-\contentsline {section}{\numberline {1.2}Neural Networks}{5}{section.1.2}%
-\contentsline {subsection}{\numberline {1.2.1}Overview}{5}{subsection.1.2.1}%
-\contentsline {subsection}{\numberline {1.2.2}Mathematical Details}{6}{subsection.1.2.2}%
-\contentsline {chapter}{\numberline {A}Appendix}{7}{appendix.A}%
-\contentsline {chapter}{References}{7}{subsection.1.2.2}%

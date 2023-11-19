@@ -2,6 +2,7 @@
 \usepackage[a4paper, bindingoffset=0.5cm, hmargin={2.5cm, 2.5cm},vmargin={2.5cm, 2.5cm}]{geometry}
 
 \usepackage[ngerman]{babel}
+\usepackage{csquotes}
 
 \usepackage[pdftex]{graphicx}
 
@@ -11,8 +12,8 @@
 \usepackage{amsfonts}
 \usepackage{textcomp}
 
-\usepackage{biblatex}
-\addbibresource{bib/bib}
+\usepackage[sorting=none]{biblatex}
+\addbibresource{bib/bib.bib}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 
@@ -29,18 +30,16 @@
 \begin{document}
 
 
-    \include{cover}
+    \input{cover}
 
 
-    \include{acknowledgements}
+    \input{acknowledgements}
 
 
-    \include{abstract}
+    \input{abstract}
 
 
-    \include{intro}
-
-
+    \input{intro}
 
 
     \cleardoublepage
@@ -49,7 +48,7 @@
 
 
     \begin{appendix}
-        \include{appendix}
+        \input{appendix}
     \end{appendix}
 
 
