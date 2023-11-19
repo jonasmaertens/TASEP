@@ -3,4 +3,5 @@ __pycache__
 **/.DS_Store
 .idea/
 Thesis/.idea/
-Thesis/out
+Thesis/out/*
+!Thesis/out/BA.pdf
