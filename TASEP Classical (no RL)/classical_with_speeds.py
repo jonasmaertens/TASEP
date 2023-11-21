@@ -53,10 +53,8 @@ def simulate(sigma, log=True):
             dice = np.random.randint(Lx * Ly)  # Picks the random spin in the array
             x = dice // Ly
             y = dice - x * Ly
-            while system[x, y] == 0:
-                dice = np.random.randint(Lx * Ly)
-                x = dice // Ly
-                y = dice - x * Ly
+            if system[x, y] == 0:
+                continue
             # print(f"Chosen particle: {x}, {y}")
             # throw second dice from truncated normal that has to be less than the speed
             dice2 = np.random.random()
@@ -187,7 +185,7 @@ if __name__ == '__main__':
 
     # calc_indivual_sigmas()
     calc_sigma_vs_current()
-    # evaluate()
+    evaluate()
     # test_truncated_normal(0.01)
     # test_truncated_normal(0.1)
     # test_truncated_normal(0.5)
