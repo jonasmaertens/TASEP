@@ -21,13 +21,14 @@ from GridEnvironment import GridEnv, EnvParams
 
 from typing import TypedDict, Optional
 
-from torchrl.data import LazyTensorStorage, TensorDictReplayBuffer
+from torchrl.data import LazyTensorStorage, TensorDictPrioritizedReplayBuffer
 
 import matplotlib
 
 backend = matplotlib.get_backend()
 if backend == 'MacOSX':
     import PyQt6.QtCore
+
     matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
@@ -363,7 +364,7 @@ class Trainer:
             (state, _), info = self.env.reset(random_density=self.random_density)
             self.state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
 
-    def _init_model(self) -> tuple[DQN, DQN, optim.AdamW, TensorDictReplayBuffer, nn.SmoothL1Loss]:
+    def _init_model(self) -> tuple[DQN, DQN, optim.AdamW, TensorDictPrioritizedReplayBuffer, nn.SmoothL1Loss]:
         # Get number of actions from environment action space
         try:
             n_actions = self.env.action_space.n
@@ -391,10 +392,14 @@ class Trainer:
 
         if self.hyperparams:
             optimizer = optim.AdamW(policy_net.parameters(), lr=self.hyperparams['LR'], amsgrad=True)
-            memory = TensorDictReplayBuffer(
+            memory = TensorDictPrioritizedReplayBuffer(
+                alpha=0.7,
+                beta=0.5,
+                priority_key="td_error",
                 storage=LazyTensorStorage(self.hyperparams['MEMORY_SIZE'], device=self.device),
-                batch_size=self.hyperparams['BATCH_SIZE'])
-            criterion = nn.SmoothL1Loss()
+                batch_size=self.hyperparams['BATCH_SIZE'],
+                prefetch=4)
+            criterion = nn.SmoothL1Loss(reduction="none")
         else:
             optimizer = None
             memory = None
@@ -441,6 +446,7 @@ class Trainer:
         state_batch = batch["state"]
         action_batch = batch["action"]
         reward_batch = batch["reward"]
+        weight_batch = batch["_weight"]
 
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
         # columns of actions taken. These are the actions which would've been taken
@@ -457,9 +463,14 @@ class Trainer:
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * self.hyperparams['GAMMA']) + reward_batch
 
+        # Compute td_error
+        with torch.no_grad():
+            td_error = torch.abs(state_action_values - expected_state_action_values.unsqueeze(1))
+            batch["td_error"] = td_error
+            self.memory.update_tensordict_priority(batch)
         # Compute Huber loss
-        loss = self.criterion(state_action_values, expected_state_action_values.unsqueeze(1))
-
+        loss = (self.criterion(state_action_values, expected_state_action_values.unsqueeze(1)) * weight_batch.unsqueeze(
+            1)).mean()
         # clear the .grad attribute of the weights tensor
         self.optimizer.zero_grad()
 
