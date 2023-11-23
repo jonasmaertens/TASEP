@@ -29,7 +29,7 @@
         % Draw the output layer node
         \foreach \name / \y in {1,2}
         \path[yshift=-1cm]
-        node[output neuron,pin={[pin edge={->}]right:Output}] (O-\name) at (2*\layersep,-\y) {$a_\y$}
+        node[output neuron,pin={[pin edge={->}]right:Output}] (O-\name) at (2*\layersep,-\y) {$y_\y$}
         node[annot,above of=O-\name, node distance=0.5cm] (hl) {$b_\y$};
 
         % Connect every node in the input layer with every node in the

@@ -1,4 +1,4 @@
-\graphicspath{{img/intro/}}
+\graphicspath{{img/intro/out}}
 
 
 \chapter{Introduction}
@@ -66,8 +66,154 @@ The universal approximation theorem states, that a feedforward neural network wi
 That's why training a neural network can be thought of as fitting the network to the training data.
 \\
 \subsection{Mathematical Details}
-\label{subsec:nn-mathematical-details}
+\label{sec:nn-mathematical-details}
 %%Aggarwal Ch. 1.2, 1.3
 %%Goodfellow Ch. 5, 6
 %%IBM Gradient Descent
 %%Haykin Ch. 4.4
+The following section will outline the mathematical details of how neural networks work.
+The definitions and derivations are based on~\cite[chapter 1.2-1.3]{aggarwal_neural_2018},~\cite[chapter 5-6]{goodfellow_deep_2016},~\cite{ibm_nn} as well as~\cite[chapter 4.4]{haykin_neural_1998}.
+\\
+\\
+The most complete treatment of the mathematical details of neural networks is arguably given by the framework of computational graphs~\cite{bettilyon_computationalgraphs_2020}.
+In this framework, a neural network is treated as single that maps a set of input values to a set of output values.
+This funcion is composed of individual mathematical operations and can be represented as a directed graph \cite[section 1.4]{haykin_neural_1998}.
+I will not rigorously define the framework of computational graphs here, as this is beyond the scope of this thesis.
+Instead, I will explain the priciples of neural networks starting from a single neuron and then build up to a fully connected neural network. 
+\subsubsection{Notation}
+\label{subsubsec:nn-notation}
+The following notation will be used throughout this section:
+\begin{equation*}
+    \begin{array}{ll}
+    \bm{x} & : \text { input vector of the neural network} \\
+    \bm{a} & : \text { activation vector of a layer} \\
+    \bm{z} & : \text { pre-activation vector of a layer} \\
+    \bm{y} & : \text { output vector of the neural network} \\
+    \bm{b} & : \text { bias vector of a layer} \\
+    x_i, a_i, z_i, y_i, b_i & : \text { individual elements of the respective vectors, for individual nodes } \\
+    \bm{w_i} & : \text { weight vector of all weights connected to neuron i} \\
+    w_{ij} & : \text { weight of the connection from neuron i of a layer to neuron j of the next layer } \\
+    W & : \text { weight matrix of a layer. Contains rows $\bm{w_i}$} \\
+    
+    \end{array}
+\end{equation*}
+\subsubsection{Single Node}
+\label{subsubsec:single-neuron}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{single_neuron}
+    \caption{A single node of a neural network. To get the activation $a$ of the node, the pre-activation $z$ is calculated from the inputs $a_i$ and the bias $b$ and is passed through an activation function $\phi$.}
+    \label{fig:single-neuron}
+\end{figure}
+Before we can build a neural network out of nodes, we have to define how a single node works.
+Each node receives the activations $a_i$ from the nodes of the previous layer as inputs. 
+Each connection is assigned a weight $w_i$, stored in the node's weight vector $\bm{w}$.
+\\
+Additionally, each node has a so-called \textit{bias} $b$. 
+The bias shifts the net input of the node by a constant value.
+It is needed to model certain problems where part of the prediction is independent of the input \cite[6]{aggarwal_neural_2018}.
+Examples include all problems where the output should not be zero even if all inputs are zero. 
+\\
+\\
+The net input, called \textit{pre-activation value} $z$ of a node is the weighted sum of all inputs plus the bias:
+\begin{equation}
+    z = \sum_{i=1}^{m} w_i a_i + b = \bm{w} \cdot \bm{a} + b
+    \label{eq:pre-activation}
+\end{equation}
+The pre-activation value is then passed through an \textit{activation function} $\phi$ to get the activation $a$ of the node, which is then passed on to the next layer, where the process is repeated.
+\begin{equation}
+    a = \phi(z)
+    \label{eq:activation}
+\end{equation}
+
+\subsubsection{Activation Functions}
+\label{subsubsec:activation-functions}
+The activation function $\phi$ is used to introduce non-linearity into the network and thus increasing its modeling power \cite[section 1.2.1.3]{aggarwal_neural_2018}. 
+Some activation functions are also referred to as \textit{squashing function}~\cite[10]{haykin_neural_1998}, as they map the unbounded pre-activation value $z$ to a bounded activation value $a$.
+The choice of activation function has a large impact on the performance of the network in terms of both accuracy and speed \cite{dubey_activation_2022}.
+The type of function heavily influences the way that information is processed by the network and the complexity of the function naturally has a large impact on the computational cost of the network.
+The best choice therefore depends on the problem that is being solved and the architecture of the network.
+Typically, the same activation function is used for all nodes in a layer and is applied to the pre-activation value of each node individually, but different layers can use different activation functions depending on their purpose \cite[174]{goodfellow_deep_2016}.
+For a long time, the most popular activation functions were (\cite[chapter 6.3]{goodfellow_deep_2016}, \cite[section 1.2.1.3]{aggarwal_neural_2018}) the sigmoid function:
+\begin{equation}
+    \phi(z) = \sigma(z) = \frac{1}{1+e^{-z}}
+    \label{eq:sigmoid}
+\end{equation}
+and the hyperbolic tangent function:
+\begin{equation}
+    \phi(z) = \tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}} = 2\sigma(2z) - 1
+    \label{eq:tanh}
+\end{equation}
+as well as the sign function:
+\begin{equation}
+    \phi(z) = \text{sign}(z) = \begin{cases}
+        1 & \text{if } z > 0 \\
+        0 & \text{if } z = 0 \\
+        -1 & \text{if } z < 0 \text{.}
+    \end{cases}
+    \label{eq:sign}
+\end{equation}
+The sign function can map neural network output to a binary classification, but it is not suitable for backpropagation (see section \ref{subsec:backprop}) due to its derivative being zero almost everywhere.
+The sigmoid function and the hyperbolic tangent function are both differentiable and limit the output to the range $(-1, 1)$ and $(0, 1)$ respectively.
+They are however more computationally expensive than other activation functions and suffer from the \textit{vanishing gradient problem}.
+The vanishing gradient problem is caused by the fact that the derivative of the sigmoid function approaches zero for large absolute values of $z$.
+This leads to the weights of the nodes in the first layers of the network being updated very slowly, as the gradient of the loss function with respect to the weights of these nodes is very small (see section \ref{subsec:backprop})\cite[section 1.4.2]{aggarwal_neural_2018}\cite{dubey_activation_2022}.
+The sigmoid function and the hyperbolic tangent function can be seen in figure \ref{fig:sigmoid} and \ref{fig:tanh}.
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{sigmoid}
+        \caption{The sigmoid activation function.}
+        \label{fig:sigmoid}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{tanh}
+        \caption{The hyperbolic tangent activation function.}
+        \label{fig:tanh}
+    \end{subfigure}
+    \caption{The most popular activation functions before the rise of ReLU.}
+    \label{fig:tanhsigmoid}
+\end{figure}
+\\
+\\
+In recent years, the \textit{rectified linear unit} (ReLU) and similar stepwise linear functions have become the go-to activation functions for deep neural networks~\cite[chapter 6.3.2]{goodfellow_deep_2016}\cite{dubey_activation_2022}.
+ReLU is defined as:
+\begin{equation}
+    \phi(z) = \max(0, z) = \begin{cases}
+        0 & \text{if } z \leq 0 \\
+        z & \text{if } z > 0 \text{.}
+    \end{cases}
+    \label{eq:relu}
+\end{equation}
+Its main advantage is its very low computational cost, as it consists of only a single comparison. 
+Although it is not as prone to the vanishing gradient problem as the sigmoid and the hyperbolic tangent, the problem still exists for negative values of $z$. 
+This has been addressed by variations like \textit{Leaky ReLU}, introducing a small but non-zero slope for negative values~\cite{dubey_activation_2022}:
+\begin{equation}
+    \phi(z) = \max(0.01 z, z) = \begin{cases}
+        0.01 z & \text{if } z \leq 0 \\
+        z & \text{if } z > 0 \text{.}
+    \end{cases}
+    \label{eq:leaky-relu}
+\end{equation}
+The ReLU function and its leaky version can be seen in figures \ref{fig:relu} and \ref{fig:leaky-relu}.
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{relu}
+        \caption{The rectified linear unit (ReLU) activation function.}
+        \label{fig:relu}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{leaky_relu.pdf}
+        \caption{The leaky rectified linear unit (Leaky ReLU) activation function.}
+        \label{fig:leaky-relu}
+    \end{subfigure}
+    
+    \caption{Modern, stepwise linear activation functions.}
+    \label{fig:subfigures}
+\end{figure}
+
+
+
