@@ -599,6 +599,7 @@ class GridEnv(gym.Env):
         negative sum of these values.
         """
         obs = obs.reshape((2 * self.obs_dist + 1, 2 * self.obs_dist + 1))
+        obs[obs != 0] = 1 - obs[obs != 0] + self.speed_observation_threshold
         center = obs[self.obs_dist, self.obs_dist]
         reward = 0
         particle_indices = np.argwhere(obs != 0)
@@ -620,8 +621,63 @@ class GridEnv(gym.Env):
             elif self.inh_rew_idx == 4:
                 reward += max(-1.5,
                               (1 - 400 * abs(obs[*particle] - center) ** 4) / (
-                                          abs(particle[0] - self.obs_dist) + 1) / len(
-                                  particle_indices))
+                                      abs(particle[0] - self.obs_dist) + 1) / len(
+                                  particle_indices) / 4)
+            elif self.inh_rew_idx == 5:
+                reward += (1 - 5 * abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 5
+            elif self.inh_rew_idx == 6:
+                reward -= (abs(obs[*particle] - center) - 0.15) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 8
+            elif self.inh_rew_idx == 7:
+                reward += (1 - abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 5
+            elif self.inh_rew_idx == 8:
+                reward += (1 - 10 * (obs[*particle] - center) ** 2) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 5
+            elif self.inh_rew_idx == 9:
+                reward += max(-1.5,
+                              (1 - 400 * abs(obs[*particle] - center) ** 4) / (
+                                      abs(particle[0] - self.obs_dist) + 1) / 40 / 4)
+            elif self.inh_rew_idx == 10:
+                reward -= (abs(obs[*particle] - center) - 0.15) / (
+                        abs(particle[0] - self.obs_dist) + 1) / 40 * 8 - (
+                                  (1 - center) * (1 - obs[*particle])) / np.linalg.norm(
+                    particle - np.array([self.obs_dist, self.obs_dist])) / 3
+            elif self.inh_rew_idx == 11:
+                reward -= (abs(obs[*particle] - center) - 0.15) / (
+                        abs(particle[0] - self.obs_dist) + 1) / 40 * 8 - (
+                                  max(0.8 - center, 0) * max(0.8 - obs[*particle], 0)) / np.linalg.norm(
+                    particle - np.array([self.obs_dist, self.obs_dist])) / 3
+            elif self.inh_rew_idx == 12:
+                ((max(0.8 - center, 0) * max(0.8 - obs[*particle], 0))) / (
+                    np.linalg.norm(particle - np.array([self.obs_dist, self.obs_dist]))) / 3
+            elif self.inh_rew_idx == 13:
+                reward += (- 5 * abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / len(
+                    particle_indices) * 5
+            elif self.inh_rew_idx == 14:
+                reward -= (abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / len(
+                    particle_indices) * 8
+            elif self.inh_rew_idx == 15:
+                reward += (- abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / len(
+                    particle_indices) * 5
+            elif self.inh_rew_idx == 16:
+                reward += (- 10 * (obs[*particle] - center) ** 2) / (abs(particle[0] - self.obs_dist) + 1) / len(
+                    particle_indices) * 5
+            elif self.inh_rew_idx == 17:
+                reward += max(-1.5,
+                              (- 400 * abs(obs[*particle] - center) ** 4) / (
+                                      abs(particle[0] - self.obs_dist) + 1) / len(
+                                  particle_indices) / 4)
+            elif self.inh_rew_idx == 18:
+                reward += (- 5 * abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 5
+            elif self.inh_rew_idx == 19:
+                reward -= (abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 8
+            elif self.inh_rew_idx == 20:
+                reward += (- abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 5
+            elif self.inh_rew_idx == 21:
+                reward += (- 10 * (obs[*particle] - center) ** 2) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 5
+            elif self.inh_rew_idx == 22:
+                reward += max(-1.5,
+                              (- 400 * abs(obs[*particle] - center) ** 4) / (
+                                      abs(particle[0] - self.obs_dist) + 1) / 40 / 4)
+            # stronger attr
         return reward
 
     def _speed_gradient(self, x: float) -> float:
