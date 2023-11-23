@@ -31,7 +31,8 @@ default_env_params = {
     "speed_observation_threshold": 0.35,
     "punish_inhomogeneities": False,
     "speed_gradient_reward": False,
-    "speed_gradient_linearity": 0.1
+    "speed_gradient_linearity": 0.1,
+    "inh_rew_idx": -1,
 }
 
 
@@ -70,6 +71,7 @@ class EnvParams(TypedDict):
                 Defaults to False.
             speed_gradient_reward (bool, optional): Whether to encourage a vertical speed gradient in the system.
             speed_gradient_linearity (float, optional): The linearity of the speed gradient reward. Defaults to 0.1.
+            inh_rew_idx (int, optional): The index of the reward formula that should be used for the inhomogeneity reward.
     """
     render_mode: NotRequired[str | None]
     length: int
@@ -91,6 +93,7 @@ class EnvParams(TypedDict):
     punish_inhomogeneities: NotRequired[bool]
     speed_gradient_reward: NotRequired[bool]
     speed_gradient_linearity: NotRequired[float]
+    inh_rew_idx: NotRequired[int]
 
 
 def truncated_normal_single(mean, std_dev) -> float:
@@ -166,7 +169,8 @@ class GridEnv(gym.Env):
                  speed_observation_threshold: float = 0.35,
                  punish_inhomogeneities: bool = False,
                  speed_gradient_reward: bool = False,
-                 speed_gradient_linearity: float = 0.1):
+                 speed_gradient_linearity: float = 0.1,
+                 inh_rew_idx: int = -1):
         """
         The GridEnvironment class implements a grid environment with particles that can move forward, up,
         down or wait. It is a 2D version of the TASEP (Totally Asymmetric Simple Exclusion Process) model for use
@@ -210,10 +214,12 @@ class GridEnv(gym.Env):
                 Defaults to False.
             speed_gradient_reward (bool, optional): Whether to encourage a vertical speed gradient in the system.
             speed_gradient_linearity (float, optional): The linearity of the speed gradient reward. Defaults to 0.1.
+            inh_rew_idx (int, optional): The index of the reward formula that should be used for the inhomogeneity reward.
         """
         self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
         self.social_reward = social_reward
         self.punish_inhomogeneities = punish_inhomogeneities
+        self.inh_rew_idx = inh_rew_idx
         self.density = density
         self.current_mover: Optional[np.ndarray] = None
         self.allow_wait = allow_wait
@@ -587,9 +593,35 @@ class GridEnv(gym.Env):
         return 0
 
     def _calc_inhomo_reward(self, obs: np.ndarray) -> float:
-        mover_speed = self.state[*self.current_mover] % 1
-        # calculate the average of the absolute differences between the speeds of the mover and the other particles
-        reward = -np.abs(obs[obs != 0] - mover_speed).mean() * 3
+        """
+        For each particle in the observation, calculate the absolute difference in speed between that particle and the
+        particle in the center, divided by the distance between the particle and the center. The reward is the
+        negative sum of these values.
+        """
+        obs = obs.reshape((2 * self.obs_dist + 1, 2 * self.obs_dist + 1))
+        center = obs[self.obs_dist, self.obs_dist]
+        reward = 0
+        particle_indices = np.argwhere(obs != 0)
+        for particle in particle_indices:
+            if particle[0] == self.obs_dist and particle[1] == self.obs_dist:
+                continue
+            if self.inh_rew_idx == 0:
+                reward += (1 - 5 * abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / len(
+                    particle_indices) * 5
+            elif self.inh_rew_idx == 1:
+                reward -= (abs(obs[*particle] - center) - 0.15) / (abs(particle[0] - self.obs_dist) + 1) / len(
+                    particle_indices) * 8
+            elif self.inh_rew_idx == 2:
+                reward += (1 - abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / len(
+                    particle_indices) * 5
+            elif self.inh_rew_idx == 3:
+                reward += (1 - 10 * (obs[*particle] - center) ** 2) / (abs(particle[0] - self.obs_dist) + 1) / len(
+                    particle_indices) * 5
+            elif self.inh_rew_idx == 4:
+                reward += max(-1.5,
+                              (1 - 400 * abs(obs[*particle] - center) ** 4) / (
+                                          abs(particle[0] - self.obs_dist) + 1) / len(
+                                  particle_indices))
         return reward
 
     def _speed_gradient(self, x: float) -> float:
