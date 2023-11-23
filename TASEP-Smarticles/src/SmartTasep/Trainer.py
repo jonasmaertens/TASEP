@@ -136,7 +136,7 @@ class Trainer:
     def __init__(self, env_params: EnvParams, hyperparams: Hyperparams | None = None, reset_interval: int = None,
                  total_steps: int = 100000, render_start: int = None, do_plot: bool = True, plot_interval: int = 10000,
                  model: str | None = None, progress_bar: bool = True, wait_initial: bool = False,
-                 random_density: bool = False):
+                 random_density: bool = False, new_model: bool = False):
         """
 
         **The TASEP-Smarticles Trainer class**
@@ -235,6 +235,7 @@ class Trainer:
             random_density = False
         self.random_density = random_density
         self.hyperparams = hyperparams
+        self.new_model = new_model
         self.progress_bar = progress_bar
         self.model = model
         self.reset_interval = reset_interval
@@ -293,7 +294,8 @@ class Trainer:
 
     @classmethod
     def load(cls, model_id: int = None, sigma: float = None, total_steps: int = None, average_window=None, do_plot=None,
-             wait_initial=None, render_start=None, window_height=None, moves_per_timestep=None, progress_bar=True) -> "Trainer":
+             wait_initial=None, render_start=None, window_height=None, moves_per_timestep=None, progress_bar=True,
+             new_model=None) -> "Trainer":
         """
         Loads a model from the models directory and returns a Trainer object with the loaded model. Specify extra args
         to override the values in the loaded model.
@@ -308,6 +310,8 @@ class Trainer:
             render_start: Overrides the render_start value in the loaded model
             window_height: Overrides the window_height value in the loaded model
             moves_per_timestep: Overrides the moves_per_timestep value in the loaded model
+            progress_bar: Whether to show a progress bar
+            new_model: Whether to use the new model
         """
         # load all_models.json
         with open("models/all_models.json", "r") as f:
@@ -334,9 +338,10 @@ class Trainer:
         render_start = render_start if render_start is not None else all_models[str(model_id)]["render_start"]
         do_plot = do_plot if do_plot is not None else True
         wait_initial = wait_initial if wait_initial is not None else False
+        new_model = all_models[str(model_id)]["new_model"] if "new_model" in all_models[str(model_id)] else False
         trainer = cls(env_params, hyperparams, model=f"models/by_id/{model_id}/policy_net.pt",
                       total_steps=tot_steps, do_plot=do_plot, progress_bar=progress_bar, plot_interval=plot_interval,
-                      wait_initial=wait_initial, render_start=render_start)
+                      wait_initial=wait_initial, render_start=render_start, new_model=new_model)
         return trainer
 
     def _init_env(self) -> GridEnv:
@@ -370,17 +375,18 @@ class Trainer:
 
         # Init model, optimizer, replay memory
         if self.model is not None:
-            policy_net = DQN(n_observations, n_actions).to(self.device)
+            print(self.new_model)
+            policy_net = DQN(n_observations, n_actions, self.new_model).to(self.device)
             try:
                 policy_net.load_state_dict(torch.load(self.model))
             except FileNotFoundError:
                 self.model = os.path.join(os.getcwd(), self.model)
                 policy_net.load_state_dict(torch.load(self.model))
-            target_net = DQN(n_observations, n_actions).to(self.device)
+            target_net = DQN(n_observations, n_actions, self.new_model).to(self.device)
             target_net.load_state_dict(policy_net.state_dict())
         else:
-            policy_net = DQN(n_observations, n_actions).to(self.device)
-            target_net = DQN(n_observations, n_actions).to(self.device)
+            policy_net = DQN(n_observations, n_actions, self.new_model).to(self.device)
+            target_net = DQN(n_observations, n_actions, self.new_model).to(self.device)
             target_net.load_state_dict(policy_net.state_dict())
 
         if self.hyperparams:
@@ -579,7 +585,6 @@ class Trainer:
                 just_reset = True
 
             action = self._select_action(self.state, eps_greedy=False)
-
             if self.env_params["distinguishable_particles"]:
                 (next_observation, _), _, terminated, truncated, info = self.env.step(action.item())
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
@@ -652,7 +657,8 @@ class Trainer:
             "reset_interval": self.reset_interval,
             "random_density": self.random_density,
             "model_id": model_id,
-            "timestamp": datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+            "timestamp": datetime.datetime.now().strftime('%Y%m%d%H%M%S'),
+            "new_model": self.new_model
         }
         with open("models/all_models.json", "w") as f:
             json.dump(all_models, f, indent=4)
@@ -681,7 +687,8 @@ class Trainer:
         # create directory if it doesn't exist
         if not os.path.exists(os.path.dirname(file)):
             os.makedirs(os.path.dirname(file))
-        plt.plot(self.timesteps, self.currents)
+        self.ax_current.plot(self.timesteps, self.currents, color="blue")
+        self.ax_reward.plot(self.timesteps, self.rewards, color="red")
         plt.savefig(file)
         plt.cla()
         plt.close()
