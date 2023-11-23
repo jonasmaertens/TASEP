@@ -8,7 +8,7 @@ if __name__ == '__main__':
                            do_plot=True,
                            average_window=8000,
                            window_height=300,
-                           moves_per_timestep=800,
+                           moves_per_timestep=300,
                            wait_initial=False
                            )
     trainer.run()

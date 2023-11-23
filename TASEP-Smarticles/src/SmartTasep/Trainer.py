@@ -650,13 +650,7 @@ class Trainer:
         # save timesteps
         np.save(f"models/by_id/{model_id}/timesteps.npy", self.timesteps)
         # save plot
-        plt.plot(self.timesteps, self.currents)
-        plt.xlabel("Time")
-        plt.ylabel("Current")
-        plt.title(f"Current over time for model {model_id}")
-        plt.savefig(f"models/by_id/{model_id}/plot.png")
-        plt.cla()
-        plt.close()
+        self._save_plot(f"models/by_id/{model_id}/plot.png", append_timestamp=False)
         # save model path and metadata to all_models.json
         all_models[str(model_id)] = {
             "path": f"models/by_id/{model_id}/",

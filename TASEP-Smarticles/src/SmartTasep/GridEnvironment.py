@@ -646,8 +646,9 @@ class GridEnv(gym.Env):
                                   max(0.8 - center, 0) * max(0.8 - obs[*particle], 0)) / np.linalg.norm(
                     particle - np.array([self.obs_dist, self.obs_dist])) / 3
             elif self.inh_rew_idx == 12:
-                ((max(0.8 - center, 0) * max(0.8 - obs[*particle], 0))) / (
-                    np.linalg.norm(particle - np.array([self.obs_dist, self.obs_dist]))) / 3
+                pass
+                # mistake here ((max(0.8 - center, 0) * max(0.8 - obs[*particle], 0))) / (
+                #       np.linalg.norm(particle - np.array([self.obs_dist, self.obs_dist]))) / 3
             elif self.inh_rew_idx == 13:
                 reward += (- 5 * abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / len(
                     particle_indices) * 5
@@ -677,7 +678,9 @@ class GridEnv(gym.Env):
                 reward += max(-1.5,
                               (- 400 * abs(obs[*particle] - center) ** 4) / (
                                       abs(particle[0] - self.obs_dist) + 1) / 40 / 4)
-            # stronger attr
+            elif self.inh_rew_idx == 23:
+                reward += (max(0.6 - center, 0) * max(0.6 - obs[*particle], 0)) / (
+                    np.linalg.norm(particle - np.array([self.obs_dist, self.obs_dist])))
         return reward
 
     def _speed_gradient(self, x: float) -> float:
