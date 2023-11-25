@@ -7,7 +7,7 @@ from gymnasium import spaces
 from Hasel import hsl2rgb
 
 from typing import Optional
-from GridEnvironmentInterface import ObsType, GridEnvInterface
+from GridEnvironmentInterface import ObsType, GridEnvInterface, EnvParams
 
 default_env_params = {
     "render_mode": None,

@@ -192,6 +192,10 @@ class TrainerInterface(ABC):
         pass
 
     @abstractmethod
+    def _check_env_reset(self, just_reset: bool) -> bool:
+        pass
+
+    @abstractmethod
     def train(self):
         """
         Trains the agent for the specified number of steps. Does not save the model.
