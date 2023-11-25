@@ -6,10 +6,8 @@ import gymnasium as gym
 from gymnasium import spaces
 from Hasel import hsl2rgb
 
-from typing import SupportsFloat, TypeVar, Any, TypedDict, Optional, TypeAlias, NotRequired
-
-ObsType = TypeVar("ObsType")
-WholeObsType: TypeAlias = tuple[ObsType, ObsType] | tuple[ObsType, int]
+from typing import Optional
+from GridEnvironmentInterface import ObsType, GridEnvInterface
 
 default_env_params = {
     "render_mode": None,
@@ -34,66 +32,6 @@ default_env_params = {
     "speed_gradient_linearity": 0.1,
     "inh_rew_idx": -1,
 }
-
-
-class EnvParams(TypedDict):
-    """
-    Environment Params for GridEnvironment
-    Attributes:
-        render_mode (str, optional): The mode in which the environment is rendered. Defaults to None. Can be "human"
-                or "rgb_array".
-            length (int, optional): The length of the grid. Defaults to 64.
-            width (int, optional): The number of "lanes". Defaults to 16.
-            moves_per_timestep (int, optional): The number of moves per timestep. Defaults to 5.
-            window_height (int, optional): The height of the PyGame window. Defaults to 256.
-            observation_distance (int, optional): The agent's observation radius. Defaults to 3.
-            initial_state (np.ndarray, optional): The initial state of the grid. Defaults to None.
-            initial_state_template (np.ndarray, optional): The template for the initial state of the grid. Defaults to
-                None. Can be "checkerboard" or "everyThird".
-            distinguishable_particles (bool, optional): Whether the particles are distinguishable. Defaults to False.
-                If True, a transition is stored when after same agent is picked again. s' then includes the movements
-                of the other agents.
-            use_speeds (bool, optional): Whether agents should have different speeds. Defaults to False.
-            sigma (float, optional): The standard deviation of the truncated normal distribution to draw speeds from.
-                Defaults to None.
-            average_window (int, optional): The size of the time averaging period. Defaults to 1000.
-            allow_wait (bool, optional): Whether to allow the agents to wait. Defaults to False.
-            social_reward (float, optional): If specified, agents get a negative reward for moving into a cell with a
-                particle behind it. When using speeds, the reward is scaled the speed of the particle behind.
-                Defaults to None.
-            density (float, optional): The density of the grid. Defaults to 0.5. Used for random initial states when
-                initial_state and initial_state_template are None.
-            invert_speed_observation (bool, optional): If True, higher speeds are represented by lower values in the
-                observation. Defaults to False.
-            speed_observation_threshold (float, optional): The value that a particle with speed 1 should have in the
-                observation. Defaults to 0.35.
-            punish_inhomogeneities (bool, optional): Whether to punish speed inhomogeneity in the observation.
-                Defaults to False.
-            speed_gradient_reward (bool, optional): Whether to encourage a vertical speed gradient in the system.
-            speed_gradient_linearity (float, optional): The linearity of the speed gradient reward. Defaults to 0.1.
-            inh_rew_idx (int, optional): The index of the reward formula that should be used for the inhomogeneity reward.
-    """
-    render_mode: NotRequired[str | None]
-    length: int
-    width: int
-    moves_per_timestep: NotRequired[int]
-    window_height: NotRequired[int]
-    observation_distance: int
-    initial_state: NotRequired[np.ndarray[np.uint8 | np.int32]]
-    initial_state_template: NotRequired[str]
-    distinguishable_particles: bool
-    use_speeds: bool
-    sigma: NotRequired[float]
-    average_window: NotRequired[int]
-    allow_wait: NotRequired[bool]
-    social_reward: NotRequired[float]
-    density: NotRequired[float]
-    invert_speed_observation: NotRequired[bool]
-    speed_observation_threshold: NotRequired[float]
-    punish_inhomogeneities: NotRequired[bool]
-    speed_gradient_reward: NotRequired[bool]
-    speed_gradient_linearity: NotRequired[float]
-    inh_rew_idx: NotRequired[int]
 
 
 def truncated_normal_single(mean, std_dev) -> float:
@@ -146,76 +84,28 @@ def invert_speed_obs(observation: np.ndarray, threshold: float) -> np.ndarray:
     return observation
 
 
-class GridEnv(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 144,
-                "initial_state_templates": ["checkerboard", "everyThird"]}
-
-    def __init__(self, render_mode: str = None,
-                 length: int = 64,
-                 width: int = 16,
-                 moves_per_timestep: int = 5,
-                 window_height: int = 256,
-                 observation_distance: int = 3,
-                 initial_state: np.ndarray = None,
-                 initial_state_template: str = None,
-                 distinguishable_particles: bool = False,
-                 use_speeds: bool = False,
-                 sigma: float = None,
-                 average_window: int = 1000,
-                 allow_wait: bool = False,
-                 social_reward: bool = None,
-                 density: float = 0.5,
-                 invert_speed_observation: bool = False,
-                 speed_observation_threshold: float = 0.35,
-                 punish_inhomogeneities: bool = False,
-                 speed_gradient_reward: bool = False,
-                 speed_gradient_linearity: float = 0.1,
-                 inh_rew_idx: int = -1):
-        """
-        The GridEnvironment class implements a grid environment with particles that can move forward, up,
-        down or wait. It is a 2D version of the TASEP (Totally Asymmetric Simple Exclusion Process) model for use
-        with smarticles (smart particles). The environment is implemented as a gym environment. The reward structure
-        is as follows:
-            - +1 for moving forward
-            - 0 for moving up or down
-            - 0 for waiting
-            - -1 for trying to move into an occupied cell
-            - -social_reward for moving into a cell with a particle behind it (only if social_reward is specified)
-
-        Args:
-            render_mode (str, optional): The mode in which the environment is rendered. Defaults to None. Can be "human"
-                or "rgb_array".
-            length (int, optional): The length of the grid. Defaults to 64.
-            width (int, optional): The number of "lanes". Defaults to 16.
-            moves_per_timestep (int, optional): The number of moves per timestep. Defaults to 5.
-            window_height (int, optional): The height of the PyGame window. Defaults to 256.
-            observation_distance (int, optional): The agent's observation radius. Defaults to 3.
-            initial_state (np.ndarray, optional): The initial state of the grid. Defaults to None.
-            initial_state_template (np.ndarray, optional): The template for the initial state of the grid. Defaults to
-                None. Can be "checkerboard" or "everyThird".
-            distinguishable_particles (bool, optional): Whether the particles are distinguishable. Defaults to False.
-                If True, a transition is stored when after same agent is picked again. s' then includes the movements
-                of the other agents.
-            use_speeds (bool, optional): Whether agents should have different speeds. Defaults to False.
-            sigma (float, optional): The standard deviation of the truncated normal distribution to draw speeds from.
-                Defaults to None.
-            average_window (int, optional): The size of the time averaging period. Defaults to 1000.
-            allow_wait (bool, optional): Whether to allow the agents to wait. Defaults to False.
-            social_reward (float, optional): If specified, agents get a negative reward for moving into a cell with a
-                particle behind it. When using speeds, the reward is scaled the speed of the particle behind.
-                Defaults to None.
-            density (float, optional): The density of the grid. Defaults to 0.5. Used for random initial states when
-                initial_state and initial_state_template are None.
-            invert_speed_observation (bool, optional): If True, higher speeds are represented by lower values in the
-                observation. Defaults to False.
-            speed_observation_threshold (float, optional): The value that a particle with speed 1 should have in the
-                observation. Defaults to 0.35.
-            punish_inhomogeneities (bool, optional): Whether to punish speed inhomogeneity in the observation.
-                Defaults to False.
-            speed_gradient_reward (bool, optional): Whether to encourage a vertical speed gradient in the system.
-            speed_gradient_linearity (float, optional): The linearity of the speed gradient reward. Defaults to 0.1.
-            inh_rew_idx (int, optional): The index of the reward formula that should be used for the inhomogeneity reward.
-        """
+class GridEnv(gym.Env, GridEnvInterface):
+    def __init__(self, render_mode=None,
+                 length=64,
+                 width=16,
+                 moves_per_timestep=5,
+                 window_height=256,
+                 observation_distance=3,
+                 initial_state=None,
+                 initial_state_template=None,
+                 distinguishable_particles=False,
+                 use_speeds=False,
+                 sigma=None,
+                 average_window=1000,
+                 allow_wait=False,
+                 social_reward=None,
+                 density=0.5,
+                 invert_speed_observation=False,
+                 speed_observation_threshold=0.35,
+                 punish_inhomogeneities=False,
+                 speed_gradient_reward=False,
+                 speed_gradient_linearity=0.1,
+                 inh_rew_idx=-1):
         self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
         self.social_reward = social_reward
         self.punish_inhomogeneities = punish_inhomogeneities
@@ -305,12 +195,7 @@ class GridEnv(gym.Env):
         else:
             self.action_space: spaces.Discrete = spaces.Discrete(3)
 
-    def _get_obs(self, new_mover: bool = True) -> np.ndarray:
-        """
-        Returns a new observation.
-        Args:
-            new_mover (bool, optional): Whether to select a new agent or not. Defaults to True.
-        """
+    def _get_obs(self, new_mover=True):
         # Select a random agent (a grid cell that is currently set to 1) and return
         # the observation of the grid around it
         if new_mover:
@@ -340,35 +225,19 @@ class GridEnv(gym.Env):
         return obs.flatten()
 
     @property
-    def n(self) -> int:
-        """
-        Returns the number of particles in the system.
-        """
+    def n(self):
         return np.count_nonzero(self.state)
 
     @property
-    def rho(self) -> float:
-        """
-        Returns the density of particles in the system.
-        """
+    def rho(self):
         return self.n / (self.length * self.width)
 
-    def _get_current(self) -> float:
-        """
-        Returns the current through the system averaged over the last `self.average_window` timesteps.
-        """
+    def _get_current(self):
         if self.average_window is None:
             return self.total_forward / self.total_timesteps if self.total_timesteps > 0 else 0
         return self._current
 
-    def _get_info(self) -> dict[str, float]:
-        """
-        Returns a dictionary with information about the current state of the environment.
-
-        Returns:
-            dict: A dictionary containing the following keys:
-                - "current": The current state of the environment.
-        """
+    def _get_info(self):
         return {
             # "state": self.state,
             # "N": self.n,
@@ -377,24 +246,11 @@ class GridEnv(gym.Env):
             "avg_reward": self._avg_reward
         }
 
-    def render(self) -> Optional[np.ndarray]:
-        """
-        Renders the current state of the grid environment if render_mode is "rgb_array".
-
-        Returns:
-            If render_mode is "rgb_array", returns a numpy array representing the rendered frame.
-        """
+    def render(self):
         if self.render_mode == "rgb_array":
             return self._render_frame()
 
-    def _render_frame(self) -> Optional[np.ndarray]:
-        """
-        Renders the current state of the environment as an RGB array or on a PyGame window.
-
-        Returns:
-            If render_mode is "rgb_array", returns an RGB array of the current state of the environment.
-            If render_mode is "human", renders the current state of the environment on a PyGame window.
-        """
+    def _render_frame(self):
         if self.window is None and self.render_mode == "human":
             pygame.init()
             pygame.display.init()
@@ -444,8 +300,7 @@ class GridEnv(gym.Env):
         else:  # rgb_array
             return rgb_array
 
-    def reset(self, seed: int = None, options: dict = None, random_density: bool = False) -> tuple[
-        WholeObsType, dict[str, Any]]:
+    def reset(self, seed=None, options=None, random_density=False):
         # We need the following line to seed self.np_random (for reproducibility)
         super().reset(seed=seed)
 
@@ -493,12 +348,7 @@ class GridEnv(gym.Env):
                 return (observation, int(self.state[*self.current_mover])), info
         return (observation, observation), info
 
-    def _move_if_possible(self, position: tuple) -> bool:
-        """
-        Moves the agent to the specified position if possible.
-        Returns:
-            bool: True if the agent moved, False otherwise.
-        """
+    def _move_if_possible(self, position):
         if self.state[*position] == 0:  # if the next cell is empty, move
             self.state[*self.current_mover], self.state[*position] = self.state[*position], self.state[
                 *self.current_mover]
@@ -506,7 +356,7 @@ class GridEnv(gym.Env):
         else:  # if the next cell is occupied, don't move
             return False
 
-    def step(self, action: int) -> tuple[WholeObsType, SupportsFloat, bool, bool, dict[str, Any]]:
+    def step(self, action):
         # Move the agent in the specified direction if possible.
         # If the agent is at the boundary of the grid, it will wrap around
         reward = 0
@@ -534,10 +384,6 @@ class GridEnv(gym.Env):
         return (react_observation, next_observation), reward, False, False, info
 
     def _update_current(self):
-        """
-        Updates the current if the average window time is greater than the average window.
-        Note that time averaging only equals ensemble averaging if the steady state has been reached.
-        """
         if self.avg_window_time >= self.average_window:
             self._current = self.avg_window_forward / self.average_window
             self._avg_reward = self.avg_window_reward / self.average_window
@@ -546,23 +392,11 @@ class GridEnv(gym.Env):
             self.avg_window_reward = 0
 
     def _update_current_initial(self):
-        """
-        Updates the current if the avg_window_time has not yet been reached. Note that this is only used for convenience.
-        Time averaging only equals ensemble averaging if the steady state has been reached.
-        """
         if self.average_window > self.total_timesteps > 50:
             self._current = self.total_forward / self.total_timesteps
             self._avg_reward = self.avg_window_reward / self.total_timesteps
 
-    def _perform_action(self, action: int) -> int | float:
-        """
-        Performs the specified action and returns the reward.
-        Args:
-            action (int): The action to perform.
-
-        Returns:
-            int | float: The reward for the action.
-        """
+    def _perform_action(self, action):
         if action == 0:  # forward
             reward = self._move_forward()
         elif action == 1:  # up
@@ -579,25 +413,13 @@ class GridEnv(gym.Env):
             reward = 0
         return reward
 
-    def _calculate_social_reward(self, row: int) -> float:
-        """
-        Calculates the social reward for moving into the specified row/lane.
-        Args:
-            row: The row/lane to calculate the social reward for.
-        Returns:
-            float: The social reward for moving into the specified row/lane.
-        """
+    def _calculate_social_reward(self, row):
         prev_x = self.length - 1 if self.current_mover[1] == 0 else self.current_mover[1] - 1
         if self.state[row, prev_x] != 0:
             return -self.social_reward if not self.use_speeds else -(self.state[row, prev_x] % 1) * self.social_reward
         return 0
 
-    def _calc_inhomo_reward(self, obs: np.ndarray) -> float:
-        """
-        For each particle in the observation, calculate the absolute difference in speed between that particle and the
-        particle in the center, divided by the distance between the particle and the center. The reward is the
-        negative sum of these values.
-        """
+    def _calc_inhomo_reward(self, obs):
         obs = obs.reshape((2 * self.obs_dist + 1, 2 * self.obs_dist + 1))
         obs[obs != 0] = 1 - obs[obs != 0] + self.speed_observation_threshold
         center = obs[self.obs_dist, self.obs_dist]
@@ -683,21 +505,11 @@ class GridEnv(gym.Env):
                     np.linalg.norm(particle - np.array([self.obs_dist, self.obs_dist])))
         return reward
 
-    def _speed_gradient(self, x: float) -> float:
-        """
-        Maps speed to their scaling factor.
-        Args:
-            x: The speed value to calculate the gradient for.
-        """
+    def _speed_gradient(self, x):
         a = self.speed_gradient_linearity
         return a * ((1 + a) / a) ** x - a
 
-    def _calculate_speed_gradient_reward(self) -> float:
-        """
-        Calculates the reward for the speed gradient.
-        Returns:
-            float: The reward for the speed gradient.
-        """
+    def _calculate_speed_gradient_reward(self):
         # the fastest particles should be in the middle lanes and slower particles should be farther to the edges
         speed = self.state[*self.current_mover] % 1
         gradient_factor = self._speed_gradient(speed)
@@ -707,12 +519,7 @@ class GridEnv(gym.Env):
         reward = -abs(desired_distance - distance) / self.width * 2
         return reward
 
-    def _move_forward(self) -> int:
-        """
-        Moves the agent forward if possible and return the reward.
-        Returns:
-            int: The reward for moving forward. 1 if the agent moved, -1 otherwise.
-        """
+    def _move_forward(self):
         next_x = 0 if self.current_mover[1] == self.length - 1 else self.current_mover[1] + 1
         has_moved = self._move_if_possible((self.current_mover[0], next_x))
         if not has_moved:
@@ -723,14 +530,7 @@ class GridEnv(gym.Env):
             self.avg_window_forward += 1
             return 1
 
-    def _move_up_down(self, x_pos) -> int:
-        """
-        Moves the agent up or down if possible and return the reward.
-        Args:
-            x_pos: The row/lane to move to.
-        Returns:
-            int: The reward for moving up or down. 0 if the agent moved, -1 otherwise.
-        """
+    def _move_up_down(self, x_pos):
         has_moved = self._move_if_possible((x_pos, self.current_mover[1]))
         if not has_moved:
             return -1
@@ -738,10 +538,6 @@ class GridEnv(gym.Env):
         return 0
 
     def _render_if_human(self):
-        """
-        Renders the environment if render_mode is "human" and the number of timesteps is a multiple of
-        moves_per_timestep.
-        """
         if self.render_mode == "human" and self.total_timesteps % self.moves_per_timestep == 0:
             self._render_frame()
 
