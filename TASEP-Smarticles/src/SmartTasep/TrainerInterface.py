@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import TypedDict
+
+import matplotlib.pyplot
+
 from GridEnvironment import EnvParams
 from DQN import DQN
 import torch.optim as optim
@@ -7,7 +10,6 @@ import torch.nn as nn
 from GridEnvironment import GridEnv
 from torchrl.data import LazyTensorStorage, TensorDictPrioritizedReplayBuffer
 from torch import Tensor
-
 
 
 class Hyperparams(TypedDict):
@@ -155,6 +157,22 @@ class TrainerInterface(ABC):
             moves_per_timestep: Overrides the moves_per_timestep value in the loaded model
             progress_bar: Whether to show a progress bar
             new_model: Whether to use the new model
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def choose_model() -> int:
+        """
+        Displays a table of all models in the models directory and prompts the user to select a model.
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def move_figure(f: matplotlib.pyplot.Figure, x: int, y: int):
+        """
+        Moves the figure f to the position (x, y)
         """
         pass
 
