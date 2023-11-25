@@ -3,6 +3,7 @@ import os
 import datetime
 import time
 from collections import namedtuple
+from typing import Optional
 
 import gymnasium as gym
 import math
@@ -13,25 +14,22 @@ from tabulate import tabulate, TableFormat
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torchrl.data import LazyTensorStorage, TensorDictPrioritizedReplayBuffer
 from tensordict import TensorDict
 from tqdm import tqdm
 
 from DQN import DQN
 from GridEnvironment import GridEnv
-from TrainerInterface import TrainerInterface, Hyperparams, EnvParams
-
-from typing import Optional
-
-from torchrl.data import LazyTensorStorage, TensorDictPrioritizedReplayBuffer
+from TrainerInterface import TrainerInterface, Hyperparams, EnvParams  # noqa: PyUnresolvedReferences
 
 import matplotlib
 
-backend = matplotlib.get_backend()
-if backend == 'MacOSX':
-    import PyQt6.QtCore
+_backend = matplotlib.get_backend()
+if _backend == 'MacOSX':
+    import PyQt6.QtCore  # noqa: F401
 
     matplotlib.use('Qt5Agg')
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # noqa: E402
 
 
 def choose_model() -> int:
@@ -357,17 +355,7 @@ class Trainer(TrainerInterface):
         for self.steps_done in (
                 pbar := tqdm(range(self.total_steps), unit="steps", leave=False, disable=not self.progress_bar)):
             just_reset = False
-            # Reset the environment if the reset interval has been reached
-            if self.reset_interval and self.steps_done % self.reset_interval == 0 and self.steps_done != 0:
-                self.reset_env()
-                just_reset = True
-
-            # Reset the environment to human render mode if the render start has been reached
-            if self.steps_done == self.render_start:
-                self.env_params["render_mode"] = "human"
-                self.env: GridEnv | gym.Env = gym.make("GridEnv", **self.env_params)
-                self.reset_env()
-                just_reset = True
+            just_reset = self._check_env_reset(just_reset)
 
             # Select action for current state
             action = self._select_action(self.state)
@@ -416,11 +404,24 @@ class Trainer(TrainerInterface):
                 self.rewards.append(info['avg_reward'])
                 self.timesteps.append(self.steps_done)
                 pbar.set_description(
-                    f"Eps.: {self._get_current_eps():.2f}, Current: {self.currents[-1]:.2f}, rho={self.env.unwrapped.density:.2f}")
+                    f"Eps.: {self._get_current_eps():.2f}, Current: {self.currents[-1]:.2f}, rho={self.env.unwrapped.density:.2f}")  # noqa: PyUnresolvedReferences
                 if self.do_plot:
                     # plot on same figure but different axes
                     self.ax_current.plot(self.timesteps, self.currents, color="blue")
                     self.ax_reward.plot(self.timesteps, self.rewards, color="red")
+
+    def _check_env_reset(self, just_reset):
+        # Reset the environment if the reset interval has been reached
+        if self.reset_interval and self.steps_done % self.reset_interval == 0 and self.steps_done != 0:
+            self.reset_env()
+            just_reset = True
+        # Reset the environment to human render mode if the render start has been reached
+        if self.steps_done == self.render_start:
+            self.env_params["render_mode"] = "human"
+            self.env: GridEnv | gym.Env = gym.make("GridEnv", **self.env_params)
+            self.reset_env()
+            just_reset = True
+        return just_reset
 
     def _soft_update(self):
         for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
@@ -438,17 +439,7 @@ class Trainer(TrainerInterface):
                 self.env.render()
                 time.sleep(30)
 
-            # Reset the environment if the reset interval has been reached
-            if self.reset_interval and self.steps_done % self.reset_interval == 0 and self.steps_done != 0:
-                self.reset_env()
-                just_reset = True
-
-            # Reset the environment to human render mode if the render start has been reached
-            if self.steps_done == self.render_start:
-                self.env_params["render_mode"] = "human"
-                self.env: GridEnv | gym.Env = gym.make("GridEnv", **self.env_params)
-                self.reset_env()
-                just_reset = True
+            just_reset = self._check_env_reset(just_reset)
 
             action = self._select_action(self.state, eps_greedy=False)
             if self.env_params["distinguishable_particles"]:
