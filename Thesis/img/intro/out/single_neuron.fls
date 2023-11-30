@@ -1,8 +1,8 @@
-PWD /Users/jonasprivat/Documents/TASEP/Thesis/img
+PWD /Users/jonasprivat/Documents/TASEP/Thesis/img/intro
 INPUT /usr/local/texlive/2023/texmf.cnf
 INPUT /usr/local/texlive/2023/texmf-dist/web2c/texmf.cnf
 INPUT /usr/local/texlive/2023/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT /Users/jonasprivat/Documents/TASEP/Thesis/img/single_neuron.tex
+INPUT /Users/jonasprivat/Documents/TASEP/Thesis/img/intro/single_neuron.tex
 OUTPUT out/single_neuron.log
 INPUT /usr/local/texlive/2023/texmf-dist/tex/latex/standalone/standalone.cls
 INPUT /usr/local/texlive/2023/texmf-dist/tex/latex/standalone/standalone.cls
