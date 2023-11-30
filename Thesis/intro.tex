@@ -321,9 +321,30 @@ The gradient descent algorithm is summarized in algorithm \ref{alg:gradient-desc
     \end{algorithmic}
 \end{algorithm}
 
+Going back to neural networks, the function that we want to minimize is the loss function $\lambda(\bm{y}, \bm{\hat{y}})$. 
+As the loss function depends on the network's output $\bm{y}$, which in turn depends on the network's parameters $\bm{w}$ and $\bm{b}$, the loss function is a function of the network's parameters $\lambda(\bm{w}, \bm{b})$. 
+\\
+\\
+For single layer networks, the calculation of the gradients is straightforward. 
+For multi-layer networks however, the loss function depends on the parameters of ealier layers in a non-trivial way. 
+The next section will outline an algorithm, that allows the efficient calculation of the gradients of multi-layer networks.
+
 \subsubsection{The Backpropagation Algorithm}
 \label{subsec:backprop}
 % Goodfellow Ch. 6.5
 % Aggarwal Ch. 1.3
 % Jonas BA
+The calculation of the gradients is the most computationally expensive part of training a neural network. The invention of the \textit{backpropagation} algorithm by Rumelhart et al. in 1986~\cite{rumelhart_learning_1986} was a major breakthrough in the field of neural networks, as it allowed very efficient gradient calculation and thus enabled the training of large neural networks. 
+\\
+The idea behind backpropagation is to propagate the error back through the network after each forward-propagation step using \textit{local gradients} $\delta$.
+During the forward-propagation step, the activations of each layer are stored in memory and used to calculate the derivatives need for the backpropagation step.
+This is a form of \textit{automatic differentiation}~\cite{adams_backprop_autodiff_nodate,rall_autodiff_1981} and allows the caculation of the gradients with the same time complexity as the forward-propagation step.
+This is sometimes called the \textit{cheap gradient priciple}~\cite{griewank_derivatives_2008}. The following mathematical derivation of the backpropagation algorithm is based on~\cite[chapter 4.4]{haykin_neural_1998} as well as~\cite[chapter 6.5]{goodfellow_deep_2016}.
+\\
+\\
+To calculate the update of a weight $w_{ij}^{[K]}$, we have to calculate the derivative of the loss function $\lambda$ with respect to the weight $w_{ij}^{[K]}$:
+\begin{equation}
+    \Delta w_{ij}^{[K]} = \eta \cdot \frac{\partial \lambda}{\partial w_{ij}^{[K]}} \text{.}
+    \label{eq:weight-derivative} 
+\end{equation}
 
