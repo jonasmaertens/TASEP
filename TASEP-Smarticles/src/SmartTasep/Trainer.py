@@ -36,7 +36,7 @@ class Trainer(TrainerInterface):
     def __init__(self, env_params, hyperparams=None, reset_interval=None,
                  total_steps=100000, render_start=None, do_plot=True, plot_interval=10000,
                  model=None, progress_bar=True, wait_initial=False,
-                 random_density=False, new_model=False, different_models=False):
+                 random_density=False, new_model=False, different_models=False, num_models=3):
         self.env_params = env_params
         self.wait_initial = wait_initial
         if "initial_state_template" in self.env_params or "initial_state" in self.env_params:
@@ -45,6 +45,7 @@ class Trainer(TrainerInterface):
         if different_models and not env_params["use_speeds"]:
             raise ValueError("different_models can only be True if use_speeds is True in env_params")
         self.diff_models = different_models
+        self.num_models = num_models
         self.hyperparams = hyperparams
         self.new_model = new_model
         self.progress_bar = progress_bar
@@ -89,6 +90,7 @@ class Trainer(TrainerInterface):
         plt.rcParams["toolbar"] = "None"
         plt.rcParams['lines.linewidth'] = 0.5
         fig, self.ax_current = plt.subplots(figsize=(window_width_inches, window_height_inches), dpi=dpi)
+        self.fig, self.axs = plt.subplots(2, 3, figsize=(window_width_inches, window_height_inches), dpi=dpi)
         self.move_figure(fig, 0, 0)
         if "sigma" in self.env_params:
             self.ax_current.set_title(f"Current and reward over time for sigma = {self.env_params['sigma']}")
@@ -139,8 +141,9 @@ class Trainer(TrainerInterface):
         wait_initial = wait_initial if wait_initial is not None else False
         new_model = all_models[str(model_id)]["new_model"] if "new_model" in all_models[str(model_id)] else False
         diff_models = all_models[str(model_id)]["diff_models"]
+        num_models = all_models[str(model_id)]["num_models"]
         if diff_models:
-            model = [f"models/by_id/{model_id}/policy_net_{net_id}.pt" for net_id in range(10)]
+            model = [f"models/by_id/{model_id}/policy_net_{net_id}.pt" for net_id in range(num_models)]
         else:
             model = f"models/by_id/{model_id}/policy_net.pt"
         trainer = cls(env_params, hyperparams, model=model, total_steps=tot_steps, do_plot=do_plot,
@@ -253,7 +256,7 @@ class Trainer(TrainerInterface):
         n_observations = self.state.size()[1]
 
         # Determine the number of models to initialize
-        num_models = 10 if self.diff_models else 1
+        num_models = self.num_models if self.diff_models else 1
         models = self.model if isinstance(self.model, list) else [self.model] * num_models
 
         # Initialize dictionaries for storing models, optimizers, memories, and criteria
@@ -275,13 +278,13 @@ class Trainer(TrainerInterface):
                     alpha=0.7,
                     beta=0.5,
                     priority_key="td_error",
-                    storage=LazyTensorStorage(self.hyperparams['MEMORY_SIZE'] // num_models, device=self.device),
+                    storage=LazyTensorStorage(self.hyperparams['MEMORY_SIZE'], device=self.device),
                     batch_size=self.hyperparams['BATCH_SIZE'],
                     prefetch=4)
                 criterion[net_id] = nn.SmoothL1Loss(reduction="none")
 
         # If only one model is initialized, extract it from the dictionary
-        if num_models == 1:
+        if not self.diff_models:
             policy_net, target_net = policy_net[0], target_net[0]
             optimizer, memory, criterion = optimizer[0], memory[0], criterion[0]
 
@@ -289,11 +292,12 @@ class Trainer(TrainerInterface):
 
     def _init_dqn(self, n_observations, n_actions, model):
         policy_net = DQN(n_observations, n_actions, self.new_model).to(self.device)
-        try:
-            policy_net.load_state_dict(torch.load(model))
-        except FileNotFoundError:
-            model = os.path.join(os.getcwd(), model)
-            policy_net.load_state_dict(torch.load(model))
+        if model is not None:
+            try:
+                policy_net.load_state_dict(torch.load(model))
+            except FileNotFoundError:
+                model = os.path.join(os.getcwd(), model)
+                policy_net.load_state_dict(torch.load(model))
         target_net = DQN(n_observations, n_actions, self.new_model).to(self.device)
         target_net.load_state_dict(policy_net.state_dict())
         return policy_net, target_net
@@ -327,7 +331,9 @@ class Trainer(TrainerInterface):
             return torch.tensor([[np.random.randint(n_actions)]], device=self.device, dtype=torch.long)
 
     def _optimize_model(self, model_id=None):
-        if len(self.memory) < self.hyperparams['BATCH_SIZE']:
+        memory = self.memory if model_id is None else self.memories[model_id]
+
+        if len(memory) < self.hyperparams['BATCH_SIZE']:
             return
 
         if self.diff_models:
@@ -336,14 +342,12 @@ class Trainer(TrainerInterface):
             target_net = self.target_nets[model_id]
             optimizer = self.optimizers[model_id]
             criterion = self.criteria[model_id]
-            memory = self.memories[model_id]
         else:
             batch = self.memory.sample()
             policy_net = self.policy_net
             target_net = self.target_net
             optimizer = self.optimizer
             criterion = self.criterion
-            memory = self.memory
 
         non_final_next_states = batch["next_state"]
         state_batch = batch["state"]
@@ -351,24 +355,47 @@ class Trainer(TrainerInterface):
         reward_batch = batch["reward"]
         weight_batch = batch["_weight"]
 
+        # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
+        # columns of actions taken. These are the actions which would've been taken
+        # for each batch state according to policy_net
         state_action_values = policy_net(state_batch).gather(1, action_batch)
 
+        # Compute V(s_{t+1}) for all next states.
+        # Expected values of actions for non_final_next_states are computed based
+        # on the "older" target_net; selecting their best reward with max(1)[0].
+        # This is merged based on the mask, such that we'll have either the expected
+        # state value or 0 in case the state was final.
         with torch.no_grad():
             next_state_values = target_net(non_final_next_states).max(1)[0]
 
+        # Compute the expected Q values
         expected_state_action_values = (next_state_values * self.hyperparams['GAMMA']) + reward_batch
 
+        # Compute td_error
         with torch.no_grad():
             td_error = torch.abs(state_action_values - expected_state_action_values.unsqueeze(1))
             batch["td_error"] = td_error
             memory.update_tensordict_priority(batch)
 
+        # Compute Huber loss
         loss = (criterion(state_action_values, expected_state_action_values.unsqueeze(1)) *
                 weight_batch.unsqueeze(1)).mean()
 
+        # clear the .grad attribute of the weights tensor
         optimizer.zero_grad()
+
+        # compute the gradient of loss w.r.t. all the weights
+        # computation graph is embedded in the loss tensor because it is created
+        # from the action values tensor which is computed by forward pass though
+        # the network. Gradient values are stored in the .grad attribute of the
+        # weights tensor
         loss.backward()
-        torch.nn.utils.clip_grad_value_(optimizer.parameters(), 100)
+
+        # In-place gradient clipping
+        torch.nn.utils.clip_grad_value_(policy_net.parameters(), 100)
+
+        # use the gradient values in the .grad attribute of the weights tensor
+        # to update the weight values
         optimizer.step()
 
     def train(self):
@@ -378,14 +405,30 @@ class Trainer(TrainerInterface):
             just_reset = False
             just_reset = self._check_env_reset(just_reset)
 
-            if self.diff_models:
-                obs_dist = self.env_params["observation_distance"]
-                speed = self.state[obs_dist, obs_dist]
-                if self.env_params["invert_speed_observation"]:
-                    speed = 1 - speed + self.env_params["speed_observation_threshold"]
-                model_id = int(speed * 10)
-            else:
-                model_id = None
+            model_id = self._get_model_id()
+
+            # if self.steps_done % self.plot_interval*4 == 0 and not just_reset and self.steps_done != 0:
+            #     # visualize the weights and biases of the network
+            #     params = self.policy_nets[model_id].state_dict()
+            #     self.axs[0, 0].cla()
+            #     self.axs[0, 1].cla()
+            #     self.axs[1, 0].cla()
+            #     self.axs[1, 1].cla()
+            #     self.axs[0, 2].cla()
+            #     self.axs[1, 2].cla()
+            #     self.axs[0, 0].hist(params["layer1.weight"].flatten().cpu().numpy(), bins=100)
+            #     self.axs[0, 0].set_title("layer1.weight")
+            #     self.axs[0, 1].hist(params["layer2.weight"].flatten().cpu().numpy(), bins=100)
+            #     self.axs[0, 1].set_title("layer2.weight")
+            #     self.axs[0, 2].hist(params["layer3.weight"].flatten().cpu().numpy(), bins=100)
+            #     self.axs[0, 2].set_title("layer3.weight")
+            #     self.axs[1, 0].hist(params["layer1.bias"].flatten().cpu().numpy(), bins=100)
+            #     self.axs[1, 0].set_title("layer1.bias")
+            #     self.axs[1, 1].hist(params["layer2.bias"].flatten().cpu().numpy(), bins=100)
+            #     self.axs[1, 1].set_title("layer2.bias")
+            #     self.axs[1, 2].hist(params["layer3.bias"].flatten().cpu().numpy(), bins=100)
+            #     self.axs[1, 2].set_title("layer3.bias")
+
 
             # Select action for current state
             action = self._select_action(self.state, model_id=model_id)
@@ -456,10 +499,16 @@ class Trainer(TrainerInterface):
             just_reset = True
         return just_reset
 
-    def _soft_update(self):
-        for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
-            target_param.data.copy_(
-                self.hyperparams['TAU'] * policy_param.data + (1 - self.hyperparams['TAU']) * target_param.data)
+    def _soft_update(self, model_id=None):
+        if model_id is not None:
+            for target_param, policy_param in zip(self.target_nets[model_id].parameters(),
+                                                  self.policy_nets[model_id].parameters()):
+                target_param.data.copy_(
+                    self.hyperparams['TAU'] * policy_param.data + (1 - self.hyperparams['TAU']) * target_param.data)
+        else:
+            for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
+                target_param.data.copy_(
+                    self.hyperparams['TAU'] * policy_param.data + (1 - self.hyperparams['TAU']) * target_param.data)
 
     def run(self):
         for self.steps_done in (
@@ -474,7 +523,9 @@ class Trainer(TrainerInterface):
 
             just_reset = self._check_env_reset(just_reset)
 
-            action = self._select_action(self.state, eps_greedy=False)
+            model_id = self._get_model_id()
+
+            action = self._select_action(self.state, eps_greedy=False, model_id=model_id)
             if self.env_params["distinguishable_particles"]:
                 (next_observation, _), _, terminated, truncated, info = self.env.step(action.item())
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
@@ -493,6 +544,20 @@ class Trainer(TrainerInterface):
                 if self.do_plot:
                     self.ax_current.plot(self.timesteps, self.currents, color="blue")
                     self.ax_reward.plot(self.timesteps, self.rewards, color="red")
+
+    def _get_model_id(self):
+        if self.diff_models:
+            obs_dist = self.env_params["observation_distance"]
+            state = self.state.reshape(2 * obs_dist + 1, 2 * obs_dist + 1)
+            speed = state[obs_dist, obs_dist]
+            if self.env_params["invert_speed_observation"]:
+                speed = 1 - speed + self.env_params["speed_observation_threshold"]
+            model_id = int(speed * self.num_models)
+            if model_id == self.num_models:  # shouldn't happen, but does sometimes due to rounding errors
+                model_id -= 1
+        else:
+            model_id = None
+        return model_id
 
     def save(self):
         # create models directory if it doesn't exist
@@ -549,7 +614,8 @@ class Trainer(TrainerInterface):
             "model_id": model_id,
             "timestamp": datetime.datetime.now().strftime('%Y%m%d%H%M%S'),
             "new_model": self.new_model,
-            "diff_models": self.diff_models
+            "diff_models": self.diff_models,
+            "num_models": self.num_models
         }
         with open("models/all_models.json", "w") as f:
             json.dump(all_models, f, indent=4)

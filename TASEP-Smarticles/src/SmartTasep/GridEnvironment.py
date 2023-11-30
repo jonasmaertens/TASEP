@@ -85,6 +85,9 @@ def invert_speed_obs(observation: np.ndarray, threshold: float) -> np.ndarray:
 
 
 class GridEnv(gym.Env, GridEnvInterface):
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 144,
+                "initial_state_templates": ["checkerboard", "everyThird"]}
+
     def __init__(self, render_mode=None,
                  length=64,
                  width=16,
@@ -501,8 +504,8 @@ class GridEnv(gym.Env, GridEnvInterface):
                               (- 400 * abs(obs[*particle] - center) ** 4) / (
                                       abs(particle[0] - self.obs_dist) + 1) / 40 / 4)
             elif self.inh_rew_idx == 23:
-                reward += (max(0.6 - center, 0) * max(0.6 - obs[*particle], 0)) / (
-                    np.linalg.norm(particle - np.array([self.obs_dist, self.obs_dist])))
+                reward += (max(0.33 - center, 0) * max(0.33 - obs[*particle], 0)) / (
+                    np.linalg.norm(particle - np.array([self.obs_dist, self.obs_dist]))) * 20
         return reward
 
     def _speed_gradient(self, x):
