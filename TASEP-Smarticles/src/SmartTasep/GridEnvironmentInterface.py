@@ -68,9 +68,6 @@ class EnvParams(TypedDict):
 
 
 class GridEnvInterface(ABC):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 144,
-                "initial_state_templates": ["checkerboard", "everyThird"]}
-
     @abstractmethod
     def __init__(self, render_mode: str = None,
                  length: int = 64,
@@ -153,16 +150,16 @@ class GridEnvInterface(ABC):
         """
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def n(self) -> int:
         """
         Returns the number of particles in the system.
         """
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def rho(self) -> float:
         """
         Returns the density of particles in the system.
