@@ -7,24 +7,24 @@
 \section{Artificial Intelligence}
 \label{sec:artificial-intelligence}
 Artificial Intelligence (AI) is a broad subject of study that can be defined in different ways~\cite[chapter 1]{russell_artificial_2021}.
-John McCarthy, often called the “father of AI”\cite{wiki_ai_2023, woo_fatherofai_2014, andresen_fatherofai_2002}, defines it as “the science and engineering of making intelligent machines”~\cite{stanford-whatisai}, where intelligence means “the computational part of the ability to achieve goals in the world”~\cite{stanford-whatisai}.
+John McCarthy, often called the “father of AI”~\cite{wiki_ai_2023, woo_fatherofai_2014, andresen_fatherofai_2002}, defines it as “the science and engineering of making intelligent machines”~\cite{stanford-whatisai}, where intelligence means “the computational part of the ability to achieve goals in the world”~\cite{stanford-whatisai}.
 AI is sometimes mistakenly used interchangeably with Machine Learning.
 Machine learning is a subset of AI concerned with enabling AI systems to learn from experience~\cite[chapter 1]{russell_artificial_2021}.
 Machine learning enables the development of large-scale AI systems as they are used today.
 \\
 The study of artificial intelligence was first proposed by McCarthy et al. in late 1955 \cite{mccarthy_proposal_1955}.
 It went through two major hype cycles in the sixties and the eighties~\cite{googlengram_ai, wiki_ai_2023, sitnflash_history_2017} followed by phases of “AI winter”.
-The current (as of early 2024) AI boom, sometimes also called “AI spring”~\cite{aispring} was started by groundbreaking advances in speech recognition~\cite{hinton_deep_2012} and image classification~\cite{krizhevsky_imagenet_2012} in 2012~\cite{google_decade_2021, house_2012_2019} and reached the general public at the latest in late 2022, following the release of ChatGPT~\cite{openai_chatgpt_intro}, a multipurpose AI-chatbot, open to everyone~\cite{openai_chatgpt}.
+The current (as of early 2024) AI boom, sometimes also called “AI spring”~\cite{aispring} was started by groundbreaking advances in speech recognition~\cite{hinton_deep_2012} and image classification~\cite{krizhevsky_imagenet_2012} in 2012~\cite{google_decade_2021, house_2012_2019} and reached the public at the latest in late 2022, following the release of ChatGPT~\cite{openai_chatgpt_intro}, a multipurpose AI-chatbot, open to everyone~\cite{openai_chatgpt}.
 \\
 These breakthroughs are made possible mainly by advancements in the field of machine learning, enabling AI systems to learn from huge amounts of data.
 In addition, the exponential increase in computation and storage capabilities as predicted by Moore’s Law~\cite{mooreslaw}, algorithms like backpropagation~\cite{rumelhart_learning_1986} allowed incorporating large amounts of data into machine learning models in realistic amounts of time.
 \\
-Today, AI systems are indispensable in many areas such as web search engines~\cite{google_howweuseai}, recommendation systems~\cite{burke_recommender_2011}, human speech recognition and generation~\cite{elevenlabs, hinton_deep_2012}, image recognition and generation~\cite{midjourney, krizhevsky_imagenet_2012} and personal assistants~\cite{openai_chatgpt_intro} and surpasses humans in high level strategy games like go and chess~\cite{silver_mastering_2016, silver_mastering_2017} as well as other videogames~\cite{piper_ai_2019}.
+Today, AI systems are indispensable in many areas such as web search engines~\cite{google_howweuseai}, recommendation systems~\cite{burke_recommender_2011}, human speech recognition and generation~\cite{elevenlabs, hinton_deep_2012}, image recognition and generation~\cite{midjourney, krizhevsky_imagenet_2012} and personal assistants~\cite{openai_chatgpt_intro} and surpasses humans in high level strategy games like go and chess~\cite{silver_mastering_2016, silver_mastering_2017} as well as other video games~\cite{piper_ai_2019}.
 
-\section{Neural Networks}
-\label{sec:neural-networks}
-\subsection{Overview}
-\label{subsec:overview}
+\chapter{Neural Networks}
+\label{ch:neural-networks}
+\section{Overview}
+\label{sec:overview}
 At the heart of almost all the technologies mentioned in the last paragraph are deep artificial neural networks.
 The next section will outline the mathematical details of how these systems work and learn.
 Although the comparison of artificial neural networks, from now on just called “neural networks”, to their biological counterpart can be criticized as oversimplifying the inner workings of biological brains~\cite[chapter 1.1]{aggarwal_neural_2018}, the architecture of neural networks is heavily inspired by how decision-making and learning work in the human brain~\cite[chapter 1.1]{aggarwal_neural_2018, mit_nnexplained}.
@@ -51,7 +51,7 @@ This is done by training the network with pre-classified images.
 After an image has been processed by the network, the output is compared to the correct classification and the network parameters are updated in a way that would improve the networks output if the same image was to be processed again~\cite[chapter 1.2]{aggarwal_neural_2018,ibm_nn}.
 \\
 This is similar to how humans learn from experience.
-If we were to misclassify a persons gender, the unpleasant social experience that may come with that mistake would cause us to update our internal model of what different genders look like so as to not make the same mistake again.
+If we were to misclassify a persons gender, the unpleasant social experience that may come with that mistake would cause us to update our internal model of what different genders look like to not make the same mistake again.
 \\
 \\
 One of the main strengths of neural networks is their ability to \textit{generalize}~\cite{gonfalonieri_understand_2020}.
@@ -62,10 +62,10 @@ The gender classification network from our example doesn't just memorize the gen
 The problem of image classification is a rather complex one.
 One wouldn't typically think of it as finding a function that maps the values of each input pixel to the classification output.
 But even very complex problems can be modeled by equally complex functions.
-The universal approximation theorem states, that a feedforward neural network with at least one hidden layer with appropriate activation functions (see~\ref{subsubsec:activation-functions} for details) can approximate any continuous function if given enough nodes~\cite[chapter 6.4.1]{goodfellow_deep_2016}.
+The universal approximation theorem states, that a feedforward neural network with at least one hidden layer with appropriate activation functions (see~\ref{subsec:activation-functions} for details) can approximate any continuous function if given enough nodes~\cite[chapter 6.4.1]{goodfellow_deep_2016}.
 That's why training a neural network can be thought of as fitting the network to the training data.
 \\
-\subsection{Mathematical Details}
+\section{Mathematical Details}
 \label{sec:nn-mathematical-details}
 The following section will outline the mathematical details of how neural networks work.
 The definitions and derivations are based on~\cite[chapter 1.2-1.3]{aggarwal_neural_2018},~\cite[chapter 5-6]{goodfellow_deep_2016},~\cite{ibm_nn} as well as~\cite[chapter 4.4]{haykin_neural_1998}.
@@ -73,11 +73,11 @@ The definitions and derivations are based on~\cite[chapter 1.2-1.3]{aggarwal_neu
 \\
 The most complete treatment of the mathematical details of neural networks is arguably given by the framework of computational graphs~\cite{bettilyon_computationalgraphs_2020}.
 In this framework, a neural network is treated as single that maps a set of input values to a set of output values.
-This funcion is composed of individual mathematical operations and can be represented as a directed graph \cite[section 1.4]{haykin_neural_1998}.
+This function is composed of individual mathematical operations and can be represented as a directed graph \cite[section 1.4]{haykin_neural_1998}.
 I will not rigorously define the framework of computational graphs here, as this is beyond the scope of this thesis.
-Instead, I will explain the priciples of neural networks starting from a single neuron and then build up to a fully connected neural network. 
-\subsubsection{Notation}
-\label{subsubsec:nn-notation}
+Instead, I will explain the principles of neural networks starting from a single neuron and then build up to a fully connected neural network. 
+\subsection{Notation}
+\label{subsec:nn-notation}
 The following notation will be used throughout this section:
 \begin{equation*}
     \begin{array}{ll}
@@ -93,8 +93,8 @@ The following notation will be used throughout this section:
     ^{[J]} & : \text { superscript denoting the layer of a variable} \\
     \end{array}
 \end{equation*}
-\subsubsection{Single Node}
-\label{subsubsec:single-neuron}
+\subsection{Single Node}
+\label{subsec:single-neuron}
 \begin{figure}
     \centering
     \includegraphics[width=0.5\textwidth]{single_neuron}
@@ -123,8 +123,8 @@ The pre-activation value is then passed through an \textit{activation function} 
 \end{equation}
 The whole process is illustrated in figure \ref{fig:single-neuron}.
 
-\subsubsection{Activation Functions}
-\label{subsubsec:activation-functions}
+\subsection{Activation Functions}
+\label{subsec:activation-functions}
 The activation function $\phi$ is used to introduce non-linearity into the network and thus increasing its modeling power \cite[section 1.2.1.3]{aggarwal_neural_2018}. 
 Some activation functions are also referred to as \textit{squashing function}~\cite[10]{haykin_neural_1998}, as they map the unbounded pre-activation value $z$ to a bounded activation value $a$.
 The choice of activation function has a large impact on the performance of the network in terms of both accuracy and speed \cite{dubey_activation_2022}.
@@ -213,8 +213,8 @@ The ReLU function and its leaky version can be seen in figures \ref{fig:relu} an
 \end{figure}
 
 
-\subsubsection{Forward-Propagation in Feedforward Neural Networks}
-\label{subsubsec:forward-propagation}
+\subsection{Forward-Propagation in Feedforward Neural Networks}
+\label{subsec:forward-propagation}
 \begin{figure}
     \centering
     \includegraphics[width=0.9\textwidth]{nn}
@@ -222,7 +222,7 @@ The ReLU function and its leaky version can be seen in figures \ref{fig:relu} an
     \label{fig:nn}
 \end{figure}
 Now that the workings of the nodes are defined, we can build a fully connected neural network out of these building blocks. 
-I will illustrate the process at the example of a feedforward neural network as defined in section \ref{subsec:overview}.
+I will illustrate the process at the example of a feedforward neural network as defined in section \ref{sec:overview}.
 An example of such a network can be seen in figure \ref{fig:nn}. 
 \\
 \\
@@ -256,14 +256,14 @@ To show this, let's set $\phi(z)$ to the identity in equation \ref{eq:forward-pr
     \label{eq:linear-network}
 \end{align}
 
-\subsubsection{Loss Functions and Gradient Descent}
-\label{subsubsec:loss-functions}
+\subsection{Loss Functions and Gradient Descent}
+\label{subsec:loss-functions}
 In order to produce meaningful output, the network's weights and biases have to be adjusted to minimize the error of the network's output.
 This process is called \textit{training} the network.
 The error of the network is measured by a \textit{loss function} $\lambda(\bm{y}, \bm{\hat{y}})$, where $\bm{\hat{y}}$ is some target output vector.
 The loss function is a measure of how far the network's output $\bm{y}$ is from the target output $\bm{\hat{y}}$.
-As we want to minimize the networks error, the training process is esentially an optimization problem \cite[chapter 4.3]{goodfellow_deep_2016}.
-Let's step back from neural networks for a moment and look at a method to minimize a function $f(\bm{x})$ with respect to it's parameters $\bm{x}$.
+As we want to minimize the network's error, the training process is essentially an optimization problem \cite[chapter 4.3]{goodfellow_deep_2016}.
+Let's step back from neural networks for a moment and look at a method to minimize a function $f(\bm{x})$ with respect to its parameters $\bm{x}$.
 The most common method to do this in machine learning is \textit{gradient descent} \cite[chapter 4.3]{goodfellow_deep_2016}.
 \\
 \\
@@ -284,13 +284,13 @@ The most common method to do this in machine learning is \textit{gradient descen
     \label{fig:gradient-descent}
 \end{figure}
 If we imagine the function $f(\bm{x})$ as a landscape, the goal of gradient descent is to find the lowest point of the landscape.
-To do this, the algorithm starts at some point $\bm{x}_0$ and in each iteration, it takes a step in the direction of steepest descent. 
+To do this, the algorithm starts at some point $\bm{x}_0$ and in each iteration, it takes a step in the direction of the steepest descent. 
 The size of the step is determined by the \textit{learning rate} $\eta$.
 Choosing an appropriate learning rate is crucial for the algorithm to converge.
 Figure \ref{fig:gradient-descent} shows gradient descent with different learning rates and the resulting paths through the landscape.
 \\
 \\
-As is known from multivariable calculus, the direction of steepest descent of a function $f(\bm{x})$ is given by the negative gradient $\nabla f(\bm{x})$.
+As is known from multivariable calculus, the direction of the steepest descent of a function $f(\bm{x})$ is given by the negative gradient $\nabla f(\bm{x})$.
 We can therefore update the parameters $\bm{x}$ in each iteration by:
 \begin{equation}
     \bm{x}_{n+1} = \bm{x}_n - \eta \nabla f(\bm{x}_n) \text{.}
@@ -326,10 +326,10 @@ As the loss function depends on the network's output $\bm{y}$, which in turn dep
 \\
 \\
 For single layer networks, the calculation of the gradients is straightforward. 
-For multi-layer networks however, the loss function depends on the parameters of ealier layers in a non-trivial way. 
+For multi-layer networks however, the loss function depends on the parameters of earlier layers in a non-trivial way. 
 The next section will outline an algorithm, that allows the efficient calculation of the gradients of multi-layer networks.
 
-\subsubsection{The Backpropagation Algorithm}
+\subsection{The Backpropagation Algorithm}
 \label{subsec:backprop}
 % Goodfellow Ch. 6.5
 % Aggarwal Ch. 1.3
@@ -338,8 +338,8 @@ The calculation of the gradients is the most computationally expensive part of t
 \\
 The idea behind backpropagation is to propagate the error back through the network after each forward-propagation step using \textit{local gradients} $\delta$.
 During the forward-propagation step, the activations of each layer are stored in memory and used to calculate the derivatives need for the backpropagation step.
-This is a form of \textit{automatic differentiation}~\cite{adams_backprop_autodiff_nodate,rall_autodiff_1981} and allows the caculation of the gradients with the same time complexity as the forward-propagation step.
-This is sometimes called the \textit{cheap gradient priciple}~\cite{griewank_derivatives_2008}. The following mathematical derivation of the backpropagation algorithm is based on~\cite[chapter 4.4]{haykin_neural_1998} as well as~\cite[chapter 6.5]{goodfellow_deep_2016}.
+This is a form of \textit{automatic differentiation}~\cite{adams_backprop_autodiff_nodate,rall_autodiff_1981} and allows the calculation of the gradients with the same time complexity as the forward-propagation step.
+This is sometimes called the \textit{cheap gradient principle}~\cite{griewank_derivatives_2008}. The following mathematical derivation of the backpropagation algorithm is based on~\cite[chapter 4.4]{haykin_neural_1998} as well as~\cite[chapter 6.5]{goodfellow_deep_2016}.
 \\
 \\
 To calculate the update of a weight $w_{ij}^{[K]}$, we have to calculate the derivative of the loss function $\lambda$ with respect to the weight $w_{ij}^{[K]}$:
@@ -347,4 +347,135 @@ To calculate the update of a weight $w_{ij}^{[K]}$, we have to calculate the der
     \Delta w_{ij}^{[K]} = \eta \cdot \frac{\partial \lambda}{\partial w_{ij}^{[K]}} \text{.}
     \label{eq:weight-derivative} 
 \end{equation}
+This derivative can be evaluated using the chain rule:
+\begin{equation}
+    \frac{\partial \lambda}{\partial w_{ij}^{[K]}} = \frac{\partial \lambda}{\partial a_i^{[K]}} \frac{\partial a_i^{[K]}}{\partial z_i^{[K]}} \frac{\partial z_i^{[K]}}{\partial w_{ij}^{[K]}} = \delta_i^{[K]} a_j^{[K-1]} 
+    \label{eq:chain-rule}
+\end{equation}
+where we used equation \ref{eq:pre-activation-vector} to simplify the last derivative and defined the local gradient $\delta_j^{[K]}$ as:
+\begin{equation}
+    \delta_i^{[K]} = \frac{\partial \lambda}{\partial a_i^{[K]}} \frac{\partial a_i^{[K]}}{\partial z_i^{[K]}} \text{.}
+    \label{eq:local-gradient}
+\end{equation}
+Let's take a closer look at the local gradient $\delta_i^{[K]}$.
+The second factor in equation \ref{eq:local-gradient} is the derivative of the activation function $\phi$ with respect to the pre-activation value $z_i^{[K]}$.
+This term is straightforward to calculate. 
+Remembering that the activation function is applied element-wise, using equation \ref{eq:activation-vector} we get:
+\begin{equation}
+    \frac{\partial a_i^{[K]}}{\partial z_i^{[K]}} = \frac{\partial \phi(z_i^{[K]})}{\partial z_i^{[K]}} = \phi'(z_i^{[K]}) \text{.}
+    \label{eq:activation-derivative}
+\end{equation}
+The first factor in equation \ref{eq:local-gradient} is the derivative of the loss function $\lambda$ with respect to the activation $a_i^{[K]}$.
+If layer $K$ is the output layer, this derivative is simply the derivative of the loss function with respect to the output value $y_i$:
+\begin{equation}
+    \frac{\partial \lambda}{\partial a_i^{[K]}} = \frac{\partial \lambda}{\partial y_i} \text{.}
+    \label{eq:loss-derivative-output}
+\end{equation}
+If layer $K$ is not the output layer, the derivative is slightly more complicated.
+We can use the chain rule trick again, re-introducing the activation values $a_n^{[K+1]}$ of the next layer, which all depend on $a_i^{[K]}$:
+\begin{equation}
+    \frac{\partial \lambda}{\partial a_i^{[K]}} = \sum_{n=1}^{m_{K+1}} \frac{\partial \lambda}{\partial a_n^{[K+1]}} \frac{\partial a_n^{[K+1]}}{\partial a_i^{[K]}} = \sum_{n=1}^{m_{K+1}} \frac{\partial \lambda}{\partial a_n^{[K+1]}} \frac{\partial a_n^{[K+1]}}{\partial z_n^{[K+1]}} \frac{\partial z_n^{[K+1]}}{\partial a_i^{[K]}} \text{.}
+    \label{eq:loss-derivative-hidden}
+\end{equation}
+Similar to equation \ref{eq:chain-rule}, we can use equation \ref{eq:pre-activation-vector} to simplify the last derivative and identify the local gradients $\delta_n^{[K+1]}$: 
+\begin{equation}
+    \frac{\partial \lambda}{\partial a_i^{[K]}} = \sum_{n=1}^{m_{K+1}} \delta_n^{[K+1]} w_{ni}^{[K+1]} \text{.}
+    \label{eq:loss-derivative-hidden-simplified}
+\end{equation}
+Plugging equations \ref{eq:activation-derivative} and \ref{eq:loss-derivative-output} or \ref{eq:loss-derivative-hidden-simplified} back into equation \ref{eq:local-gradient} yields the final form of the local gradient:
+\begin{equation}
+    \delta_i^{[K]} = \phi'(z_i^{[K]}) \cdot \begin{cases}
+         \frac{\partial \lambda}{\partial y_i} & \text{if layer } K \text{ is the output layer} \\
+         \sum_{n=1}^{m_{K+1}} \delta_n^{[K+1]} w_{ni}^{[K+1]} & \text{otherwise} \text{.}
+    \end{cases}
+    \label{eq:local-gradient-final}
+\end{equation}
+This equation can be applied recursively to calculate the local gradients of all layers from the output layer to the input layer.
+The weight update $\Delta w_{ij}^{[K]}$ can then be calculated using equation \ref{eq:weight-derivative} and \ref{eq:local-gradient-final}:
+\begin{equation}
+    \Delta w_{ij}^{[K]} = \eta \cdot \delta_i^{[K]} a_j^{[K-1]} \text{.}
+    \label{eq:weight-update}
+\end{equation}
+When introducing the backpropagation algorithm, I summarized it as a method of \textit{propagating the error back through the network}.
+The recursive usage of equation \ref{eq:local-gradient-final} is exactly that: We start at the output layer and calculate the local gradients of all nodes in the output layer using equation \ref{eq:local-gradient-final}.
+Then we use these local gradients to calculate the local gradients of the previous layer using equation \ref{eq:local-gradient-final} again and so on until we reach the input layer. 
+Note that we need to store the activations of each layer in memory during the \textit{forward-pass} to calculate the updates during the \textit{backward-pass} as mentioned in the beginning of this section.
+\\
+\\
+The derivations for the bias updates are analogous to the weight updates and are therefore omitted here. 
+The only difference is that the last term in equation \ref{eq:chain-rule} is replaced by $1$ as the bias is not connected to any previous layer.
+The algorithm for a whole training step (i.e. one forward-pass and one backward-pass) is summarized in algorithm \ref{alg:backpropagation}.
+\begin{algorithm}
+    \caption{One training step of a neural network: Forward- and Backpropagation}
+    \label{alg:backpropagation}
+    \begin{algorithmic}[1]
+        \renewcommand{\algorithmicensure}{\textbf{Output:}}
+        \Require
+            \Statex $\bm{x}$: Input vector
+            \Statex $\bm{\hat{y}}$: Target output vector
+            \Statex $\bm{w}$: Weight array containing all weight matrices $\bm{w}^{[K]}$
+            \Statex $\bm{b}$: Bias array containing all bias vectors $\bm{b}^{[K]}$
+            \Statex $\lambda$: Loss function
+            \Statex $\phi$: Activation function
+            \Statex $\eta$: Learning rate
+        \Ensure Updates the weights $\bm{w}$ and biases $\bm{b}$ of the network inplace.
+        \Statex
+        \State $\bm{a}^{[0]} \gets \bm{x}$ \Comment{Initialize activations}
+        \For{$K = 1, \dots, L$} \Comment{Forward-pass}
+            \State $\bm{z}^{[K]} \gets \bm{w}^{[K]} \bm{a}^{[K-1]} + \bm{b}^{[K]}$ \Comment{Calculate pre-activations}
+            \State $\bm{a}^{[K]} \gets \phi(\bm{z}^{[K]})$ \Comment{Calculate activations}
+        \EndFor
+        \State $\delta^{[L]} \gets \phi'(\bm{z}^{[L]}) \cdot \frac{\partial \lambda(\bm{a}^{[L]}, \bm{\hat{y}})}{\partial \bm{a}^{[L]}}$ \Comment{Initialize local gradients}
+        \For{$K = L, \dots, 1$} \Comment{Backward-pass}
+            \State $\Delta \bm{w}^{[K]} \gets \eta \cdot \delta^{[K]} \bm{a}^{[K-1]}$ \Comment{Calculate weight updates}
+            \State $\Delta \bm{b}^{[K]} \gets \eta \cdot \delta^{[K]}$ \Comment{Calculate bias updates}
+            \State $\delta^{[K-1]} \gets \phi'(\bm{z}^{[K-1]}) \cdot \bm{w}^{[K]T} \delta^{[K]}$ \Comment{Calculate local gradients}
+        \EndFor
+        \State $\bm{w} \gets \bm{w} - \Delta \bm{w}$ \Comment{Update weights}
+        \State $\bm{b} \gets \bm{b} - \Delta \bm{b}$ \Comment{Update biases}
+    \end{algorithmic}
+\end{algorithm}
 
+\subsection{Summary}
+\label{subsec:nn-summary}
+In this chapter, the foundations of neural networks were outlined.
+Section~\ref{subsec:single-neuron} started by defining the building blocks of neural networks: The \textit{nodes}.
+Section~\ref{subsec:forward-propagation} combined \textit{Layers} of these nodes into a \textit{fully connected neural network}.
+The specific \textit{architecture} of the network, that is the number of layers, the number of nodes per layer and the \textit{activation functions}, depends on the problem that is being solved.
+Later, we will see that in our case of Deep-Q-Learning, the size of the \textit{input vector} is determined by the number of cells that are visible to the agent and the size of the \textit{output vector} is determined by the number of possible actions that the agent can take.
+\\
+\\
+On this basis, the \textit{forward-propagation} step could be analyzed in detail and the significance of the activation function was explained.
+Next, section~\ref{subsec:loss-functions} introduced the \textit{loss function} as a measure of the network's error and the \textit{gradient descent} algorithm was outlined as a method to minimize this error.
+Finally, the \textit{backpropagation} algorithm treated in section~\ref{subsec:backprop} provides a way to efficiently compute the gradients needed for gradient descent and enables the \textit{training} of large neural networks.
+The whole process of forward-propagation, followed by backpropagation and network parameter updates is summarized in pseudocode in algorithm~\ref{alg:backpropagation}.
+
+
+
+
+
+\chapter{Deep Q-Learning}
+\label{ch:dql}
+
+
+\section{Reinforcement Learning}
+
+\subsection{Overview}
+
+\subsection{Markov Decision Processes}
+
+\subsection{Important Concepts}
+
+\subsubsection{Reward}
+
+\subsubsection{Policies and Value Functions}
+
+\subsubsection{Optimality and Bellman Equations}
+
+\subsection{Summary}
+
+\subsection{Algorithms}
+
+
+
+\section{Deep Q-Learning}
