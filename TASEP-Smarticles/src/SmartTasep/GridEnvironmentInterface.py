@@ -42,7 +42,8 @@ class EnvParams(TypedDict):
                 Defaults to False.
             speed_gradient_reward (bool, optional): Whether to encourage a vertical speed gradient in the system.
             speed_gradient_linearity (float, optional): The linearity of the speed gradient reward. Defaults to 0.1.
-            inh_rew_idx (int, optional): The index of the reward formula that should be used for the inhomogeneity reward.
+            inh_rew_idx (int, optional): The index of the reward formula that should be used for the inhomogeneity reward
+            binary_speeds: Whether to sample speeds from a binary distribution instead of a truncated normal distribution
     """
     render_mode: NotRequired[str | None]
     length: int
@@ -65,6 +66,7 @@ class EnvParams(TypedDict):
     speed_gradient_reward: NotRequired[bool]
     speed_gradient_linearity: NotRequired[float]
     inh_rew_idx: NotRequired[int]
+    binary_speeds: NotRequired[bool]
 
 
 class GridEnvInterface(ABC):
@@ -89,7 +91,8 @@ class GridEnvInterface(ABC):
                  punish_inhomogeneities: bool = False,
                  speed_gradient_reward: bool = False,
                  speed_gradient_linearity: float = 0.1,
-                 inh_rew_idx: int = -1):
+                 inh_rew_idx: int = -1,
+                 binary_speeds: bool = False):
         """
         The GridEnvironment class implements a grid environment with particles that can move forward, up,
         down or wait. It is a 2D version of the TASEP (Totally Asymmetric Simple Exclusion Process) model for use
@@ -133,7 +136,8 @@ class GridEnvInterface(ABC):
                 Defaults to False.
             speed_gradient_reward (bool, optional): Whether to encourage a vertical speed gradient in the system.
             speed_gradient_linearity (float, optional): The linearity of the speed gradient reward. Defaults to 0.1.
-            inh_rew_idx (int, optional): The index of the reward formula that should be used for the inhomogeneity reward.
+            inh_rew_idx (int, optional): The index of the reward formula that should be used for the inhomogeneity reward
+            binary_speeds: Whether to sample speeds from a binary distribution instead of a truncated normal distribution
         """
         pass
 

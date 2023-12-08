@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import pygame
+from functools import cache
 
 import gymnasium as gym
 from gymnasium import spaces
@@ -31,7 +32,31 @@ default_env_params = {
     "speed_gradient_reward": False,
     "speed_gradient_linearity": 0.1,
     "inh_rew_idx": -1,
+    "binary_speeds": False
 }
+
+
+@cache
+def lennard_jones_potential(x1, y1, x2, y2, epsilon):
+    """
+    Calculates the Lennard-Jones potential between two particles.
+
+    Args:
+        x1 (float): x-coordinate of the first particle.
+        x2 (float): x-coordinate of the second particle.
+        y1 (float): y-coordinate of the first particle.
+        y2 (float): y-coordinate of the second particle.
+        epsilon (float): The depth of the potential well.
+
+    Returns:
+        float: The Lennard-Jones potential between the two particles.
+    """
+    r = np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+    if r <= 1:
+        return epsilon
+    elif r > 4:
+        return 0
+    return epsilon / 3 * r - 4 / 3 * epsilon
 
 
 def truncated_normal_single(mean, std_dev) -> float:
@@ -67,6 +92,20 @@ def truncated_normal(mean, std_dev, size) -> np.ndarray:
     samples = np.zeros(size, dtype=np.float32)
     for i in range(size):
         samples[i] = truncated_normal_single(mean, std_dev)
+    return samples
+
+
+def binary_distribution(size) -> np.ndarray:
+    """
+    Generates an array of random numbers from a binary distribution.
+
+    Args:
+        size (int): Number of samples to generate.
+
+    Returns:
+        np.ndarray: Array of random numbers from the binary distribution.
+    """
+    samples = np.random.choice([0.25, 0.95], size=size)
     return samples
 
 
@@ -108,9 +147,11 @@ class GridEnv(gym.Env, GridEnvInterface):
                  punish_inhomogeneities=False,
                  speed_gradient_reward=False,
                  speed_gradient_linearity=0.1,
-                 inh_rew_idx=-1):
+                 inh_rew_idx=-1,
+                 binary_speeds=False):
         self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
         self.social_reward = social_reward
+        self.binary_speeds = binary_speeds
         self.punish_inhomogeneities = punish_inhomogeneities
         self.inh_rew_idx = inh_rew_idx
         self.density = density
@@ -334,10 +375,12 @@ class GridEnv(gym.Env, GridEnvInterface):
             self.np_random.shuffle(random_integers)
             self.state[self.state == 1] = random_integers
             if self.use_speeds:
-                random_speeds = truncated_normal(0.5, self.sigma, self.n)
+                random_speeds = truncated_normal(0.5, self.sigma,
+                                                 self.n) if not self.binary_speeds else binary_distribution(self.n)
                 self.state[self.state != 0] += random_speeds
         elif not self.distinguishable_particles and self.use_speeds:
-            random_speeds = truncated_normal(0.5, self.sigma, self.n)
+            random_speeds = truncated_normal(0.5, self.sigma,
+                                             self.n) if not self.binary_speeds else binary_distribution(self.n)
             self.state[self.state == 1] = random_speeds
         observation = self._get_obs()
         info = self._get_info()
@@ -431,81 +474,23 @@ class GridEnv(gym.Env, GridEnvInterface):
         for particle in particle_indices:
             if particle[0] == self.obs_dist and particle[1] == self.obs_dist:
                 continue
-            if self.inh_rew_idx == 0:
-                reward += (1 - 5 * abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / len(
-                    particle_indices) * 5
-            elif self.inh_rew_idx == 1:
-                reward -= (abs(obs[*particle] - center) - 0.15) / (abs(particle[0] - self.obs_dist) + 1) / len(
-                    particle_indices) * 8
-            elif self.inh_rew_idx == 2:
-                reward += (1 - abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / len(
-                    particle_indices) * 5
-            elif self.inh_rew_idx == 3:
-                reward += (1 - 10 * (obs[*particle] - center) ** 2) / (abs(particle[0] - self.obs_dist) + 1) / len(
-                    particle_indices) * 5
-            elif self.inh_rew_idx == 4:
-                reward += max(-1.5,
-                              (1 - 400 * abs(obs[*particle] - center) ** 4) / (
-                                      abs(particle[0] - self.obs_dist) + 1) / len(
-                                  particle_indices) / 4)
-            elif self.inh_rew_idx == 5:
-                reward += (1 - 5 * abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 5
-            elif self.inh_rew_idx == 6:
-                reward -= (abs(obs[*particle] - center) - 0.15) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 8
-            elif self.inh_rew_idx == 7:
-                reward += (1 - abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 5
-            elif self.inh_rew_idx == 8:
-                reward += (1 - 10 * (obs[*particle] - center) ** 2) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 5
-            elif self.inh_rew_idx == 9:
-                reward += max(-1.5,
-                              (1 - 400 * abs(obs[*particle] - center) ** 4) / (
-                                      abs(particle[0] - self.obs_dist) + 1) / 40 / 4)
-            elif self.inh_rew_idx == 10:
-                reward -= (abs(obs[*particle] - center) - 0.15) / (
-                        abs(particle[0] - self.obs_dist) + 1) / 40 * 8 - (
-                                  (1 - center) * (1 - obs[*particle])) / np.linalg.norm(
-                    particle - np.array([self.obs_dist, self.obs_dist])) / 3
-            elif self.inh_rew_idx == 11:
-                reward -= (abs(obs[*particle] - center) - 0.15) / (
-                        abs(particle[0] - self.obs_dist) + 1) / 40 * 8 - (
-                                  max(0.8 - center, 0) * max(0.8 - obs[*particle], 0)) / np.linalg.norm(
-                    particle - np.array([self.obs_dist, self.obs_dist])) / 3
-            elif self.inh_rew_idx == 12:
-                pass
-                # mistake here ((max(0.8 - center, 0) * max(0.8 - obs[*particle], 0))) / (
-                #       np.linalg.norm(particle - np.array([self.obs_dist, self.obs_dist]))) / 3
-            elif self.inh_rew_idx == 13:
-                reward += (- 5 * abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / len(
-                    particle_indices) * 5
-            elif self.inh_rew_idx == 14:
-                reward -= (abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / len(
-                    particle_indices) * 8
-            elif self.inh_rew_idx == 15:
-                reward += (- abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / len(
-                    particle_indices) * 5
-            elif self.inh_rew_idx == 16:
-                reward += (- 10 * (obs[*particle] - center) ** 2) / (abs(particle[0] - self.obs_dist) + 1) / len(
-                    particle_indices) * 5
-            elif self.inh_rew_idx == 17:
-                reward += max(-1.5,
-                              (- 400 * abs(obs[*particle] - center) ** 4) / (
-                                      abs(particle[0] - self.obs_dist) + 1) / len(
-                                  particle_indices) / 4)
-            elif self.inh_rew_idx == 18:
-                reward += (- 5 * abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 5
-            elif self.inh_rew_idx == 19:
-                reward -= (abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 8
-            elif self.inh_rew_idx == 20:
-                reward += (- abs(obs[*particle] - center)) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 5
-            elif self.inh_rew_idx == 21:
-                reward += (- 10 * (obs[*particle] - center) ** 2) / (abs(particle[0] - self.obs_dist) + 1) / 40 * 5
-            elif self.inh_rew_idx == 22:
-                reward += max(-1.5,
-                              (- 400 * abs(obs[*particle] - center) ** 4) / (
-                                      abs(particle[0] - self.obs_dist) + 1) / 40 / 4)
-            elif self.inh_rew_idx == 23:
-                reward += (max(0.33 - center, 0) * max(0.33 - obs[*particle], 0)) / (
-                    np.linalg.norm(particle - np.array([self.obs_dist, self.obs_dist]))) * 20
+            # first working version
+            if self.inh_rew_idx == 0:  # + changed forward to 1.5
+                dv = abs(obs[*particle] - center)
+                r = np.linalg.norm(particle - np.array([self.obs_dist, self.obs_dist]))
+                if dv < 0.5:
+                    if r <= 1:
+                        pass
+                    elif r > 5:
+                        pass
+                    else:
+                        reward += -0.125 * r + 0.625
+                else:
+                    if r > 3.5:
+                        pass
+                    else:
+                        reward -= 0.75 / (r ** 1.3) - 0.15
+
         return reward
 
     def _speed_gradient(self, x):
@@ -531,7 +516,7 @@ class GridEnv(gym.Env, GridEnvInterface):
             self.current_mover[1] = next_x
             self.total_forward += 1
             self.avg_window_forward += 1
-            return 1
+            return 1.5
 
     def _move_up_down(self, x_pos):
         has_moved = self._move_if_possible((x_pos, self.current_mover[1]))

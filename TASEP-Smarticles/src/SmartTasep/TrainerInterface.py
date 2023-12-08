@@ -39,7 +39,8 @@ class TrainerInterface(ABC):
     def __init__(self, env_params: EnvParams, hyperparams: Hyperparams | None = None, reset_interval: int = None,
                  total_steps: int = 100000, render_start: int = None, do_plot: bool = True, plot_interval: int = 10000,
                  model: str | None = None, progress_bar: bool = True, wait_initial: bool = False,
-                 random_density: bool = False, new_model: bool = False, different_models: bool = False):
+                 random_density: bool = False, new_model: bool = False, different_models: bool = False,
+                 num_models: int = 1, prio_exp_replay: bool = True):
         """
 
         **The TASEP-Smarticles Trainer class**
@@ -133,6 +134,8 @@ class TrainerInterface(ABC):
             random_density: Whether to use a random density for the initial state
             new_model: Whether to use the new model
             different_models: Whether to use different models for different speeds
+            num_models: The number of models to use if different_models is True
+            prio_exp_replay: Whether to use prioritized experience replay
         """
         pass
 
