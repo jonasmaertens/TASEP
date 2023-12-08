@@ -10,6 +10,6 @@ if __name__ == '__main__':
                            window_height=100,
                            moves_per_timestep=150,
                            wait_initial=0,
-                           model_id=40
+                           model_id=10
                            )
     trainer.run()
