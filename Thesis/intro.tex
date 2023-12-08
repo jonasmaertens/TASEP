@@ -459,11 +459,20 @@ The whole process of forward-propagation, followed by backpropagation and networ
 
 
 \section{Reinforcement Learning}
-
-\subsection{Overview}
 Out of the three main branches of machine learning, \textit{supervised learning}, \textit{unsupervised learning} and \textit{reinforcement learning}, reinforcement learning is the most similar to the way humans learn. 
+\\
 While supervised learning is based on the idea of learning from examples and unsupervised learning is concerned with finding patterns in data \cite{ibm_machine_learning}, reinforcement learning is based on the idea of learning from experience \cite[chapter 1.1]{sutton_reinforcement_nodate}.
 In reinforcement learning, the learning agent is not told what action to take, but instead has to learn which actions lead to a desired outcome by trial and error. 
+\\
+This framework has led to many successes over the last decades, including computer programs that beat the world's best players in board games like chess, Go, backgammon \cite{silver_mastering_2016,silver_mastering_2017,tesauro_temporal_1995} or even in video games like Atari games \cite{mnih_playing_2013} and Dota 2 \cite{openai_dota_2019}, as well as teaching robots how to walk and handle objects \cite{kober_reinforcement_2013,openai_learning_2019}.
+
+\subsection{Overview}
+In a reinforcement learning scenario, the \textit{agent} observes some information about the \textit{environment}, called the \textit{state} of the environment. It then uses its \textit{policy} to map the state to an \textit{action} that it takes in the environment. As a reaction, the environment returns a \textit{reward} to the agent and transitions to a new state \cite{openai_spinning_up_rl_intro}
+\\
+During the learning process, the agent tries to find a policy that maximizes the total reward that it receives from the environment. Depending on the type of problem, the agent can either try to maximize the reward in the short term or in the long term.
+\\
+\\
+The following sections will refine these concepts and introduce the formalism of reinforcement learning.
 
 
 \subsection{Important Concepts}
