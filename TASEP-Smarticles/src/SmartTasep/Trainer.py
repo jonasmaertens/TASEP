@@ -14,7 +14,7 @@ from tabulate import tabulate, TableFormat
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torchrl.data import LazyTensorStorage, TensorDictPrioritizedReplayBuffer
+from torchrl.data import LazyTensorStorage, TensorDictPrioritizedReplayBuffer, TensorDictReplayBuffer
 from tensordict import TensorDict
 from tqdm import tqdm
 
@@ -36,9 +36,10 @@ class Trainer(TrainerInterface):
     def __init__(self, env_params, hyperparams=None, reset_interval=None,
                  total_steps=100000, render_start=None, do_plot=True, plot_interval=10000,
                  model=None, progress_bar=True, wait_initial=False,
-                 random_density=False, new_model=False, different_models=False, num_models=3):
+                 random_density=False, new_model=False, different_models=False, num_models=3, prio_exp_replay=True):
         self.env_params = env_params
         self.wait_initial = wait_initial
+        self.prio_exp_replay = prio_exp_replay
         if "initial_state_template" in self.env_params or "initial_state" in self.env_params:
             random_density = False
         self.random_density = random_density
@@ -90,7 +91,7 @@ class Trainer(TrainerInterface):
         plt.rcParams["toolbar"] = "None"
         plt.rcParams['lines.linewidth'] = 0.5
         fig, self.ax_current = plt.subplots(figsize=(window_width_inches, window_height_inches), dpi=dpi)
-        self.fig, self.axs = plt.subplots(2, 3, figsize=(window_width_inches, window_height_inches), dpi=dpi)
+        # self.fig, self.axs = plt.subplots(2, 3, figsize=(window_width_inches, window_height_inches), dpi=dpi)
         self.move_figure(fig, 0, 0)
         if "sigma" in self.env_params:
             self.ax_current.set_title(f"Current and reward over time for sigma = {self.env_params['sigma']}")
@@ -148,7 +149,7 @@ class Trainer(TrainerInterface):
             model = f"models/by_id/{model_id}/policy_net.pt"
         trainer = cls(env_params, hyperparams, model=model, total_steps=tot_steps, do_plot=do_plot,
                       progress_bar=progress_bar, plot_interval=plot_interval, wait_initial=wait_initial,
-                      render_start=render_start, new_model=new_model, different_models=diff_models)
+                      render_start=render_start, new_model=new_model, different_models=diff_models, num_models=num_models)
         return trainer
 
     @staticmethod
@@ -274,13 +275,19 @@ class Trainer(TrainerInterface):
             if self.hyperparams:
                 optimizer[net_id] = optim.AdamW(policy_net[net_id].parameters(), lr=self.hyperparams['LR'],
                                                 amsgrad=True)
-                memory[net_id] = TensorDictPrioritizedReplayBuffer(
-                    alpha=0.7,
-                    beta=0.5,
-                    priority_key="td_error",
-                    storage=LazyTensorStorage(self.hyperparams['MEMORY_SIZE'], device=self.device),
-                    batch_size=self.hyperparams['BATCH_SIZE'],
-                    prefetch=4)
+                if self.prio_exp_replay:
+                    memory[net_id] = TensorDictPrioritizedReplayBuffer(
+                        alpha=0.7,
+                        beta=0.5,
+                        priority_key="td_error",
+                        storage=LazyTensorStorage(self.hyperparams['MEMORY_SIZE'], device=self.device),
+                        batch_size=self.hyperparams['BATCH_SIZE'],
+                        prefetch=4)
+                else:
+                    memory[net_id] = TensorDictReplayBuffer(
+                        storage=LazyTensorStorage(self.hyperparams['MEMORY_SIZE'], device=self.device),
+                        batch_size=self.hyperparams['BATCH_SIZE'],
+                        prefetch=4)
                 criterion[net_id] = nn.SmoothL1Loss(reduction="none")
 
         # If only one model is initialized, extract it from the dictionary
@@ -353,7 +360,6 @@ class Trainer(TrainerInterface):
         state_batch = batch["state"]
         action_batch = batch["action"]
         reward_batch = batch["reward"]
-        weight_batch = batch["_weight"]
 
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
         # columns of actions taken. These are the actions which would've been taken
@@ -372,14 +378,19 @@ class Trainer(TrainerInterface):
         expected_state_action_values = (next_state_values * self.hyperparams['GAMMA']) + reward_batch
 
         # Compute td_error
-        with torch.no_grad():
-            td_error = torch.abs(state_action_values - expected_state_action_values.unsqueeze(1))
-            batch["td_error"] = td_error
-            memory.update_tensordict_priority(batch)
+        if self.prio_exp_replay:
+            weight_batch = batch["_weight"]
+            with torch.no_grad():
+                td_error = torch.abs(state_action_values - expected_state_action_values.unsqueeze(1))
+                batch["td_error"] = td_error
+                memory.update_tensordict_priority(batch)
 
-        # Compute Huber loss
-        loss = (criterion(state_action_values, expected_state_action_values.unsqueeze(1)) *
-                weight_batch.unsqueeze(1)).mean()
+            # Compute Huber loss
+            loss = (criterion(state_action_values, expected_state_action_values.unsqueeze(1)) *
+                    weight_batch.unsqueeze(1)).mean()
+        else:
+            # Compute Huber lossx
+            loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1)).mean()
 
         # clear the .grad attribute of the weights tensor
         optimizer.zero_grad()
@@ -428,7 +439,6 @@ class Trainer(TrainerInterface):
             #     self.axs[1, 1].set_title("layer2.bias")
             #     self.axs[1, 2].hist(params["layer3.bias"].flatten().cpu().numpy(), bins=100)
             #     self.axs[1, 2].set_title("layer3.bias")
-
 
             # Select action for current state
             action = self._select_action(self.state, model_id=model_id)
@@ -519,12 +529,11 @@ class Trainer(TrainerInterface):
                 plt.show(block=False)
                 plt.pause(0.1)
                 self.env.render()
-                time.sleep(30)
+                time.sleep(self.wait_initial)
 
             just_reset = self._check_env_reset(just_reset)
 
             model_id = self._get_model_id()
-
             action = self._select_action(self.state, eps_greedy=False, model_id=model_id)
             if self.env_params["distinguishable_particles"]:
                 (next_observation, _), _, terminated, truncated, info = self.env.step(action.item())
