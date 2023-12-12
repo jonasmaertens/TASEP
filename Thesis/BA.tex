@@ -27,6 +27,7 @@
 
 \usepackage{hyperref}
 \usepackage{lipsum}
+\usepackage{microtype}
 
 \usepackage{tikz}
 \usetikzlibrary{positioning}
@@ -61,24 +62,5 @@
 
 
     \clearpage{\pagestyle{empty}\cleardoublepage}
-    \thispagestyle{empty}
-    \vspace*{1cm}
-    {\huge \textbf{Selbständigkeitserklärung}}\\
-    \vspace*{1.5cm}
-
-    Ich versichere hiermit, die vorliegende Arbeit mit dem Titel
-
-    \begin{center}
-        \textbf{Titel der Arbeit}
-    \end{center}
-
-    selbständig verfasst zu haben und keine anderen als die angegebenen Quellen und Hilfsmittel verwendet zu haben.
-
-    \vspace*{3cm}
-
-    Vorname Name
-
-    \vspace*{1cm}
-    München, den 30.~Juni 2014
-
+    \input{declaration}
 \end{document}
