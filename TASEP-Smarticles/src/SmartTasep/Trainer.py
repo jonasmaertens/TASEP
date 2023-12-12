@@ -36,7 +36,7 @@ class Trainer(TrainerInterface):
     def __init__(self, env_params, hyperparams=None, reset_interval=None,
                  total_steps=100000, render_start=None, do_plot=True, plot_interval=10000,
                  model=None, progress_bar=True, wait_initial=False,
-                 random_density=False, new_model=False, different_models=False, num_models=3, prio_exp_replay=True):
+                 random_density=False, new_model=False, different_models=False, num_models=3, prio_exp_replay=False):
         self.env_params = env_params
         self.wait_initial = wait_initial
         self.prio_exp_replay = prio_exp_replay

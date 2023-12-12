@@ -32,31 +32,9 @@ default_env_params = {
     "speed_gradient_reward": False,
     "speed_gradient_linearity": 0.1,
     "inh_rew_idx": -1,
-    "binary_speeds": False
+    "binary_speeds": False,
+    "choices": 2
 }
-
-
-@cache
-def lennard_jones_potential(x1, y1, x2, y2, epsilon):
-    """
-    Calculates the Lennard-Jones potential between two particles.
-
-    Args:
-        x1 (float): x-coordinate of the first particle.
-        x2 (float): x-coordinate of the second particle.
-        y1 (float): y-coordinate of the first particle.
-        y2 (float): y-coordinate of the second particle.
-        epsilon (float): The depth of the potential well.
-
-    Returns:
-        float: The Lennard-Jones potential between the two particles.
-    """
-    r = np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-    if r <= 1:
-        return epsilon
-    elif r > 4:
-        return 0
-    return epsilon / 3 * r - 4 / 3 * epsilon
 
 
 def truncated_normal_single(mean, std_dev) -> float:
@@ -95,17 +73,21 @@ def truncated_normal(mean, std_dev, size) -> np.ndarray:
     return samples
 
 
-def binary_distribution(size) -> np.ndarray:
+def binary_distribution(size, choices) -> np.ndarray:
     """
     Generates an array of random numbers from a binary distribution.
 
     Args:
         size (int): Number of samples to generate.
+        choices (int): Number of different values to choose from.
 
     Returns:
         np.ndarray: Array of random numbers from the binary distribution.
     """
-    samples = np.random.choice([0.25, 0.95], size=size)
+    if choices == 2:
+        samples = np.random.choice([0.25, 0.95], size=size)
+    elif choices == 4:
+        samples = np.random.choice([0.18, 0.4, 0.65, 0.95], size=size)
     return samples
 
 
@@ -148,10 +130,12 @@ class GridEnv(gym.Env, GridEnvInterface):
                  speed_gradient_reward=False,
                  speed_gradient_linearity=0.1,
                  inh_rew_idx=-1,
-                 binary_speeds=False):
+                 binary_speeds=False,
+                 choices=2):
         self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
         self.social_reward = social_reward
         self.binary_speeds = binary_speeds
+        self.choices = choices
         self.punish_inhomogeneities = punish_inhomogeneities
         self.inh_rew_idx = inh_rew_idx
         self.density = density
@@ -376,11 +360,13 @@ class GridEnv(gym.Env, GridEnvInterface):
             self.state[self.state == 1] = random_integers
             if self.use_speeds:
                 random_speeds = truncated_normal(0.5, self.sigma,
-                                                 self.n) if not self.binary_speeds else binary_distribution(self.n)
+                                                 self.n) if not self.binary_speeds else binary_distribution(self.n,
+                                                                                                            self.choices)
                 self.state[self.state != 0] += random_speeds
         elif not self.distinguishable_particles and self.use_speeds:
             random_speeds = truncated_normal(0.5, self.sigma,
-                                             self.n) if not self.binary_speeds else binary_distribution(self.n)
+                                             self.n) if not self.binary_speeds else binary_distribution(self.n,
+                                                                                                        self.choices)
             self.state[self.state == 1] = random_speeds
         observation = self._get_obs()
         info = self._get_info()
@@ -490,7 +476,24 @@ class GridEnv(gym.Env, GridEnvInterface):
                         pass
                     else:
                         reward -= 0.75 / (r ** 1.3) - 0.15
-
+            elif self.inh_rew_idx == 1:
+                # muss schwächer, verlernt vorwärts
+                r = np.linalg.norm(particle - np.array([self.obs_dist, self.obs_dist]))
+                v_int_id_1 = int(center * 4)
+                v_int_id_2 = int(obs[*particle] * 4)
+                dv = abs(v_int_id_1 - v_int_id_2)
+                if dv == 0:
+                    if r <= 1:
+                        reward += (-0.125 * r + 0.625)
+                    elif r > 5:
+                        pass
+                    else:
+                        reward += 3 * (-0.125 * r + 0.625)
+                else:
+                    if r > 3.5:
+                        pass
+                    else:
+                        reward -= 3 * (0.75 / (r ** 1.3) - 0.15)
         return reward
 
     def _speed_gradient(self, x):
