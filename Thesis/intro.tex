@@ -1,6 +1,5 @@
 \graphicspath{{img/intro/out}}
 
-
 \chapter{Introduction}
 \label{ch:intro}
 
@@ -75,7 +74,7 @@ The most complete treatment of the mathematical details of neural networks is ar
 In this framework, a neural network is treated as single that maps a set of input values to a set of output values.
 This function is composed of individual mathematical operations and can be represented as a directed graph \cite[section 1.4]{haykin_neural_1998}.
 I will not rigorously define the framework of computational graphs here, as this is beyond the scope of this thesis.
-Instead, I will explain the principles of neural networks starting from a single neuron and then build up to a fully connected neural network. 
+Instead, I will explain the principles of neural networks starting from a single neuron and then build up to a fully connected neural network.
 \subsection{Notation}
 \label{subsec:nn-notation}
 The following notation will be used throughout this section:
@@ -102,13 +101,13 @@ The following notation will be used throughout this section:
     \label{fig:single-neuron}
 \end{figure}
 Before we can build a neural network out of nodes, we have to define how a single node works.
-Each node receives the activations $a_i$ from the nodes of the previous layer as inputs. 
+Each node receives the activations $a_i$ from the nodes of the previous layer as inputs.
 Each connection is assigned a weight $w_i$, stored in the node's weight vector $\bm{w}$.
 \\
-Additionally, each node has a so-called \textit{bias} $b$. 
+Additionally, each node has a so-called \textit{bias} $b$.
 The bias shifts the net input of the node by a constant value.
 It is needed to model certain problems where part of the prediction is independent of the input \cite[6]{aggarwal_neural_2018}.
-Examples include all problems where the output should not be zero even if all inputs are zero. 
+Examples include all problems where the output should not be zero even if all inputs are zero.
 \\
 \\
 The net input, called \textit{pre-activation value} $z$ of a node is the weighted sum of all inputs plus the bias:
@@ -125,7 +124,7 @@ The whole process is illustrated in figure \ref{fig:single-neuron}.
 
 \subsection{Activation Functions}
 \label{subsec:activation-functions}
-The activation function $\phi$ is used to introduce non-linearity into the network and thus increasing its modeling power \cite[section 1.2.1.3]{aggarwal_neural_2018}. 
+The activation function $\phi$ is used to introduce non-linearity into the network and thus increasing its modeling power \cite[section 1.2.1.3]{aggarwal_neural_2018}.
 Some activation functions are also referred to as \textit{squashing function}~\cite[10]{haykin_neural_1998}, as they map the unbounded pre-activation value $z$ to a bounded activation value $a$.
 The choice of activation function has a large impact on the performance of the network in terms of both accuracy and speed \cite{dubey_activation_2022}.
 The type of function heavily influences the way that information is processed by the network and the complexity of the function naturally has a large impact on the computational cost of the network.
@@ -183,8 +182,8 @@ ReLU is defined as:
     \end{cases}
     \label{eq:relu}
 \end{equation}
-Its main advantage is its very low computational cost, as it consists of only a single comparison. 
-Although it is not as prone to the vanishing gradient problem as the sigmoid and the hyperbolic tangent, the problem still exists for negative values of $z$. 
+Its main advantage is its very low computational cost, as it consists of only a single comparison.
+Although it is not as prone to the vanishing gradient problem as the sigmoid and the hyperbolic tangent, the problem still exists for negative values of $z$.
 This has been addressed by variations like \textit{Leaky ReLU}, introducing a small but non-zero slope for negative values~\cite{dubey_activation_2022}:
 \begin{equation}
     \phi(z) = \max(0.01 z, z) = \begin{cases}
@@ -221,12 +220,13 @@ The ReLU function and its leaky version can be seen in figures \ref{fig:relu} an
     \caption{A feedforward neural network with one hidden layer.}
     \label{fig:nn}
 \end{figure}
-Now that the workings of the nodes are defined, we can build a fully connected neural network out of these building blocks. 
+Now that the workings of the nodes are defined, we can build a fully connected neural network out of these building blocks.
 I will illustrate the process at the example of a feedforward neural network as defined in section \ref{sec:overview}.
-An example of such a network can be seen in figure \ref{fig:nn}. 
+An example of such a network can be seen in figure \ref{fig:nn}.
 \\
 \\
-The process of feeding an input vector $\bm{x}$ through the network to get the output vector $\bm{y}$ is called \textit{forward-propagation}, as the information propagates through the network layer by layer. The activation of any layer $\bm{a}^{[J]}$ can be calculated from the activation of the previous layer $\bm{a}^{[J-1]}$ by generalizing equation \ref{eq:pre-activation} and \ref{eq:activation} to the vector case:
+The process of feeding an input vector $\bm{x}$ through the network to get the output vector $\bm{y}$ is called \textit{forward-propagation}, as the information propagates through the network layer.
+The activation of any layer $\bm{a}^{[J]}$ can be calculated from the activation of the previous layer $\bm{a}^{[J-1]}$ by generalizing equation \ref{eq:pre-activation} and \ref{eq:activation} to the vector case:
 \begin{equation}
     z_k^{[J]} = \sum_{i=1}^{m} w_{ki}^{[J]} a_i^{[J-1]} + b_k^{[J]} \implies \bm{z}^{[J]} = W^{[J]} \bm{a}^{[J-1]} + \bm{b}^{[J]} \text{,}
     \label{eq:pre-activation-vector}
@@ -246,10 +246,11 @@ Equations \ref{eq:pre-activation-vector} and \ref{eq:activation-vector} can be a
     &= \phi(W^{[L]} \phi(W^{[L-1]} \phi(\dots \phi(W^{[1]} \bm{x} + \bm{b}^{[1]}) \dots) + \bm{b}^{[L-1]}) + \bm{b}^{[L]}) \text{.}
     \label{eq:forward-propagation}
 \end{align}
-This equation also shows the significance of the activation function. 
+This equation also shows the significance of the activation function.
 Without it, the whole network would be equivalent to a single layer and could be replaced by a single matrix multiplication.
-It would therefore only be able to model linear functions. 
-To show this, let's set $\phi(z)$ to the identity in equation \ref{eq:forward-propagation}. This yields:
+It would therefore only be able to model linear functions.
+To show this, let's set $\phi(z)$ to the identity in equation \ref{eq:forward-propagation}.
+This yields:
 \begin{align}
     \bm{y} &= W^{[L]} W^{[L-1]} \dots W^{[1]} \bm{x} + \bm{b}^{[L]} + W^{[L]} \bm{b}^{[L-1]} + \dots + W^{[L]} W^{[L-1]} \dots W^{[2]} \bm{b}^{[1]} \\
     &= \widetilde{W} \bm{x} + \tilde{\bm{b}} \text{.}
@@ -284,7 +285,7 @@ The most common method to do this in machine learning is \textit{gradient descen
     \label{fig:gradient-descent}
 \end{figure}
 If we imagine the function $f(\bm{x})$ as a landscape, the goal of gradient descent is to find the lowest point of the landscape.
-To do this, the algorithm starts at some point $\bm{x}_0$ and in each iteration, it takes a step in the direction of the steepest descent. 
+To do this, the algorithm starts at some point $\bm{x}_0$ and in each iteration, it takes a step in the direction of the steepest descent.
 The size of the step is determined by the \textit{learning rate} $\eta$.
 Choosing an appropriate learning rate is crucial for the algorithm to converge.
 Figure \ref{fig:gradient-descent} shows gradient descent with different learning rates and the resulting paths through the landscape.
@@ -296,9 +297,9 @@ We can therefore update the parameters $\bm{x}$ in each iteration by:
     \bm{x}_{n+1} = \bm{x}_n - \eta \nabla f(\bm{x}_n) \text{.}
     \label{eq:gradient-descent}
 \end{equation}
-After a sufficient number of iterations, the algorithm will converge to a local minimum of the function. 
+After a sufficient number of iterations, the algorithm will converge to a local minimum of the function.
 In the region around the minimum, the gradient is close to zero and the algorithm will not change the parameters significantly anymore.
-We therefore define a threshold $\epsilon$ and stop the algorithm if the norm of the gradient falls below this threshold. 
+We therefore define a threshold $\epsilon$ and stop the algorithm if the norm of the gradient falls below this threshold.
 The gradient descent algorithm is summarized in algorithm \ref{alg:gradient-descent}.
 \begin{algorithm}
     \caption{Gradient Descent}
@@ -321,25 +322,24 @@ The gradient descent algorithm is summarized in algorithm \ref{alg:gradient-desc
     \end{algorithmic}
 \end{algorithm}
 
-Going back to neural networks, the function that we want to minimize is the loss function $\lambda(\bm{y}, \bm{\hat{y}})$. 
-As the loss function depends on the network's output $\bm{y}$, which in turn depends on the network's parameters $\bm{w}$ and $\bm{b}$, the loss function is a function of the network's parameters $\lambda(\bm{w}, \bm{b})$. 
+Going back to neural networks, the function that we want to minimize is the loss function $\lambda(\bm{y}, \bm{\hat{y}})$.
+As the loss function depends on the network's output $\bm{y}$, which in turn depends on the network's parameters $\bm{w}$ and $\bm{b}$, the loss function is a function of the network's parameters $\lambda(\bm{w}, \bm{b})$.
 \\
 \\
-For single layer networks, the calculation of the gradients is straightforward. 
-For multi-layer networks however, the loss function depends on the parameters of earlier layers in a non-trivial way. 
+For single layer networks, the calculation of the gradients is straightforward.
+For multi-layer networks however, the loss function depends on the parameters of earlier layers in a non-trivial way.
 The next section will outline an algorithm, that allows the efficient calculation of the gradients of multi-layer networks.
 
 \subsection{The Backpropagation Algorithm}
 \label{subsec:backprop}
-% Goodfellow Ch. 6.5
-% Aggarwal Ch. 1.3
-% Jonas BA
-The calculation of the gradients is the most computationally expensive part of training a neural network. The invention of the \textit{backpropagation} algorithm by Rumelhart et al. in 1986~\cite{rumelhart_learning_1986} was a major breakthrough in the field of neural networks, as it allowed very efficient gradient calculation and thus enabled the training of large neural networks. 
+The calculation of the gradients is the most computationally expensive part of training a neural network.
+The invention of the \textit{backpropagation} algorithm by Rumelhart et al. in 1986~\cite{rumelhart_learning_1986} was a major breakthrough in the field of neural networks, as it allowed very efficient gradient calculation and thus enabled the training of large neural networks.
 \\
 The idea behind backpropagation is to propagate the error back through the network after each forward-propagation step using \textit{local gradients} $\delta$.
 During the forward-propagation step, the activations of each layer are stored in memory and used to calculate the derivatives need for the backpropagation step.
 This is a form of \textit{automatic differentiation}~\cite{adams_backprop_autodiff_nodate,rall_autodiff_1981} and allows the calculation of the gradients with the same time complexity as the forward-propagation step.
-This is sometimes called the \textit{cheap gradient principle}~\cite{griewank_derivatives_2008}. The following mathematical derivation of the backpropagation algorithm is based on~\cite[chapter 4.4]{haykin_neural_1998} as well as~\cite[chapter 6.5]{goodfellow_deep_2016}.
+This is sometimes called the \textit{cheap gradient principle}~\cite{griewank_derivatives_2008}.
+The following mathematical derivation of the backpropagation algorithm is based on~\cite[chapter 4.4]{haykin_neural_1998} as well as~\cite[chapter 6.5]{goodfellow_deep_2016}.
 \\
 \\
 To calculate the update of a weight $w_{ij}^{[K]}$, we have to calculate the derivative of the loss function $\lambda$ with respect to the weight $w_{ij}^{[K]}$:
@@ -359,7 +359,7 @@ where we used equation \ref{eq:pre-activation-vector} to simplify the last deriv
 \end{equation}
 Let's take a closer look at the local gradient $\delta_i^{[K]}$.
 The second factor in equation \ref{eq:local-gradient} is the derivative of the activation function $\phi$ with respect to the pre-activation value $z_i^{[K]}$.
-This term is straightforward to calculate. 
+This term is straightforward to calculate.
 Remembering that the activation function is applied element-wise, using equation \ref{eq:activation-vector} we get:
 \begin{equation}
     \frac{\partial a_i^{[K]}}{\partial z_i^{[K]}} = \frac{\partial \phi(z_i^{[K]})}{\partial z_i^{[K]}} = \phi'(z_i^{[K]}) \text{.}
@@ -398,11 +398,11 @@ The weight update $\Delta w_{ij}^{[K]}$ can then be calculated using equation \r
 \end{equation}
 When introducing the backpropagation algorithm, I summarized it as a method of \textit{propagating the error back through the network}.
 The recursive usage of equation \ref{eq:local-gradient-final} is exactly that: We start at the output layer and calculate the local gradients of all nodes in the output layer using equation \ref{eq:local-gradient-final}.
-Then we use these local gradients to calculate the local gradients of the previous layer using equation \ref{eq:local-gradient-final} again and so on until we reach the input layer. 
+Then we use these local gradients to calculate the local gradients of the previous layer using equation \ref{eq:local-gradient-final} again and so on until we reach the input layer.
 Note that we need to store the activations of each layer in memory during the \textit{forward-pass} to calculate the updates during the \textit{backward-pass} as mentioned in the beginning of this section.
 \\
 \\
-The derivations for the bias updates are analogous to the weight updates and are therefore omitted here. 
+The derivations for the bias updates are analogous to the weight updates and are therefore omitted here.
 The only difference is that the last term in equation \ref{eq:chain-rule} is replaced by $1$ as the bias is not connected to any previous layer.
 The algorithm for a whole training step (i.e. one forward-pass and one backward-pass) is summarized in algorithm \ref{alg:backpropagation}.
 \begin{algorithm}
@@ -418,7 +418,7 @@ The algorithm for a whole training step (i.e. one forward-pass and one backward-
             \Statex $\lambda$: Loss function
             \Statex $\phi$: Activation function
             \Statex $\eta$: Learning rate
-        \Ensure Updates the weights $\bm{w}$ and biases $\bm{b}$ of the network inplace.
+        \Ensure Updates the weights $\bm{w}$ and biases $\bm{b}$ of the network in place.
         \Statex
         \State $\bm{a}^{[0]} \gets \bm{x}$ \Comment{Initialize activations}
         \For{$K = 1, \dots, L$} \Comment{Forward-pass}
@@ -459,10 +459,10 @@ The whole process of forward-propagation, followed by backpropagation and networ
 
 
 \section{Reinforcement Learning}
-Out of the three main branches of machine learning, \textit{supervised learning}, \textit{unsupervised learning} and \textit{reinforcement learning}, reinforcement learning is the most similar to the way humans learn. 
+Out of the three main branches of machine learning, \textit{supervised learning}, \textit{unsupervised learning} and \textit{reinforcement learning}, reinforcement learning is the most similar to the way humans learn.
 \\
 While supervised learning is based on the idea of learning from examples and unsupervised learning is concerned with finding patterns in data \cite{ibm_machine_learning}, reinforcement learning is based on the idea of learning from experience \cite[chapter 1.1]{sutton_reinforcement_nodate}.
-In reinforcement learning, the learning agent is not told what action to take, but instead has to learn which actions lead to a desired outcome by trial and error. 
+In reinforcement learning, the learning agent is not told what action to take, but instead has to learn which actions lead to a desired outcome by trial and error.
 \\
 This framework has led to many successes over the last decades, including computer programs that beat the world's best players in board games like chess, Go, backgammon \cite{silver_mastering_2016,silver_mastering_2017,tesauro_temporal_1995} or even in video games like Atari games \cite{mnih_playing_2013} and Dota 2 \cite{openai_dota_2019}, as well as teaching robots how to walk and handle objects \cite{kober_reinforcement_2013,openai_learning_2019}.
 \textcolor{red}{TODO: Add OpenAI $Q^*$ here?}
@@ -470,16 +470,19 @@ This framework has led to many successes over the last decades, including comput
 \subsection{Overview}
 In a reinforcement learning scenario, the \textit{agent} observes some information about the \textit{environment}, called the \textit{state} of the environment.
 It then uses its \textit{policy} to map the state to an \textit{action} that it takes in the environment.
-As a reaction, the environment returns a \textit{reward} to the agent and transitions to a new state \cite{openai_spinning_up_rl_intro}
+As a reaction, the environment returns a \textit{reward} to the agent and transitions to a new state \cite{openai_spinning_up_rl_intro}.
 \\
-During the learning process, the agent tries to find a policy that maximizes the total reward that it receives from the environment. Depending on the type of problem, the agent can either try to maximize the reward in the short term or in the long term.
+During the learning process, the agent tries to find a policy that maximizes the total reward that it receives from the environment.
+Depending on the type of problem, the agent can either try to maximize the reward in the short term or in the long term.
 \\
 \\
 The following sections will refine these concepts and introduce the formalism of reinforcement learning.
 
 \subsection{Notation}
 \label{subsec:notation}
-Before diving into the details of reinforcement learning, I will introduce the notation that will be used throughout the following sections. It is mostly identical to the notation used in \cite{sutton_reinforcement_nodate}. Some of these definitions might seem a bit abstract at first, but they will become clearer in the following sections, where they are introduced and explained one by one.
+Before diving into the details of reinforcement learning, I will introduce the notation that will be used throughout the following sections.
+It is mostly identical to the notation used in \cite{sutton_reinforcement_nodate}.
+Some of these definitions might seem a bit abstract at first, but they will become clearer in the following sections, where they are introduced and explained one by one.
 
 \begin{itemize}
     \item $s_t$: The state of the environment at time step $t$.
@@ -506,8 +509,10 @@ Before diving into the details of reinforcement learning, I will introduce the n
     \caption{The agent-environment interface in a Markov decision process as defined in \cite[chapter 3.1]{sutton_reinforcement_nodate}. The agent observes the state $s_t$ of the environment and takes an action $a_t$. The environment transitions to a new state $s_{t+1}$ and returns a reward $r_{t}$ to the agent.}
     \label{fig:agent-env-interface}
 \end{figure}
-Markov decision processes (MDPs) are a mathematical framework for modeling decision-making in situations where outcomes are partly random and only partly under the control of the agent \cite[chapter 3]{sutton_reinforcement_nodate}. In an MDP, the agent's actions influence not only the immediate reward, but also the next state of the environment and therefore all future rewards.
-They are a powerful abstraction that can be used to model a wide range of problems, from simple board games to complex real-world scenarios. \\
+Markov decision processes (MDPs) are a mathematical framework for modeling decision-making in situations where outcomes are partly random and only partly under the control of the agent \cite[chapter 3]{sutton_reinforcement_nodate}.
+In an MDP, the agent's actions influence not only the immediate reward, but also the next state of the environment and therefore all future rewards.
+They are a powerful abstraction that can be used to model a wide range of problems, from simple board games to complex real-world scenarios.
+\\
 MDPs can be seen as a generalization of discrete-time \textit{Markov chains}.
 Markov chains are a special case of \textit{stochastic processes}, where the next state of the system is determined only by the current state and not by any previous states.
 This property is called the \textit{Markov property} and can be expressed mathematically as \cite{serfozo_markov_2009}:
@@ -516,7 +521,7 @@ This property is called the \textit{Markov property} and can be expressed mathem
     \label{eq:markov-property}
 \end{equation}
 The probability $P$ of transitioning to state $s_{t+1}$ from state $s_t$ is independent of the previous states $s_1, \dots, s_{t-1}$ and only depends on the current state $s_t$.
-It is intuitive that the state trajectories in a reinforcement learning scenario should always satisfy this property, as it allows the agent to make decisions based on the current state without having to consider the whole history of states that led to the current state. 
+It is intuitive that the state trajectories in a reinforcement learning scenario should always satisfy this property, as it allows the agent to make decisions based on the current state without having to consider the whole history of states that led to the current state.
 \\
 \\
 MDPs slightly modify the definition of Markov chains by introducing the notion of actions and rewards.
@@ -534,29 +539,47 @@ The transition probability now depends on the action $a_t$ that the agent takes 
     \label{eq:transition-probability}
 \end{align}
 where $\mathcal{S}$ denotes the set of all possible states and $\mathcal{A}$ denotes the set of all possible actions.\\
-This probability function completely determines the dynamics of the reinforcement learning environment. Environments can be entirely deterministic or entirely stochastic, or anything in between. The four-argument transition probability, if known, can of course be used to calculate other properties of the environment, such as the three-argument state-transition probability \cite[49]{sutton_reinforcement_nodate}:
+This probability function completely determines the dynamics of the reinforcement learning environment.
+Environments can be entirely deterministic or entirely stochastic, or anything in between.
+The four-argument transition probability, if known, can of course be used to calculate other properties of the environment, such as the three-argument state-transition probability \cite[49]{sutton_reinforcement_nodate}:
 \begin{align}
     p: \mathcal{S} \times \mathcal{S} \times \mathcal{A} &\rightarrow [0, 1] \nonumber \\
     s_{t+1}, s_t, a_t &\mapsto p(s_{t+1} | s_t, a_t) = \sum_{r_t \in \mathcal{R}} p(s_{t+1}, r_t | s_t, a_t) \text{.}
     \label{eq:state-transition-probability}
 \end{align}
 where $\mathcal{R}$ denotes the set of all possible rewards.\\
-Furthermore, knowing the four-argument transition probability of an environment allows us to create a simulation of the environment, which can be used to test reinforcement learning algorithms. This is a very useful property, as it allows us to test reinforcement learning algorithms in a controlled environment before deploying them in the real world.\\
+Furthermore, knowing the four-argument transition probability of an environment allows us to create a simulation of the environment, which can be used to test reinforcement learning algorithms.
+This is a very useful property, as it allows us to test reinforcement learning algorithms in a controlled environment before deploying them in the real world.\\
 
 \subsubsection{Reward}
-After each time step $t$, the agent receives a reward $r_t$ from the environment. The reward is a scalar value that indicates how good or bad the action $a_t$ that the agent took in state $s_t$ was \cite[53]{sutton_reinforcement_nodate}. Rewards are the \enquote{trainer's} way of telling the agent what it should achieve. In order to use the full potential of reinforcement learning, rewards should be chosen carefully. The reward signal should not tell the agent \textit{how} to achieve the goal, but only \textit{what} the goal is. The agent should then be able to figure out the best way to achieve the goal by itself \cite[ch. 3.2]{sutton_reinforcement_nodate}. For example, if the goal is to teach a robot to walk, the agent should receive a reward for moving forward while maintaining a certain balance, but not for moving its legs in a certain way.
+After each time step $t$, the agent receives a reward $r_t$ from the environment.
+The reward is a scalar value that indicates how good or bad the action $a_t$ that the agent took in state $s_t$ was \cite[53]{sutton_reinforcement_nodate}.
+Rewards are the \enquote{trainer's} way of telling the agent what it should achieve.
+In order to use the full potential of reinforcement learning, rewards should be chosen carefully.
+The reward signal should not tell the agent \textit{how} to achieve the goal, but only \textit{what} the goal is.
+The agent should then be able to figure out the best way to achieve the goal by itself \cite[ch. 3.2]{sutton_reinforcement_nodate}.
+For example, if the goal is to teach a robot to walk, the agent should receive a reward for moving forward while maintaining a certain balance, but not for moving its legs in a certain way.
 \\
-In order to be able to learn from these rewards, not just the immediate reward $r_t$ should be taken into account, but also the rewards that the agent will receive in the future. This is done by introducing the notion of \textit{return}. The return $G_t$ is a measure of the cumulative reward that the agent will receive from time step $t$ onwards \cite[ch. 3.3]{sutton_reinforcement_nodate}. The simplest form of return is just the sum of all future rewards:
+In order to be able to learn from these rewards, not just the immediate reward $r_t$ should be taken into account, but also the rewards that the agent will receive in the future.
+This is done by introducing the notion of \textit{return}
+The return $G_t$ is a measure of the cumulative reward that the agent will receive from time step $t$ onwards \cite[ch. 3.3]{sutton_reinforcement_nodate}.
+The simplest form of return is just the sum of all future rewards:
 \begin{equation}
     G_t = r_t + r_{t+1} + r_{t+2} + \dots + r_{T} = \sum_{i=t}^{T} r_{i} \text{,}
     \label{eq:return}
 \end{equation}
-where $T$ is the final time step in the current \textit{episode}. Episodic tasks are task where a \textit{terminal state} $s_T$ can be reached, after which the episode ends. Examples are board games like chess or Go, where the game ends after one player wins. In contrast, for \textit{continuing tasks}, as is the case for the environment that we will consider in this thesis, there is no terminal state and $T=\infty$. In this case, it's useful to introduce a \textit{discounted} return \cite[ch. 3.3]{sutton_reinforcement_nodate}:
+where $T$ is the final time step in the current \textit{episode}.
+Episodic tasks are task where a \textit{terminal state} $s_T$ can be reached, after which the episode ends.
+Examples are board games like chess or Go, where the game ends after one player wins.
+In contrast, for \textit{continuing tasks}, as is the case for the environment that we will consider in this thesis, there is no terminal state and $T=\infty$.
+In this case, it's useful to introduce a \textit{discounted} return \cite[ch. 3.3]{sutton_reinforcement_nodate}:
 \begin{equation}
     G_t = r_t + \gamma r_{t+1} + \gamma^2 r_{t+2} + \dots = \sum_{i=t}^{\infty} \gamma^{i-t} r_{i} \text{.}
     \label{eq:discounted-return}
 \end{equation}
-The \textit{discount factor} $\gamma$ determines how much immediate rewards should be valued compared to future rewards. A discount factor of $\gamma=0$ means that only the immediate reward is taken into account, while a discount factor of $\gamma=1$ would value all future rewards equally. \\
+The \textit{discount factor} $\gamma$ determines how much immediate rewards should be valued compared to future rewards.
+A discount factor of $\gamma=0$ means that only the immediate reward is taken into account, while a discount factor of $\gamma=1$ would value all future rewards equally.
+\\
 The discounted reward formula can be rewritten recursively as \cite[55]{sutton_reinforcement_nodate}:
 \begin{align}
     G_t &= r_t + \gamma r_{t+1} + \gamma^2 r_{t+2} + \dots \nonumber \\
@@ -564,17 +587,48 @@ The discounted reward formula can be rewritten recursively as \cite[55]{sutton_r
     &= r_t + \gamma G_{t+1} \text{.}
     \label{eq:discounted-return-recursive}
 \end{align}
-%%important later expected return claculation
+This recursive formulation is very important, as it allows us to express the return in terms of the return at the next time step.
+This will be useful in the next section, where we want to calculate the expected return of a state-action pair.\\
 
 
-\subsubsection{Policies and Value Functions}
+\subsubsection{Policies}
+Reinforcement learning agents are characterized by their \textit{policy} $\pi$.
+The policy maps states $s$ to actions $a=\pi(s)$ and therefore determines the behavior of the agent \cite[ch. 3.5]{sutton_reinforcement_nodate}.
+The policy can be either \textit{deterministic} or \textit{stochastic}.
+A deterministic policy maps each state to exactly one action, while a stochastic policy maps each state to a probability distribution over actions.
+If a policy deterministically maps states to what it believes to be the best action, it is called a \textit{greedy} policy \cite[64]{sutton_reinforcement_nodate}.
+If an optimal policy has been found, it can be greedy, as it will always choose the best action.
+However, during the learning process, stochastic policies should be preferred, as they allow the agent to explore the environment and find better policies.
+In order to learn, an \enquote{inexperienced} agent needs to try actions that it assumes to be suboptimal to find out whether they are really suboptimal.
+This is called the \textit{exploration-exploitation dilemma} \cite[3]{sutton_reinforcement_nodate}.\\
+A popular solution which will also be used in this thesis is the \textit{$\epsilon$-greedy} policy \cite[100]{sutton_reinforcement_nodate}.
+$\epsilon$-greedy policies are greedy with probability $1-\epsilon$ and choose a random action with probability $\epsilon$.
+During training, $\epsilon$ is slowly decreased over time, so that the agent will explore the environment more at the beginning and exploit its knowledge later on.
+During evaluation, $\epsilon$ is set to zero, so that the agent will always choose the best action.\\
+
+
+\subsubsection{Value Functions}
+To actually build a policy that maximizes the expected return, the agent needs to know how good each state or state-action pair is. In order to do this, most reinforcement learning algorithms use \textit{value functions} \cite[ch. 3.5]{sutton_reinforcement_nodate}. Value functions estimate the expected return of a state $s$ when following policy $\pi$ \cite[58]{sutton_reinforcement_nodate}:
+\begin{equation}
+    v_\pi(s) = \mathbb{E}_\pi[G_t | s_t = s] = \mathbb{E}_\pi \left[ \sum_{i=t}^{\infty} \gamma^{i-t} r_{i} \middle| s_t = s \right] \text{.}
+    \label{eq:value-function}
+\end{equation}
+Now the recursion forumula from equation \ref{eq:discounted-return-recursive} comes in handy:
+\begin{align}
+    v_\pi(s) &= \mathbb{E}_\pi[G_t | s_t] \nonumber \\
+    &= \mathbb{E}_\pi[r_t + \gamma G_{t+1} | s_t] \nonumber \\
+    &= \sum_a \pi(a|s) \sum_{s_{t+1}} \sum_{r_t} p(s_{t+1}, r_t | s_t, a_t) \left[ r_t + \gamma \mathbb{E}_\pi[G_{t+1} | s_{t+1}] \right] \nonumber \\
+    &= \sum_a \pi(a|s) \sum_{s_{t+1}} \sum_{r_t} p(s_{t+1}, r_t | s_t, a_t) \left[ r_t + \gamma v_\pi(s_{t+1}) \right] \text{.}
+\end{align}
+
+
+
 
 \subsubsection{Optimality and Bellman Equations}
 
 \subsection{Summary}
 
 \subsection{Algorithms}
-
 
 
 \section{Deep Q-Learning}
