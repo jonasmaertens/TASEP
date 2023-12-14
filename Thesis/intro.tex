@@ -608,27 +608,78 @@ During evaluation, $\epsilon$ is set to zero, so that the agent will always choo
 
 
 \subsubsection{Value Functions}
-To actually build a policy that maximizes the expected return, the agent needs to know how good each state or state-action pair is. In order to do this, most reinforcement learning algorithms use \textit{value functions} \cite[ch. 3.5]{sutton_reinforcement_nodate}. Value functions estimate the expected return of a state $s$ when following policy $\pi$ \cite[58]{sutton_reinforcement_nodate}:
+To actually build a policy that maximizes the expected return, the agent needs to know how good each state or state-action pair is. In order to do this, most reinforcement learning algorithms use \textit{(state) value functions} \cite[ch. 3.5]{sutton_reinforcement_nodate}. Value functions estimate the expected return of a state $s$ when following policy $\pi$ \cite[58]{sutton_reinforcement_nodate}:
 \begin{equation}
     v_\pi(s) = \mathbb{E}_\pi[G_t | s_t = s] = \mathbb{E}_\pi \left[ \sum_{i=t}^{\infty} \gamma^{i-t} r_{i} \middle| s_t = s \right] \text{.}
     \label{eq:value-function}
 \end{equation}
-Now the recursion forumula from equation \ref{eq:discounted-return-recursive} comes in handy:
-\begin{align}
-    v_\pi(s) &= \mathbb{E}_\pi[G_t | s_t] \nonumber \\
-    &= \mathbb{E}_\pi[r_t + \gamma G_{t+1} | s_t] \nonumber \\
-    &= \sum_a \pi(a|s) \sum_{s_{t+1}} \sum_{r_t} p(s_{t+1}, r_t | s_t, a_t) \left[ r_t + \gamma \mathbb{E}_\pi[G_{t+1} | s_{t+1}] \right] \nonumber \\
-    &= \sum_a \pi(a|s) \sum_{s_{t+1}} \sum_{r_t} p(s_{t+1}, r_t | s_t, a_t) \left[ r_t + \gamma v_\pi(s_{t+1}) \right] \text{.}
-\end{align}
-
-
+In the same manner, we can define the \textit{action-value function} \cite[58]{sutton_reinforcement_nodate}:
+\begin{equation}
+    q_\pi(s, a) = \mathbb{E}_\pi[G_t | s_t = s, a_t = a] = \mathbb{E}_\pi \left[ \sum_{i=t}^{\infty} \gamma^{i-t} r_{i} \middle| s_t = s, a_t = a \right] \text{.}
+    \label{eq:action-value-function}
+\end{equation}
 
 
 \subsubsection{Optimality and Bellman Equations}
+Now the recursion formula from equation \ref{eq:discounted-return-recursive} comes in handy to express the value functions in terms of the value functions of the next state:
+\begin{align}
+    v_\pi(s) &= \mathbb{E}_\pi[G_t | s_t = s] \nonumber \\
+    &= \mathbb{E}_\pi[r_t + \gamma G_{t+1} | s_t = s] \nonumber \\
+    &= \sum_a \pi(a|s) \sum_{s'} \sum_{r_t} p(s', r_t | s, a) \left[ r_t + \gamma \mathbb{E}_\pi[G_{t+1} | s_{t+1} = s'] \right] \nonumber \\
+    &= \sum_a \pi(a|s) \sum_{s'} \sum_{r_t} p(s', r_t | s, a) \left[ r_t + \gamma v_\pi(s') \right] \text{,}
+    \label{eq:bellman-expectation}
+\end{align}
+where we reintroduced the four-argument transition probability. The summations are over all possible actions $a$ and all possible next states $s'$ and rewards $r_t$. Equation \ref{eq:bellman-expectation} is called the \textit{Bellman equation} for $v_\pi$ \cite[59]{sutton_reinforcement_nodate}.\\
+The Bellman equation for $q_\pi$ is analogous \cite{openai_spinning_up_rl_intro}:
+\begin{equation}
+    q_\pi(s, a) = \sum_{s'} \sum_{r_t} p(s', r_t | s_t, a_t) \left[ r_t + \gamma \sum_{a_{t+1}} \pi(a_{t+1}|s_{t+1}=s') q_\pi(s', a_{t+1}) \right] \text{.}
+    \label{eq:bellman-expectation-action-value}
+\end{equation}
+The Bellman equations heavily simplify the calculation of the value functions, as they allow us to express the value of a state or state-action pair in terms of the values of the next state or state-action pairs.
+Imagine a game of chess: Even for very fast computers, evaluating every possible trajectory of moves until one player wins is not feasible.
+However, the Bellman equations allow us to calculate the value of a state or state-action pair without having to consider all possible trajectories.
+We just have to keep track of the values of individual states or state-action pairs and update them according to the Bellman equations.
+\\
+\\
+We can now use these concepts to define \textit{optimal} policies $\pi_*$. A policy is considered \enquote{better} than another policy, if it achieves a higher expected return in every state \cite[62]{sutton_reinforcement_nodate}:
+\begin{equation}
+    \pi \geq \pi' \Leftrightarrow v_\pi(s) \geq v_{\pi'}(s) \quad \forall s \in \mathcal{S} \text{.}
+    \label{eq:policy-ordering}
+\end{equation} 
+An optimal policy $\pi_*$ is a policy that is better than or equal to all other policies \cite[62]{sutton_reinforcement_nodate}. Associating the value functions $v_*$ and $q_*$ with the optimal policy $\pi_*$, we can define the optimal (action-)value functions as \cite[ch. 3.6]{sutton_reinforcement_nodate}:
+\begin{equation}
+    v_*(s) = \max_\pi v_\pi(s) \quad \forall s \in \mathcal{S} \text{.}
+    \label{eq:optimal-value-function}
+\end{equation}
+\begin{equation}
+    q_*(s, a) = \max_\pi q_\pi(s, a) \quad \forall s \in \mathcal{S}, a \in \mathcal{A} \text{.}
+    \label{eq:optimal-action-value-function}
+\end{equation}
+The optimal value functions satisfy the \textit{Bellman optimality equations} \cite[ch. 3.6]{sutton_reinforcement_nodate}. When an agent follows an optimal policy, the sum over all possible actions can be replaced by using the action that maximizes the expected return:
+\begin{align}
+    q_*(s, a) &= \mathbb{E}_\pi \left[ r_t + \gamma \max_{a'} q_*(s_{t+1}, a') \middle| s_t = s, a_t = a \right] \nonumber \\
+    &= \sum_{s'} \sum_{r_t} p(s', r_t | s, a) \left[ r_t + \gamma \max_{a'} q_*(s', a') \right] \text{.}
+    \label{eq:bellman-optimality-action-value}
+\end{align}
+Solving equation \ref{eq:bellman-optimality-action-value} yields the optimal action-value function $q_*$, which can then be used to derive the optimal policy $\pi_*$. For most reinforcement learning problems however, it is not feasible to solve the Bellman optimality equations analytically, even if the transition probabilities are known. Therefore, most reinforcement learning algorithms use iterative methods to approximate the optimal value functions \cite[ch. 4]{sutton_reinforcement_nodate}.
+
 
 \subsection{Summary}
+Before we dive into the details of the Deep Q-Learning algorithm, let's summarize the most important concepts of reinforcement learning that were introduced in this section.
+\\
+\\
+Reinforcement learning is a framework for \textit{learning from experience}.
+An \textit{agent} interacts with an \textit{environment} by taking \textit{actions} based on the current \textit{state} of the environment.
+The environment returns a \textit{reward} which the agent uses to keep track of the \textit{return} that it will receive in the future.
+This in turn allows the agent to learn a \textit{policy} that maximizes the expected the return by learning the \textit{value} of each state or state-action pair.
+\textit{Optimal} policies can be found by solving the \textit{Bellman optimality equations}.
+
+
 
 \subsection{Algorithms}
+%model based vs model free
+%on-policy vs off-policy
+%value based vs policy based
 
 
 \section{Deep Q-Learning}
