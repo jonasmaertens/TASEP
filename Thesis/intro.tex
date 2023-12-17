@@ -592,6 +592,7 @@ This will be useful in the next section, where we want to calculate the expected
 
 
 \subsubsection{Policies}
+\label{subsubsec:policies}
 Reinforcement learning agents are characterized by their \textit{policy} $\pi$.
 The policy maps states $s$ to actions $a=\pi(s)$ and therefore determines the behavior of the agent \cite[ch. 3.5]{sutton_reinforcement_nodate}.
 The policy can be either \textit{deterministic} or \textit{stochastic}.
@@ -705,11 +706,11 @@ Choosing the best algorithm for a specific problem is one of the most important 
 
 
 
-\section{(Deep) Q-Learning}
+\section{Q-Learning}
+\label{sec:q-learning}
 Before diving into the details of the Deep Q-Learning algorithm, we will introduce the general concepts of Q-Learning, building on the concepts of reinforcement learning that were introduced in the previous section.
-
-\subsection{Q-Learning}
-\label{subsec:q-learning}
+\\
+\\
 Q-Learning was introduced by Watkins in 1989 \cite{watkins_learning_1989}. It is a model-free, off-policy algorithm that learns an action-value function $Q(s,a)$ which is guaranteed to converge to the optimal action-value function $q_*$ \cite{watkins_q-learning_1992} \cite[ch. 6.5]{sutton_reinforcement_nodate}
 \\
 The algorithm works by storing a table of action-values $Q(s,a)$ for each state-action pair $(s,a)$ that the agent has encountered. Such a \textit{Q-table} can be seen in figure \ref{fig:q-table}. In the beginning, the Q-table is initialized randomly. Then, the agent interacts with the environment by taking actions and receiving rewards. The policy used for this interaction is derived from the Q-table for example by choosing the action with the highest action-value in an $\epsilon$-greedy manner. For each sample (state $s$, action $a$, reward $r$, next state $s'$) that the agent encounters, the Q-table is updated according to the following formula \cite[ch. 6.5]{sutton_reinforcement_nodate}:
@@ -747,5 +748,43 @@ where $\eta$ is the learning rate and $\gamma$ is the discount factor. Comparing
 \end{figure}
 We see that while time complexity stays constant when using lookup tables, the space complexity grows linearly with the number of states and actions. This makes Q-learning impractical for environments with large state spaces. Also, environments that have continuous state or action spaces have to be discretized, which can lead to a loss of information and therefore suboptimal policies. Even for seemingly simple environments such as a grid, where each grid cell can either be occupied or unoccupied, the number of possible states grows exponentially with the size of the grid. Therefore, we need a more efficient way to represent the action-values. This is where Deep Q-Learning comes in.
 
-\subsection{Deep Q-Learning}
+\section{Deep Q-Learning}
 \label{subsec:deep-q-learning}
+To solve the problem of large state spaces, we look back at chapter \ref{ch:neural-networks}, where we learned, that deep neural networks are universal function approximators. This makes them a good candidate for approximating the action-values $Q(s,a)$. When we replace the Q-table with a neural network, we supply the current state $s$ as input and get the action-values $Q(s,a)$ as output. For our grid environment example from the last section, this would mean that we supply the current grid as input. This eliminates the exponential space complexity of the Q-table, as the input vector of the network now grows linearly with the number of cells. Furthermore, the discretization problem is also solved, as the network can now take continuous inputs. Ideally, the network would store the same information as the table, but in a more compact way by learning the patterns in the data.  
+\\
+\\
+This approach is called \textit{Deep Q-Learning} (DQN) and was introduced by Mnih et al. in 2013 \cite{mnih_playing_2013}. DQN also introduces a few other concepts apart from the Q-network, which we will discuss in the following sections.
+
+\subsection{Q-Network}
+\label{subsec:q-network}
+The Q-network, sometimes also called \textit{policy network}, was already discussed in the previous section. It is a neural network that replaces the Q-table and approximates the action-values $Q(s,a)$. During evaluation, the environments state is supplied as input to the network. After a forward pass through the network, as explained in section \ref{subsec:forward-propagation}, the output vector of the network corresponds to the approximate action-values $Q(s,a)$ for each action $a$. When the network has converged to a good approximation of the optimal action-values $q_*$, the action with the highest action-value can be chosen as the action that the agent takes in the current state. During training, this action is chosen in an $\epsilon$-greedy manner, as explained in section \ref{subsubsec:policies} to maintain exploration \cite{mnih_human-level_2015}. 
+
+\subsection{Target Network}
+\label{subsec:target-network}
+The Q-network also changes the way that the parameters are updated.
+We can no longer update individual Q-values, as this information is now encoded in the weights and biases of the network.
+Instead, we have to update the parameters of the network.
+This is done by using  \textit{gradient descent} and the \textit{backpropagation} algorithm, as explained in sections \ref{subsec:loss-functions} and \ref{subsec:backprop}.
+\\
+\\
+The loss function that is used for the gradient descent requires a target output vector $\hat{y}$ for each sample. In the case of Q-learning, this would be the optimal action-values $q_*(a)$. As this is what we're optimizing for, we can't use it as the target output vector. Instead, we could use an earlier approximation of the action-values $Q(s,a)$. However, this can lead to oscillations or divergence of the network parameters, as the target network would use the same parameters as the Q-network \cite{mnih_human-level_2015}. To solve this problem, DQN introduces a second network, called the \textit{target network}. The target network is a clone of the Q-network with frozen parameters. Using this separate network to calculate the action-value targets makes the learning process more stable \cite{mnih_human-level_2015}.
+\\
+In the original algorithm, the target network parameters are updated periodically by copying the parameters from the Q-network. This is called \textit{hard target network update} \cite{mnih_human-level_2015}. In 2016, Lillicrap et al. \cite{lillicrap_continuous_2015} introduced \textit{soft target network updates}, where the target network parameters are updated by slowly blending the parameters of the Q-network into the target network parameters:
+\begin{equation}
+    \theta_{\text{target}} \gets \tau \theta_{\text{Q}} + (1 - \tau) \theta_{\text{target}} \text{,}
+    \label{eq:soft-target-update}
+\end{equation}
+where $\tau\ll1$ is a small number between 0 and 1, $\theta_{\text{target}}$ are the target network parameters and $\theta_{\text{Q}}$ are the Q-network parameters.
+\\
+This makes the learning process even more stable, as the target network parameters are constrained to slow updates \cite{lillicrap_continuous_2015}. In this thesis, we will also use soft target network updates.
+
+\subsection{Experience Replay}
+\label{subsec:experience-replay}
+In the beginning of this section, DQN was introduced as an off-policy algorithm. Mnih et al. introduced a technique called \textit{experience replay} \cite{mnih_human-level_2015}, which massively improves the algorithms' quality. The technique is inspired by the way that humans learn \cite{mnih_human-level_2015} and works by storing tuples of states, actions, rewards and next states $(s_t, a_t, r_t, s_{t+1})$, called \textit{transitions} in a \textit{replay buffer}. During training, the network is updated by sampling a batch of transitions from the replay buffer and performing a gradient descent step on the loss function. This not only allows the network to learn from the same experience multiple times, increasing sample efficiency, but also breaks up the correlation between consecutive samples, which would otherwise decrease learning efficiency and stability \cite{mnih_human-level_2015}. In order to prevent the replay buffer from growing infinitely, the oldest samples are discarded when the buffer is full. This total buffer size and the sampling batch size are hyperparameters that have to be tuned for each problem. 
+\\
+\\
+% problem rare transitions -> prioritized experience replay
+
+
+
+
