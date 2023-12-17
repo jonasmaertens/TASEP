@@ -1,4 +1,4 @@
-\graphicspath{{img/intro/out}}
+\graphicspath{{img/intro/out}{img/intro}}
 
 \chapter{Introduction}
 \label{ch:intro}
@@ -677,9 +677,75 @@ This in turn allows the agent to learn a \textit{policy} that maximizes the expe
 
 
 \subsection{Algorithms}
+\label{subsec:rl-algorithms}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{openai_algorithms}
+    \caption{Overview of the different classes of reinforcement learning algorithms \cite{openai_spinning_up_rl_part2}. The papers that introduced the algorithms are also available at \cite{openai_spinning_up_rl_part2}.}
+    \label{fig:rl-algorithms}
+\end{figure}
 %model based vs model free
 %on-policy vs off-policy
 %value based vs policy based
+Figure \ref{fig:rl-algorithms} provides a basic overview of the different classes of reinforcement learning algorithms. We will not explain the details of each algorithm here, but instead focus on the general distinctions between the different classes of algorithms.
+\\
+\\
+The first distinction is between \textit{model-based} and \textit{model-free} algorithms. Model-based algorithms have an internal model of the environment, which is either learned or provided by the user \cite{openai_spinning_up_rl_part2}. This allows them to plan ahead and simulate the environments dynamics to find the best action to take. Model-free algorithms on the other hand only implicitly learn the dynamics of the environment by interacting with it and learning value functions, as explained in the previous sections. Model-free algorithms are more flexible, as they can be applied to any environment, but they are also less sample-efficient, as they have to learn the dynamics of the environment by trial and error. Model-based algorithms on the other hand can be more sample-efficient, but they are harder to implement and fine-tune to specific problems \cite{openai_spinning_up_rl_part2}. Probably the most famous model-based reinforcement learning algorithm is AlphaZero \cite{silver_mastering_2017}, a program that taught itself to play chess, Go and Shogi at superhuman levels.
+\\
+\\
+Model-free algorithms can be distinguished further by \textit{what} is learned. In the last section, we introduced the concept of value functions. Algorithms that learn value functions are called \textit{value-based} algorithms. If they learn the action-value function $q_\pi$, they are called \textit{Q-learning} algorithms. Most of these algorithms use \textit{off-policy} learning, which means that they learn the value of the optimal policy $\pi_*$ while following a different policy $\pi$ \cite{openai_spinning_up_rl_part2}. This allows them to learn from data that was collected at a previous stage of the training process, making them very sample-efficient. Probably the most famous Q-learning algorithm is Deep Q-Learning, which we will discuss in detail in the next section.
+\\
+The other class of model-free algorithms are \textit{policy-based} algorithms. These algorithms directly learn the optimal policy $\pi_*$, instead of learning value functions. Most of these algorithms use \textit{on-policy} learning, restricting them to only learn from data that was collected while following the current policy $\pi$ \cite{openai_spinning_up_rl_part2}. Because of that, they are less sample-efficient than Q-learning algorithms, but they also tend be more stable, as they directly learn the policy, instead of indirectly learning the policy by learning value functions \cite{openai_spinning_up_rl_part2}. 
+\\
+\\
+As we can see in figure \ref{fig:rl-algorithms}, there are also algorithms that use ideas from different classes of algorithms. In general, it is hard to draw clear distinctions between the different classes of algorithms, as their modular nature allows them to be combined in many different ways \cite{openai_spinning_up_rl_part2}.
+\\
+\\
+Choosing the best algorithm for a specific problem is one of the most important steps in applying reinforcement learning to a real-world problem. In this thesis, we will use Deep-Q-Learning, as its use of deep neural networks allows it to scale and generalize well. It is also a model free, off-policy algorithm, which makes it relatively easy to implement and modify. The sampling efficiency of off-policy learning is also a big advantage, as it allows training the network quickly on normal hardware. 
 
 
-\section{Deep Q-Learning}
+
+\section{(Deep) Q-Learning}
+Before diving into the details of the Deep Q-Learning algorithm, we will introduce the general concepts of Q-Learning, building on the concepts of reinforcement learning that were introduced in the previous section.
+
+\subsection{Q-Learning}
+\label{subsec:q-learning}
+Q-Learning was introduced by Watkins in 1989 \cite{watkins_learning_1989}. It is a model-free, off-policy algorithm that learns an action-value function $Q(s,a)$ which is guaranteed to converge to the optimal action-value function $q_*$ \cite{watkins_q-learning_1992} \cite[ch. 6.5]{sutton_reinforcement_nodate}
+\\
+The algorithm works by storing a table of action-values $Q(s,a)$ for each state-action pair $(s,a)$ that the agent has encountered. Such a \textit{Q-table} can be seen in figure \ref{fig:q-table}. In the beginning, the Q-table is initialized randomly. Then, the agent interacts with the environment by taking actions and receiving rewards. The policy used for this interaction is derived from the Q-table for example by choosing the action with the highest action-value in an $\epsilon$-greedy manner. For each sample (state $s$, action $a$, reward $r$, next state $s'$) that the agent encounters, the Q-table is updated according to the following formula \cite[ch. 6.5]{sutton_reinforcement_nodate}:
+\begin{equation}
+    Q(s, a) \gets Q(s, a) + \eta \left[ r + \gamma \max_{a'} Q(s', a') - Q(s, a) \right] \text{,}
+    \label{eq:q-learning-update}
+\end{equation}
+where $\eta$ is the learning rate and $\gamma$ is the discount factor. Comparing with equation \ref{eq:bellman-optimality-action-value}, we can see that this update rule is an iterative approximation of the Bellman optimality equation for $q_*$. The new approximation of the optimal action-value is a weighted sum of the old approximation, and the new information that was gained from the sample, i.e. the immediate reward $r$ and the discounted value of the next action. The learning rate $\eta$ determines how much the new information is weighted compared to the old approximation. The discount factor again $\gamma$ determines how much future rewards are valued compared to immediate rewards.
+\\
+\\
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}
+        \node
+            (q-table-before)
+            [draw]
+            {
+                \begin{tabular}{|c|c|c|c|c|}
+                    \hline
+                     & $a_1$ & $a_2$ & $\dots$ & $a_n$ \\
+                    \hline
+                    $s_1$ & $Q(s_1, a_1)$ & $Q(s_1, a_2)$ & \dots & $Q(s_1, a_n)$ \\
+                    \hline
+                    $s_2$ & $Q(s_2, a_1)$ & $Q(s_2, a_2)$ & \dots & $Q(s_2, a_n)$ \\
+                    \hline
+                    $\vdots$ & $\vdots$ & $\vdots$ & $\ddots$ & $\vdots$ \\
+                    \hline
+                    $s_m$ & $Q(s_m, a_1)$ & $Q(s_m, a_2)$ & \dots & $Q(s_m, a_n)$ \\
+                    \hline
+                \end{tabular}
+            };
+    \end{tikzpicture}
+    \caption{A Q-table for an environment with $m$ states and $n$ actions.}
+    \label{fig:q-table}
+\end{figure}
+We see that while time complexity stays constant when using lookup tables, the space complexity grows linearly with the number of states and actions. This makes Q-learning impractical for environments with large state spaces. Also, environments that have continuous state or action spaces have to be discretized, which can lead to a loss of information and therefore suboptimal policies. Even for seemingly simple environments such as a grid, where each grid cell can either be occupied or unoccupied, the number of possible states grows exponentially with the size of the grid. Therefore, we need a more efficient way to represent the action-values. This is where Deep Q-Learning comes in.
+
+\subsection{Deep Q-Learning}
+\label{subsec:deep-q-learning}
