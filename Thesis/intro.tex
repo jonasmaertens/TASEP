@@ -784,6 +784,41 @@ In the beginning of this section, DQN was introduced as an off-policy algorithm.
 \\
 \\
 % problem rare transitions -> prioritized experience replay
+One problem that exists in both on-policy learning and off-policy learning with experience replay is that rare transitions are sampled very infrequently, which can slow down learning. To solve this problem, Schaul et al. introduced \textit{prioritized experience replay} in 2015 \cite{schaul_prioritized_2016}. In prioritized experience replay, each transition is assigned a priority based on the magnitude of the loss function \cite{schaul_prioritized_2016}. That way, transitions that are \enquote{surprising} to the agent are sampled more frequently, which speeds up learning \cite{schaul_prioritized_2016}.
+
+\subsection{Summary}
+In this section, we learned that Deep Q-Learning uses a neural network to map states to action-values. This allows it to scale to large and continuous state spaces. Learning is performed \textit{offline}, by saving encountered transitions to a replay buffer and sampling batches of transitions from the buffer to update the network parameters. A separate target network is used to calculate the action-value targets, which makes the learning process more stable. The target network parameters are updated by slowly blending the parameters of the Q-network into the target network parameters. The complete algorithm is shown in algorithm \ref{alg:dqn}.
+
+\begin{algorithm}[h]
+    \caption{Deep Q-Learning}
+    \label{alg:dqn}
+    \begin{algorithmic}
+        \State Initialize replay buffer $\mathcal{D}$ to capacity $N$
+        \State Initialize Q-network $Q$ with parameters $\theta$
+        \State Initialize target network $\hat{Q}$ with parameters $\theta^-=\theta$
+        \State (Initialize environment) 
+        \State Initialize state $s_1$
+        \State Initialize $\epsilon$ to $\epsilon_0$
+        \For{steps $t=1,\dots,T$}
+            \State $\triangleright$ Generate new transition
+            \State Perform forward pass through $Q$ to get action-values $Q(s_t, a')$ 
+            \State With probability $\epsilon$ select a random action $a_t$, otherwise select $a_t = \arg\!\max_a Q(s_t, a)$
+            \State Execute action $a_t$ in environment and observe reward $r_t$ and next state $s_{t+1}$
+            \State Store transition $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
+            \State $\triangleright$ Update Q-network parameters
+            \State Sample random minibatch of transitions $(\bm{s}, \bm{a}, \bm{r}, \bm{s'})$ from $\mathcal{D}$
+            \State Set $\bm{y} = \bm{r} + \gamma \max_{a'} \hat{Q}(\bm{s'}, a')$
+            \State Calculate mean loss $\mathcal{L} = \text{mean}(\mathcal{L}(\bm{y}, Q(\bm{s}, \bm{a})))$
+            \State Perform gradient descent step on $\mathcal{L}$ using backpropagation and update $\theta$
+            \State $\triangleright$ Update target network parameters
+            \State Update target network parameters $\theta^- \gets \tau \theta + (1 - \tau) \theta^-$
+            \State $\triangleright$ Update exploration rate
+            \State Decrease $\epsilon$   
+        \EndFor
+    \end{algorithmic}
+\end{algorithm}
+
+\chapter{Physical Model}
 
 
 
