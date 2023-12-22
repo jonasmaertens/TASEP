@@ -7,9 +7,9 @@ if __name__ == '__main__':
                            render_start=0,
                            do_plot=True,
                            average_window=8000,
-                           window_height=100,
+                           window_height=300,
                            moves_per_timestep=150,
                            wait_initial=0,
-                           model_id=10
+
                            )
     trainer.run()

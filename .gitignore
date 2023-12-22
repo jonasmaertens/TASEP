@@ -4,4 +4,7 @@ __pycache__
 .idea/
 Thesis/.idea/
 Thesis/out/*
-!Thesis/out/BA.pdf
+!Thesis/out/*.pdf
+**/out/*
+!**/out/*.pdf
+!**/out/*.png

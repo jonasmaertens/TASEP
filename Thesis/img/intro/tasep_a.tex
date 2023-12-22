@@ -1,0 +1,21 @@
+\documentclass{standalone}
+\usepackage{tikz}
+\begin{document}
+\begin{tikzpicture}[scale=0.8]
+  % Draw the ring
+  \draw[thick] (0,0) circle (2cm);
+
+  % Draw the lattice sites
+  \foreach \angle in {0, 22.5, ..., 337.5}
+    \draw (\angle:2cm) circle (0.1cm);
+
+  % Draw the occupied sites
+  \foreach \angle in {0, 45, ..., 270}
+    \fill (\angle:2cm) circle (0.1cm);
+
+  % Draw the arrows
+
+  \path (180:2.1cm) edge[->,bend right=70] node[midway, left] {$q$} (202.5:2.1cm);
+  \path (180:2.1cm) edge[->,bend left=70] node[midway, left] {$p$} (157.5:2.1cm);
+\end{tikzpicture}
+\end{document}
