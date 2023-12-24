@@ -32,16 +32,7 @@
 	<key id="d18" for="port" attr.name="PortViewState" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/folding/1.1/PortViewState"/>
 	<key id="d19" attr.name="SharedData" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/SharedData"/>
 	<data key="d19">
-		<y:SharedData>
-			<yjs:PolylineEdgeStyle x:Key="1">
-				<yjs:PolylineEdgeStyle.stroke>
-					<yjs:Stroke fill="#FF000000" dashStyle="Dash"/>
-				</yjs:PolylineEdgeStyle.stroke>
-				<yjs:PolylineEdgeStyle.targetArrow>
-					<yjs:Arrow stroke="#FF000000" fill="#FF000000"/>
-				</yjs:PolylineEdgeStyle.targetArrow>
-			</yjs:PolylineEdgeStyle>
-		</y:SharedData>
+		<y:SharedData/>
 	</data>
 	<graph id="G" edgedefault="directed">
 		<data key="d6">
@@ -50,7 +41,7 @@
 		<node id="n0">
 			<data key="d0">0</data>
 			<data key="d5">
-				<y:RectD X="238.75" Y="-806" Width="315.8984375" Height="172"/>
+				<y:RectD X="238.75" Y="-800" Width="315.8984375" Height="140"/>
 			</data>
 			<data key="d7">
 				<uml:UMLNodeStyle fill="#FF607D8B" highlightFill="#FFA3F1BB">
@@ -78,7 +69,7 @@
 			</port>
 			<port name="p1">
 				<data key="d16">
-					<y:FreeNodePortLocationModelParameter Ratio="1,0.4476744186046512"/>
+					<y:FreeNodePortLocationModelParameter Ratio="1,0.5071428571428571"/>
 				</data>
 			</port>
 			<port name="p2">
@@ -115,7 +106,7 @@
 								<x:Array Type="sys:Object">
 									<sys:String><![CDATA[*env_params: EnvParams]]></sys:String>
 									<sys:String><![CDATA[window: pygame.display]]></sys:String>
-									<sys:String>l</sys:String>
+									<sys:String>...</sys:String>
 								</x:Array>
 							</uml:UMLClassModel.attributes>
 							<uml:UMLClassModel.operations>
@@ -205,7 +196,7 @@
 		<node id="n3">
 			<data key="d0">0</data>
 			<data key="d5">
-				<y:RectD X="630.80078125" Y="-808" Width="178.3984375" Height="156"/>
+				<y:RectD X="630.80078125" Y="-798" Width="178.3984375" Height="156"/>
 			</data>
 			<data key="d7">
 				<uml:UMLNodeStyle fill="#FF607D8B" highlightFill="#FFA3F1BB">
@@ -245,14 +236,14 @@
 			</port>
 			<port name="p4">
 				<data key="d16">
-					<y:FreeNodePortLocationModelParameter Ratio="0,0.5064102564102564"/>
+					<y:FreeNodePortLocationModelParameter Ratio="0,0.4423076923076923"/>
 				</data>
 			</port>
 		</node>
 		<node id="n4">
 			<data key="d0">0</data>
 			<data key="d5">
-				<y:RectD X="631.3984375" Y="-627" Width="323.18621984956496" Height="476"/>
+				<y:RectD X="631.3984375" Y="-627" Width="323.18621984956496" Height="460"/>
 			</data>
 			<data key="d7">
 				<uml:UMLNodeStyle fill="#FF607D8B" highlightFill="#FFA3F1BB">
@@ -267,7 +258,6 @@
 									<sys:String><![CDATA[optimizer: AdamW]]></sys:String>
 									<sys:String><![CDATA[state: Tensor]]></sys:String>
 									<sys:String><![CDATA[env_params: EnvParams]]></sys:String>
-									<sys:String><![CDATA[hyperparams: Hyperparams]]></sys:String>
 									<sys:String><![CDATA[env: GridEnv]]></sys:String>
 									<sys:String>BATCH_SIZE</sys:String>
 									<sys:String>GAMMA</sys:String>
@@ -312,7 +302,7 @@
 			<port name="p3"/>
 			<port name="p4">
 				<data key="d16">
-					<y:FreeNodePortLocationModelParameter Ratio="0,0.37184873949579833"/>
+					<y:FreeNodePortLocationModelParameter Ratio="0,0.3847826086956522"/>
 				</data>
 			</port>
 			<port name="p5">
@@ -332,23 +322,53 @@
 			</port>
 			<port name="p8">
 				<data key="d16">
-					<y:FreeNodePortLocationModelParameter Ratio="0,0.037815126050420166"/>
+					<y:FreeNodePortLocationModelParameter Ratio="0,0.0391304347826087"/>
 				</data>
 			</port>
 		</node>
 		<edge id="e0" source="n2" target="n1" sourceport="p0" targetport="p1">
 			<data key="d13">
-				<y:GraphMLReference ResourceKey="1"/>
+				<yjs:PolylineEdgeStyle>
+					<yjs:PolylineEdgeStyle.stroke>
+						<yjs:Stroke fill="BLACK" dashStyle="Dash"/>
+					</yjs:PolylineEdgeStyle.stroke>
+					<yjs:PolylineEdgeStyle.targetArrow>
+						<yjs:Arrow stroke="#FF000000" fill="BLACK"/>
+					</yjs:PolylineEdgeStyle.targetArrow>
+					<yjs:PolylineEdgeStyle.sourceArrow>
+						<yjs:Arrow type="NONE" stroke="#FF000000" fill="BLACK"/>
+					</yjs:PolylineEdgeStyle.sourceArrow>
+				</yjs:PolylineEdgeStyle>
 			</data>
 		</edge>
 		<edge id="e1" source="n0" target="n3" sourceport="p1" targetport="p4">
 			<data key="d13">
-				<y:GraphMLReference ResourceKey="1"/>
+				<yjs:PolylineEdgeStyle>
+					<yjs:PolylineEdgeStyle.stroke>
+						<yjs:Stroke fill="BLACK" dashStyle="Dash"/>
+					</yjs:PolylineEdgeStyle.stroke>
+					<yjs:PolylineEdgeStyle.targetArrow>
+						<yjs:Arrow stroke="#FF000000" fill="BLACK"/>
+					</yjs:PolylineEdgeStyle.targetArrow>
+					<yjs:PolylineEdgeStyle.sourceArrow>
+						<yjs:Arrow type="NONE" stroke="#FF000000" fill="BLACK"/>
+					</yjs:PolylineEdgeStyle.sourceArrow>
+				</yjs:PolylineEdgeStyle>
 			</data>
 		</edge>
 		<edge id="e2" source="n1" target="n4" sourceport="p2" targetport="p4">
 			<data key="d13">
-				<y:GraphMLReference ResourceKey="1"/>
+				<yjs:PolylineEdgeStyle>
+					<yjs:PolylineEdgeStyle.stroke>
+						<yjs:Stroke fill="BLACK" dashStyle="Dash"/>
+					</yjs:PolylineEdgeStyle.stroke>
+					<yjs:PolylineEdgeStyle.targetArrow>
+						<yjs:Arrow stroke="#FF000000" fill="BLACK"/>
+					</yjs:PolylineEdgeStyle.targetArrow>
+					<yjs:PolylineEdgeStyle.sourceArrow>
+						<yjs:Arrow type="NONE" stroke="#FF000000" fill="BLACK"/>
+					</yjs:PolylineEdgeStyle.sourceArrow>
+				</yjs:PolylineEdgeStyle>
 			</data>
 		</edge>
 		<edge id="e3" source="n0" target="n4" sourceport="p2" targetport="p8">
@@ -358,7 +378,17 @@
 				</x:List>
 			</data>
 			<data key="d13">
-				<y:GraphMLReference ResourceKey="1"/>
+				<yjs:PolylineEdgeStyle>
+					<yjs:PolylineEdgeStyle.stroke>
+						<yjs:Stroke fill="BLACK" dashStyle="Dash"/>
+					</yjs:PolylineEdgeStyle.stroke>
+					<yjs:PolylineEdgeStyle.targetArrow>
+						<yjs:Arrow stroke="#FF000000" fill="BLACK"/>
+					</yjs:PolylineEdgeStyle.targetArrow>
+					<yjs:PolylineEdgeStyle.sourceArrow>
+						<yjs:Arrow type="NONE" stroke="#FF000000" fill="BLACK"/>
+					</yjs:PolylineEdgeStyle.sourceArrow>
+				</yjs:PolylineEdgeStyle>
 			</data>
 		</edge>
 	</graph>
