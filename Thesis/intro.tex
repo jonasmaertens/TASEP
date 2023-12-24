@@ -895,6 +895,20 @@ Smarticles (\textbf{Smart} Part\textbf{icles}) are a form of active matter as de
 This can be framed as a reinforcement learning problem, where the reward structure is defined by the goal of the system, which is to maximize transport. Local interactions can also be integrated into the reward structure in order to bias the learned behavior towards certain global structures.  
 
 
+\chapter{Implementation}
+\label{ch:implementation}
+Now that the theoretical foundations of the TASEP and Deep Q-Learning have been introduced, we can start to put the pieces together and implement the smarticles. This chapter will start with the implementation of the classical 2D TASEP to set a baseline for the performance of the smarticles. Then, we will implement the smart TASEP and introduce a number of modifications. 
+\\
+
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{uml.pdf}
+    \caption{UML diagram of the SmartTasep python package. Only selected methods and attributes are shown. The full documentation is available at \cite{maertens_smarttasep_github_2023}.}
+    \label{fig:implementation}
+\end{figure}
+
 
 
 
