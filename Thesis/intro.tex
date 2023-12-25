@@ -900,12 +900,38 @@ This can be framed as a reinforcement learning problem, where the reward structu
 Now that the theoretical foundations of the TASEP and Deep Q-Learning have been introduced, we can start to put the pieces together and implement the smarticles. This chapter will start with the implementation of the classical 2D TASEP to set a baseline for the performance of the smarticles. Then, we will implement the smart TASEP and introduce a number of modifications. 
 \\
 All code was written in Python to reduce the amount of boilerplate code and to make the code understandable for a wider audience. Python code is often thought to be slow, but the performance-critical parts of the code were outsourced to low-level approaches such as just-in-time compilation and native low-level code used by third-party libraries. 
-All code is available at \cite{maertens_smarttasep_github_2023}, with the smart TASEP code being well documented (TODO: and avaiable as pypi package).
+All code is available at \cite{maertens_smarttasep_github_2023}, with the smart TASEP code being well documented (TODO: and available as pypi package).
 
 \section{Classical 2D TASEP}
 \label{sec:implementation-classical-2d-tasep}
-The first step in implementing the smarticles is to implement the classical 2D TASEP. This will serve as a baseline for the performance of the smarticles. 
+The first step is to implement the classical 2D TASEP. This will serve as a baseline for the performance of the smarticles. 
 \\
+The implementation consists of a simple python script with the main loop for the simulation just-in-time-compiled to machine code using the numba library \cite{lam_numba_2015}. The system is represented as a 2D array of integers, where 0 represents an empty site and 1 represents a site occupied by a particle. The main loop is shown in algorithm \ref{alg:2d-tasep}. In each time step, a random particle is selected and a random direction is chosen. If the target site is empty and the random direction is not backward, the particle moves to the target site and the move counter for the chosen direction is incremented. When different velocities are used, a random number is drawn and the jump is only performed when the random number is smaller than the velocity. In this case, the velocities are floats in the range $(0,1)$ and stored in the array instead of the ones. Finally, the time step counter is incremented and the loop starts again.
+
+\begin{algorithm}[h]
+    \caption{Main loop of the 2D TASEP simulation.}
+    \label{alg:2d-tasep}
+    \begin{algorithmic}
+        \State Initialize system as empty 2D array
+        \State Fill in particles randomly (when using velocities, fill in velocities instead of ones)
+        \State Initialize time step counter $t=0$
+        \State Initialize move counters $m_{\text{up}}=0$, $m_{\text{down}}=0$, $m_{\text{right}}=0$
+        \While{$t < T$}
+            \State Select random position $(x,y)$ in system
+            \If {site $(x,y)\neq 0$}
+                \State Select random direction $d \in \{\text{up}, \text{down}, \text{right}, \text{left}\}$
+                \If {site $(x,y+d)$ == 0 and $d \neq \text{left}$}
+                    \State Move particle to site $(x,y+d)$
+                    \State Increment move counter $m_d$
+                \EndIf
+
+            \EndIf
+        \EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+  
+
 
 
 
