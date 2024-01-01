@@ -436,6 +436,23 @@ The algorithm for a whole training step (i.e. one forward-pass and one backward-
     \end{algorithmic}
 \end{algorithm}
 
+\subsection{Gradient Descent Optimization Algorithms}
+\label{subsec:sgd}
+% \cite{ruder_overview_2017}, \cite{loshchilov_decoupled_2019}, \cite{kingma_adam_2017}
+The gradient descent algorithm outlined in section \ref{subsec:loss-functions} can be implemented in different ways, depending on how the training examples are used. 
+\\
+\textit{Batch gradient descent} uses the whole training set to calculate the gradient in each iteration \cite{ruder_overview_2017}, making it very accurate, but also computationally expensive. \textit{Stochastic gradient descent} (SGD) on the other hand uses only a single training example to calculate the gradient in each iteration \cite{ruder_overview_2017}. This allows for online learning, where the network is trained efficiently on the fly while it is being used, but it also introduces a lot of noise into the gradient calculation, overshooting the minima. 
+\\
+\textit{Mini-batch gradient descent} is a compromise between the two, using a small batch of training examples to calculate the gradient in each iteration \cite{ruder_overview_2017}. This combines the efficiency of SGD with the accuracy of batch gradient descent, but still has some downsides like getting stuck in saddle points, where the gradient is close to zero, but the function is not at a minimum \cite{ruder_overview_2017}. Furthermore, the learning rate has to be chosen carefully and the constant learning rate can be problematic for datasets where some features occur more frequently than others \cite{ruder_overview_2017}.
+\\
+\\
+To address these problems, many optimization algorithms have been developed over the years, two of which are important for this thesis:
+\\
+The \textit{Adam} algorithm \cite{kingma_adam_2017} keep track of the first and second moments of the gradient (an exponentially decaying average of the past gradients and their squares) and uses them to adapt the learning rate for each parameter individually \cite{kingma_adam_2017,ruder_overview_2017}. This can be seen in analogy to the physical momentum of a ball rolling along the hills and valleys of the loss function landscape. Using momentum dampens the sharp oscillations that can arise when using the pure gradients (\enquote{only the gravitational forces}).
+\\
+The \textit{AdamW} algorithm \cite{loshchilov_decoupled_2019} is a variation of Adam that introduces slight modifications in order to improve its generalization performance. To prevent overfitting, Adam uses an L2-regularization term that adds a small fraction of the old parameter values to the gradient before updating the parameters. AdamW decouples this weight decay from the gradient calculation and adds it directly to the parameter update, which, according to the authors, improves the generalization performance of the network \cite{loshchilov_decoupled_2019}.
+
+
 \subsection{Summary}
 \label{subsec:nn-summary}
 In this chapter, the foundations of neural networks were outlined.
@@ -819,29 +836,6 @@ In this section, we learned that Deep Q-Learning uses a neural network to map st
 \end{algorithm}
 
 \chapter{Physical Model}
-% (t)asep is a lattice model, where partcles move on lattice
-% TASEP = totally asymmetric simple exclusion process
-% totally asymmetric = particles can only move in one direction
-% simple = particles can only move to the next site
-% exclusion = each site can only be occupied by one particle
-% process = stochastic process, markov process
-% first introduced by macdonald gibbs and pipkin in 1968, as model for protein synthesis, where particles are ribosomes and sites are codons
-% introduced in mathematics by spitzer in 1970
-% 1D: 1D lattice, particles have prob p to move to the right, prob 1-p to move to the left, if site is occupied, particle stays, each particle has its own clock. tasep when only to the right. either periodic or different rates for insertion and removal of particles, exact solutions are known and different phases can be found, depending on these rates / density of particles
-
-% 2d model used in this thesis is totally asymmetric in one direction, symmetric in the other direction
-% particles can only move to the right, up, down or stay
-% periodic boundary conditions in both directions = constant number of particles, like on a torus
-% simplified model for traffic flow or similar transport processes, for example movement of motor proteins on microtubules
-% 2d tasep is not well studied, no exact solutions known, only approximations
-
-% we will use smarticles, smart particles, that have a neural network to decide where to move based on their surroundings. framed as reinforcement learning problem, reward structure is defined by the goal of the system, which is to maximize transport. 
-
-% section structure
-% 1D TASEP
-% 2D TASEP
-% Smarticles
-
 In this chapter, we will introduce the physical model that that will be used in this thesis. We will start by introducing the 1D TASEP, which is a well studied model for transport processes. Then, we will introduce the 2D TASEP, which is the model that we will use in this thesis. Finally, we will introduce the concept of smarticles, which are smart particles that use reinforcement learning to maximize transport in the 2D TASEP.
 
 \section{1D TASEP}
@@ -906,41 +900,160 @@ All code is available at \cite{maertens_smarttasep_github_2023}, with the smart 
 \label{sec:implementation-classical-2d-tasep}
 The first step is to implement the classical 2D TASEP. This will serve as a baseline for the performance of the smarticles. 
 \\
-The implementation consists of a simple python script with the main loop for the simulation just-in-time-compiled to machine code using the numba library \cite{lam_numba_2015}. The system is represented as a 2D array of integers, where 0 represents an empty site and 1 represents a site occupied by a particle. The main loop is shown in algorithm \ref{alg:2d-tasep}. In each time step, a random particle is selected and a random direction is chosen. If the target site is empty and the random direction is not backward, the particle moves to the target site and the move counter for the chosen direction is incremented. When different velocities are used, a random number is drawn and the jump is only performed when the random number is smaller than the velocity. In this case, the velocities are floats in the range $(0,1)$ and stored in the array instead of the ones. Finally, the time step counter is incremented and the loop starts again.
+The implementation consists of a simple python script with the main loop for the simulation just-in-time-compiled to machine code using the \texttt{numba} library \cite{lam_numba_2015}. The system is represented as a 2D array of integers, where 0 represents an empty site and 1 represents a site occupied by a particle. The main loop is shown in algorithm \ref{alg:2d-tasep}. In each time step, a random particle is selected and a random direction is chosen. If the target site is empty and the random direction is not backward, the particle moves to the target site and the move counter for the chosen direction is incremented. When different velocities are used, a random number is drawn and the jump is only performed when the random number is smaller than the velocity. In this case, the velocities are floats in the range $(0,1)$ and stored in the array instead of the ones. Finally, the time step counter is incremented and the loop starts again.
 
-\begin{algorithm}[h]
+\begin{algorithm}[H]
     \caption{Main loop of the 2D TASEP simulation.}
     \label{alg:2d-tasep}
     \begin{algorithmic}
-        \State Initialize system as empty 2D array
-        \State Fill in particles randomly (when using velocities, fill in velocities instead of ones)
+        \State Initialize system $S$ as empty 2D array
+        \State Fill in particles randomly (when using velocities, fill in velocities $v\in (0,1)$ instead of ones)
         \State Initialize time step counter $t=0$
         \State Initialize move counters $m_{\text{up}}=0$, $m_{\text{down}}=0$, $m_{\text{right}}=0$
         \While{$t < T$}
-            \State Select random position $(x,y)$ in system
-            \If {site $(x,y)\neq 0$}
-                \State Select random direction $d \in \{\text{up}, \text{down}, \text{right}, \text{left}\}$
-                \If {site $(x,y+d)$ == 0 and $d \neq \text{left}$}
-                    \State Move particle to site $(x,y+d)$
-                    \State Increment move counter $m_d$
+            \State Select random position $\bm{x}=(x_1,x_2)^T$ in system
+            \If {site $S_{x_1,x_2}\neq 0$}
+                \State Select random direction $\bm{d} \in \{\text{up}, \text{down}, \text{right}, \text{left}\}$ with equal probability
+                \If {site $\bm{x}+\bm{d}$ == 0 \textbf{and} $\bm{d} \neq \text{left}$ \textbf{and} random $r\in (0,1) < S_{x_1,x_2}$}
+                    \State Swap sites $S_{x_1,x_2}$ and $S_{x_1+d_1,x_2+d_2}$ to perform jump
+                    \State $m_d \gets m_d + 1$
                 \EndIf
-
             \EndIf
+            \State $t \gets t+1$
         \EndWhile
 \end{algorithmic}
 \end{algorithm}
 
   
-
-
-
+\section{SmartTASEP Python Package}
+\subsection{Overview}
+\label{subsec:implementation-overview}
+The smart TASEP was implemented as a PyPi package available at (TODO). The package is called \texttt{SmartTasep} and can be installed using pip. This makes it easy to not only reproduce the results of this thesis, but also to conduct further research using the smart TASEP. The package is well documented and contains a number of examples that show how to use the package. Features include:
+\begin{itemize}
+    \item \textbf{Training} of DDQN agents in the 2D TASEP
+    \item \textbf{Evaluation} of trained agents
+    \begin{itemize}
+        \item using \textbf{metrics} such as the particle current
+        \item using a \enquote{\textbf{playground}} to test the agent's behavior for custom states
+        \item using the \textbf{real-time visualization} of the simulation
+    \end{itemize} 
+    \item Different \textbf{velocities} for particles
+    \item Different \textbf{initial conditions}
+    \item Different \textbf{reward structures}
+    \item Different \textbf{network architectures}
+    \item Different \textbf{replay buffer} implementations (uniform, prioritized)
+    \item Different \textbf{hyperparameters}, \textbf{training schedules and environment parameters}
+    \item Real-time \textbf{visualization} of the simulation and metrics
+    \item \textbf{Saving} and \textbf{loading} of trained agents
+\end{itemize}
+The package consists of different modules that are shown in figure \ref{fig:implementation}. They will be explained one by one in the following sections. Helper modules and interfaces will not be explained, as they are not relevant for the understanding of the smart TASEP. 
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=\textwidth]{uml.pdf}
-    \caption{UML diagram of the SmartTasep python package. Only selected methods and attributes are shown. The full documentation is available at \cite{maertens_smarttasep_github_2023}.}
+    \caption{UML diagram of the \texttt{SmartTasep} python package. Only selected methods and attributes are shown. The full documentation is available at \cite{maertens_smarttasep_github_2023}.}
     \label{fig:implementation}
 \end{figure}
+
+
+\subsection{GridEnv and EnvParams}
+\label{subsec:implementation-gridenv}
+The \texttt{GridEnv} class implements the 2D TASEP environment for a reinforcement learning agent. It is a subclass of the \texttt{gym.Env} class from the OpenAI \texttt{gym} library \cite{brockman_openai_2016}. This allows the environment to be used with any reinforcement learning algorithm that is compatible with the OpenAI Gym interface. The environment is initialized with an \texttt{EnvParams} object, which may contain a number of parameters to customize the environment size and initial conditions, the reward structure, the visualization and metrics as well as other properties e.g. to control the dynamics of the reinforcement learning algorithm. 
+\\
+\\
+Internally, the \texttt{GridEnv} class also uses a 2D array to store the state of the system. For indistinguishable particles with equal velocities, this is a binary array, where 0 represents an empty site and 1 represents a site occupied by a particle. Section \ref{subsec:implementation-trainer} will explain that sometimes, particles have to be distinguishable. In that case, the binary array is not suited to store the state. Instead, during initialization, each particle is assigned a unique integer ID, which is stored in the array instead of the ones. If the particles have different velocities, the velocities are stored by adding them to the ID. As the velocities are floats in the range $(0,1)$, they can be stored in the same array without any loss of information. We can retrieve the ID and velocity $v$ of a particle by using the floor and modulo operators on the stored value $s$ respectively:
+\begin{equation}
+    \text{ID} = \lfloor s \rfloor \text{,} \quad v = s \bmod 1 \text{.}
+    \label{eq:state-to-id-velocity}
+\end{equation}
+This is very memory efficient, as we only need one array to store the state of the system. 
+\\
+In addition to the state array, the \texttt{GridEnv} also stores the current particle's position in order to be able to calculate the reward after an agent submits its action. 
+\\
+The following are the two most important methods of the \texttt{GridEnv} class:
+
+\subsubsection{reset}
+Resets the environment to its initial state and returns the initial state. Note that in this case, \enquote{state} does not refer to the whole system, but only to the selected particle's observation of the system. 
+\\
+Agents perceive the system as a $d\times d$ grid centered around them, with the observation distance $d/2$ being a parameter. Observations do not include the particle IDs, as this information is irrelevant to the agent and would even make the problem harder, as the agent would have to learn to distinguish between particles. 
+\\
+Particle velocities are included in the observations, as they are relevant to the agent. Optionally, the observed velocities can be converted to shifted inverse velocities:
+\begin{equation}
+    v_{\text{shift, inv}} = 1 - v + v_{\text{shift}} \text{.}
+    \label{eq:inverse-velocities}
+\end{equation}
+This has two possible advantages. Firstly, slow particles are now represented by high values, because they correspond to \enquote{more blockage} in the system. Intuitively, it makes sense to frame the problem in this way, as slow particles are not only worse for the transport, but also more persistent in the observation. Secondly and more importantly, the shift $v_{\text{shift}}$ prevents fast particles from being invisible. Without the velocity inversion, particles with very low velocities become indistinguishable from empty sites, which makes it impossible for the agent to learn to avoid them. The inversion alone does not solve this problem, as particles with very high velocities now become invisible. 
+\\
+\\
+It is important to note that this problem is less about the absolute values of the observations and more about the distinguishability between observations. At first glance, it seems like this rescaling of velocities is not necessary, as the weights can be negative and the biases can be adjusted to compensate for the shifted values. However, this is not the case, as the rescaling is only applied to the particles, not to the empty sites. 
+
+
+\subsubsection{step}
+Takes an action as an argument and returns the next state and the reward after performing the action. Actions are encoded as integers, which, as we will see, correspond to the index of the output neuron with the highest activation. 
+\\
+\\
+The reward is calculated based on the reward structure that was defined in the \texttt{EnvParams} object. Each option can be included or excluded from the reward calculation, which allows for a high degree of customization. Examples include:
+\begin{itemize}
+    \item The default structure yields a positive reward for moving forward, a negative reward for trying to move into an occupied site and zero reward for waiting or switching lanes. 
+    \item The \texttt{social\_reward} option adds a negative reward switching lanes into a site with a particle behind it. The magnitude of the reward is proportional to the velocity of the blocked particle. The analogy in the traffic flow interpretation is the car horn that a driver behind you would use if you switched lanes in front of them.
+    \item The \texttt{punish\_inhomogeneties} option combined with the \texttt{inh\_rew\_idx} parameter can add different complex potential-like rewards to encourage the emergence of global structures. This will be explained in more detail in section TODO
+\end{itemize}
+When rendering is enabled, the step method also renders the state of the system in regular intervals. The system matrix is rendered using the \texttt{pygame} library, which is fast enough to not bottleneck the simulation. Velocities are encoded as colors using the HSL color space, which makes it easy to convert velocities to hues. The velocity range $(0,1)$ is mapped to the hue range $(0,120)$, which corresponds to the red to green range. 
+
+
+
+\subsection{DQN}
+\label{subsec:implementation-dqn}
+The \texttt{DQN} class implements the deep neural network that is used to approximate the action-values $Q(s,a)$. It is a subclass of the \texttt{torch.nn.Module} class from the PyTorch library. The network has two hidden layers and uses the \texttt{ReLU} activation function introduced in section \ref{subsec:activation-functions}. The output layer uses the identity activation function, as we want to approximate the action-values directly. During initialization, the size of the flattened observation array and the number of actions are passed as arguments, to determine the size of the input and output layers respectively. An additional parameter switches between two 128-neuron hidden layers and a 24-neuron hidden layer followed by a 12-neuron hidden layer. 
+\\
+\\
+As a subclass of the \texttt{torch.nn.Module} class, the \texttt{DQN} class implements the \texttt{forward} method, which performs the forward pass. The \texttt{forward} method can be called with a single observation when evaluating the network or with a batch of observations when training the network. Backpropagation is efficiently implemented in PyTorch using automatic differentiation, as explained in section \ref{subsec:backprop}. During a forward pass, all operations (e.g. network layer operations, activation functions, loss function) automatically store the information that is needed for backpropagation in the \texttt{torch.Tensor} objects used for the calculations. When the \texttt{backward} method is called on the loss tensor at the end of the forward pass, the gradients are automatically calculated and stored in the \texttt{grad} attribute of each tensor. These gradients are then used to update the network parameters as will be explained in section \ref{subsec:implementation-trainer}.
+
+
+
+\subsection{ReplayBuffer}
+\label{subsec:implementation-replaybuffer}
+% bou_torchrl_2023 rl library based on pytorch
+% TensorDictPrioritizedReplayBuffer or TensorDictReplayBuffer with LazyTensorStorage for memory efficiency, more efficient than a naive custom implementation
+% efficient sampling, storage and priority update of single tensors or batches. 
+% torchrl library implements many very efficient modules for high performance rl training using parallel environments and multithreading, but i'm only using the replay buffer because of the limited time of this thesis and the early stage of the library
+The replay buffer is also one of the performance-critical parts of the implementation. Instead of a naive custom implementation, the \texttt{SmartTasep} package uses the \texttt{TensorDictReplayBuffer} or \texttt{TensorDictPrioritizedReplayBuffer} classes together with the \texttt{LazyTensorStorage} class from the \texttt{torchrl} library \cite{bou_torchrl_2023}. The \texttt{torchrl} library is a reinforcement learning library based on PyTorch that implements many very efficient modules for high performance reinforcement learning training using parallel environments, multithreading and supports computation on the GPU. The \texttt{ReplayBuffer} classes implement very efficient sampling, storage and priority update of single transitions or batches. 
+\\
+\\
+The \texttt{torchrl} library implements many more features that could be used to improve the performance of the smart TASEP, but due to the limited time of this thesis and the early stage of the library, only the replay buffer was used. The \texttt{SmartTasep} package uses the \texttt{TensorDictReplayBuffer} class for uniform sampling and the \texttt{TensorDictPrioritized\-ReplayBuffer} class for prioritized sampling. The \texttt{LazyTensorStorage} class is used internally by these classes to store the transitions. 
+
+
+
+\subsection{Trainer}
+\label{subsec:implementation-trainer}
+The \texttt{Trainer} class is the heart of the \texttt{SmartTasep} package. It implements the training loop and the evaluation loop as well as some additional functionality such as saving and loading trained agents. The following are the most important methods of the \texttt{Trainer} class:
+
+\subsubsection{Constructor}
+The constructor method initializes the \texttt{Trainer} object. It takes a number of parameters:
+\begin{itemize}
+    \item \texttt{env\_params}: An \texttt{EnvParams} object that contains the parameters for the environment as explained in section \ref{subsec:implementation-gridenv}.
+    \item \texttt{hyperparams}: A \texttt{Hyperparams} object that contains the hyperparameters for the reinforcement learning algorithm. The structure of the \texttt{Hyperparams} object is the same as the \texttt{EnvParams} object, but the parameters are different.
+    \item Additional keyword arguments that control the training schedule, visualization and general algorithm choices such as the replay buffer implementation or whether different networks should be used for the individual particles.
+\end{itemize}
+After some basic input validation, e.g. checking if any of the parameter choices are incompatible, the constructor method initializes all subcomponents needed for training and evaluation of the agents as well as the visualization in pygame, the plotting in matplotlib and the accumulation of metrics.
+\\
+A \texttt{GridEnv} object is initialized with the \texttt{EnvParams} object and \texttt{DQN} objects are initialized as Q-networks and policy networks. Depending on the parameter choices, the Q-networks and policy networks are either shared between all particles or $n$ pairs of separate networks are initialized. In the latter case, the particle velocity range is divided into $n$ equally sized intervals and each pair of networks is responsible for the particles in one of these intervals. This allows different types of particles (e.g. fast, medium and slow for $n=3$) to learn different policies without the space complexity of a separate network for each particle.
+\\
+The size of the observation arrays and the action space is determined by the \texttt{GridEnv} object and passed to the \texttt{DQN} objects during initialization. The \texttt{ReplayBuffer} objects are initialized with the corresponding parameters from the \texttt{Hyperparams} object. Furthermore, pytorch's \texttt{SmoothL1Loss} loss function is initialized and pytorch's \texttt{AdamW} optimizers (see section \ref{subsec:sgd}) are initialized for each Q-network. 
+
+
+\subsubsection{train}
+
+\subsubsection{save and load}
+
+\subsubsection{run}
+
+
+
+
+\subsection{Playground}
+\label{subsec:implementation-playground}
+
 
 
 
