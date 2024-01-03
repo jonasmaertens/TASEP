@@ -205,11 +205,11 @@ The \texttt{run} method is a stripped down version of the \texttt{train} method 
 
 \subsection{Playground}
 \label{subsec:implementation-playground}
-The \texttt{Playground} class implements a playground for testing the behavior of trained agents. When run, the user chooses a saved model and is presented with a window of two grids of the same size as the model's observation size. The left grid is empty except for the agent in the middle and can be filled by the user. Clicking a grid cell adds or removes an agent and clicking and dragging adds an agent with a velocity proportional to the drag distance. The right grid shows the same state after the agent has taken an action. 
+The \texttt{Playground} class implements a playground for testing the behavior of trained agents. When run, the user chooses a saved model and is presented with a window of two grids of the same size as the model's observation size. The left grid is empty except for the agent in the middle and can be filled by the user. Clicking a grid cell adds or removes an agent and clicking and dragging adds an agent with a velocity proportional to the drag distance. The right grid shows the same state after the agent has taken an action. Figure \ref{fig:playground} shows a screenshot of the playground.
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=\textwidth]{playground.png}
-    \caption{Screenshot of the playground. The state contains one slow particle blocking the agent and a fast particle above it. The agent has learned to move around the slow particle in the direction where it's not blocked.}
+    \caption{Screenshot of the playground. The state contains one slow particle blocking the agent, a fast particle above the slow one and a particle with average velocity behind the agent. The agent has learned to move around the slow particle in the direction where it's not blocked. More complicated states could be tested e.g. to test the agent's ability to make intelligent decisions based on the speeds and positions of the surrounding particles.}
     \label{fig:playground}
 \end{figure}
