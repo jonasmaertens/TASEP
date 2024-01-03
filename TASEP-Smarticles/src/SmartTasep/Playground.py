@@ -57,6 +57,7 @@ class Playground:
         self.draw_matrix(self.state.T)
         self.calc_next_state(0)
         self.draw_matrix(self.next_state.T, right=True)
+        self.draw_grid()
         pygame.display.flip()
 
         # pygame main loop
@@ -118,6 +119,7 @@ class Playground:
                     self.calc_next_state(action)
                     # redraw the right matrix
                     self.draw_matrix(self.next_state.T, right=True)
+                    self.draw_grid()
                     # print(f"Current state:\n{self.state}")
                     pygame.display.flip()
 
@@ -162,7 +164,6 @@ class Playground:
 
     def draw_background_and_arrow(self):
         self.screen.fill((255, 255, 255))
-        self.draw_grid()
         # draw arrow between matrices
         pygame.draw.line(self.screen, (0, 0, 0), (self.length * 50 + 15, self.length * 25),
                          (self.length * 50 + 85, self.length * 25))
@@ -176,3 +177,22 @@ class Playground:
     def select_action(self, state: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
             return self.policy_net(state).max(1)[1].view(1, 1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
