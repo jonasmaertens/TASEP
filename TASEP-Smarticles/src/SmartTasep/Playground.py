@@ -4,9 +4,11 @@ from DQN import DQN
 import torch
 import os
 from Hasel import hsl2rgb
-from Trainer import choose_model
+from Trainer import Trainer
 from GridEnvironment import invert_speed_obs
 import json
+
+choose_model = Trainer.choose_model
 
 
 class Playground:
@@ -43,7 +45,7 @@ class Playground:
         # init policy network
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")
-        self.policy_net = DQN(self.length ** 2, self.actions).to(self.device)
+        self.policy_net = DQN(self.length ** 2, self.actions, self.model["new_model"]).to(self.device)
         self.policy_net.load_state_dict(torch.load(os.path.join(self.model["path"], "policy_net.pt")))
         # init pygame
         pygame.init()
