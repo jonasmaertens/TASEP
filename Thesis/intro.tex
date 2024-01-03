@@ -448,7 +448,7 @@ The gradient descent algorithm outlined in section \ref{subsec:loss-functions} c
 \\
 To address these problems, many optimization algorithms have been developed over the years, two of which are important for this thesis:
 \\
-The \textit{Adam} algorithm \cite{kingma_adam_2017} keep track of the first and second moments of the gradient (an exponentially decaying average of the past gradients and their squares) and uses them to adapt the learning rate for each parameter individually \cite{kingma_adam_2017,ruder_overview_2017}. This can be seen in analogy to the physical momentum of a ball rolling along the hills and valleys of the loss function landscape. Using momentum dampens the sharp oscillations that can arise when using the pure gradients (\enquote{only the gravitational forces}).
+The \textit{Adam} algorithm \cite{kingma_adam_2017} keeps track of the first and second moments of the gradient (an exponentially decaying average of the past gradients and their squares) and uses them to adapt the learning rate for each parameter individually \cite{kingma_adam_2017,ruder_overview_2017}. This can be seen in analogy to the physical momentum of a ball rolling along the hills and valleys of the loss function landscape. Using momentum dampens the sharp oscillations that can arise when using the pure gradients (\enquote{only the gravitational forces}).
 \\
 The \textit{AdamW} algorithm \cite{loshchilov_decoupled_2019} is a variation of Adam that introduces slight modifications in order to improve its generalization performance. To prevent overfitting, Adam uses an L2-regularization term that adds a small fraction of the old parameter values to the gradient before updating the parameters. AdamW decouples this weight decay from the gradient calculation and adds it directly to the parameter update, which, according to the authors, improves the generalization performance of the network \cite{loshchilov_decoupled_2019}.
 
@@ -813,8 +813,7 @@ In this section, we learned that Deep Q-Learning uses a neural network to map st
         \State Initialize replay buffer $\mathcal{D}$ to capacity $N$
         \State Initialize Q-network $Q$ with parameters $\theta$
         \State Initialize target network $\hat{Q}$ with parameters $\theta^-=\theta$
-        \State (Initialize environment) 
-        \State Initialize state $s_1$
+        \State Initialize environment to get initial state $s_1$
         \State Initialize $\epsilon$ to $\epsilon_0$
         \For{steps $t=1,\dots,T$}
             \State $\triangleright$ Generate new transition
@@ -989,7 +988,7 @@ It is important to note that this problem is less about the absolute values of t
 
 
 \subsubsection{step}
-Takes an action as an argument and returns the next state and the reward after performing the action. Actions are encoded as integers, which, as we will see, correspond to the index of the output neuron with the highest activation. 
+Takes an action as an argument and returns the next state and the reward after performing the action. Actions are encoded as integers, which, as we will see, correspond to the index of the output neuron with the highest activation. The form of the next state or states depends on the environment parameters. See section \ref{subsubsec:implementation-train} for more details.
 \\
 \\
 The reward is calculated based on the reward structure that was defined in the \texttt{EnvParams} object. Each option can be included or excluded from the reward calculation, which allows for a high degree of customization. Examples include:
@@ -1013,10 +1012,6 @@ As a subclass of the \texttt{torch.nn.Module} class, the \texttt{DQN} class impl
 
 \subsection{ReplayBuffer}
 \label{subsec:implementation-replaybuffer}
-% bou_torchrl_2023 rl library based on pytorch
-% TensorDictPrioritizedReplayBuffer or TensorDictReplayBuffer with LazyTensorStorage for memory efficiency, more efficient than a naive custom implementation
-% efficient sampling, storage and priority update of single tensors or batches. 
-% torchrl library implements many very efficient modules for high performance rl training using parallel environments and multithreading, but i'm only using the replay buffer because of the limited time of this thesis and the early stage of the library
 The replay buffer is also one of the performance-critical parts of the implementation. Instead of a naive custom implementation, the \texttt{SmartTasep} package uses the \texttt{TensorDictReplayBuffer} or \texttt{TensorDictPrioritizedReplayBuffer} classes together with the \texttt{LazyTensorStorage} class from the \texttt{torchrl} library \cite{bou_torchrl_2023}. The \texttt{torchrl} library is a reinforcement learning library based on PyTorch that implements many very efficient modules for high performance reinforcement learning training using parallel environments, multithreading and supports computation on the GPU. The \texttt{ReplayBuffer} classes implement very efficient sampling, storage and priority update of single transitions or batches. 
 \\
 \\
@@ -1037,12 +1032,57 @@ The constructor method initializes the \texttt{Trainer} object. It takes a numbe
 \end{itemize}
 After some basic input validation, e.g. checking if any of the parameter choices are incompatible, the constructor method initializes all subcomponents needed for training and evaluation of the agents as well as the visualization in pygame, the plotting in matplotlib and the accumulation of metrics.
 \\
-A \texttt{GridEnv} object is initialized with the \texttt{EnvParams} object and \texttt{DQN} objects are initialized as Q-networks and policy networks. Depending on the parameter choices, the Q-networks and policy networks are either shared between all particles or $n$ pairs of separate networks are initialized. In the latter case, the particle velocity range is divided into $n$ equally sized intervals and each pair of networks is responsible for the particles in one of these intervals. This allows different types of particles (e.g. fast, medium and slow for $n=3$) to learn different policies without the space complexity of a separate network for each particle.
+A \texttt{GridEnv} object is initialized with the \texttt{EnvParams} object and \texttt{DQN} objects are initialized as Q-networks and policy networks. Depending on the parameter choices, the Q-network and policy network are either shared between all particles or $n$ pairs of separate networks are initialized. In the latter case, the particle velocity range is divided into $n$ equally sized intervals and each pair of networks is responsible for the particles in one of these intervals. This allows different types of particles (e.g. fast, medium and slow for $n=3$) to learn different policies without the space complexity of a separate network for each particle.
 \\
 The size of the observation arrays and the action space is determined by the \texttt{GridEnv} object and passed to the \texttt{DQN} objects during initialization. The \texttt{ReplayBuffer} objects are initialized with the corresponding parameters from the \texttt{Hyperparams} object. Furthermore, pytorch's \texttt{SmoothL1Loss} loss function is initialized and pytorch's \texttt{AdamW} optimizers (see section \ref{subsec:sgd}) are initialized for each Q-network. 
 
 
 \subsubsection{train}
+\label{subsubsec:implementation-train}
+The \texttt{train} method implements the training loop. As the TASEP is not an episodic task, the method consists of only one loop running the simulation for a specified number of time steps. Optionally, the training can be performed pseudo-episodically, where the environment is reset in regular intervals, possibly with changing initial conditions, for example to train smarticles in environments with variable density. I refer to this as \textit{pseudo}-episodic, as we are still using a replay buffer with stored transitions from previous episodes.
+\\
+\\
+Depending on the parameters, the \texttt{train} method uses slightly different algorithms that differ in the way that transitions are stored in the replay buffer. There are essentially three distinct ways to generate transitions:
+\begin{enumerate}
+    \item \textbf{Immediate transitions:} The environment returns the observation of the particle that took the action immediately after the action was executed. When this observation is used in transitions, the state-next state pairs contain no information about the environment dynamics, as there is no time between the states for the environment/other particles to react to the action. In this case, the smarticles learn a policy for a static environment, while actually living in a very dynamic environment. Note that in this case, the environment has to also return an additional next state for a new particle in order to move different particles in each time step.
+    \item \textbf{Weakly correlated transitions:} This is the natural way to combine algorithms \ref{ch:dql} and \ref{alg:2d-tasep}. The environment returns the next observation after picking a new particle which is then used both as the next state stored in the transition and as the current state for the next action. This method only makes sense when the same networks are shared between all particles, as the next state is not the next state of the particle that took the action. Instead, the network learns a policy for an environment where it is thrown around, each new state seemingly random and only weakly correlated with the previous state. This algorithm is used when the \texttt{distinguishable\_particles} parameter is set to \texttt{False}. TODO: Makovian?
+    \item \textbf{Delayed transitions:} When particles are distinguishable and the current particle's ID is returned by the environment together with the next state, the next state in a transition can be set to the observation of the same particle that took the action at the timestep where the particle is picked again and has to choose its next action. This generates transitions from the reference frame of the particles. A particle is presented a state (observation) $s$, takes an action $a$ and receives an immediate reward $r$ for that action. It then \enquote{sleeps} until it is picked again and receives a new state $s'$. Between these two observations, the environment has changed, as other particles have moved. The transitions now contain additional information, e.g. that slow particles tend to remain stationary while fast particles tend to move forward. This algorithm is used when the \texttt{distinguishable\_particles} parameter is set to \texttt{True}. It requires a temporary storage of the current state and action for each particle for later use when the particle is picked again. A step by step implementation is provided in psuedocode in algorithm \ref{alg:delayed-transitions}.
+\end{enumerate}
+
+\begin{algorithm}[h]
+    \caption{DQN with delayed transitions and shared networks (difference to algorithm \ref{alg:dqn} highlighted in \textcolor{red}{red})}
+    \label{alg:delayed-transitions}
+    \begin{algorithmic}
+        \State Initialize replay buffer $\mathcal{D}$ to capacity $N$
+        \State Initialize Q-network $Q$ with parameters $\theta$
+        \State Initialize target network $\hat{Q}$ with parameters $\theta^-=\theta$
+        \State Initialize environment to get initial state $s_1$, \textcolor{red}{initial particle ID $i_1$}
+        \State Initialize $\epsilon$ to $\epsilon_0$
+        \State \textcolor{red}{Initialize temporary storage $\mathcal{M}$ for $(s,a,r)$ tuples indexed by particle ID}
+        \For{steps $t=1,\dots,T$}
+            \State $\triangleright$ Generate new transition
+            \State Perform forward pass through $Q$ to get action-values $Q(s_t, a')$ 
+            \State With probability $\epsilon$ select a random action $a_t$, otherwise select $a_t = \arg\!\max_a Q(s_t, a)$
+            \State Execute action $a_t$ in environment and observe reward $r_t$, next state $s_{t+1}$ \textcolor{red}{and ID $i_{t+1}$}
+            \color{red}
+            \State $\mathcal{M}[i_t] \gets (s_t, a_t, r_t)$ 
+            \If{$i_{t+1} \in \mathcal{M}$}
+                \State Store transition $(^*\mathcal{M}[i_{t+1}], s_{t+1})$ in $\mathcal{D}$
+            \EndIf
+            \normalcolor
+            \State $\triangleright$ Update Q-network parameters
+            \State Sample random minibatch of transitions $(\bm{s}, \bm{a}, \bm{r}, \bm{s'})$ from $\mathcal{D}$
+            \State Set $\bm{y} = \bm{r} + \gamma \max_{a'} \hat{Q}(\bm{s'}, a')$
+            \State Calculate mean loss $\mathcal{L} = \text{mean}(\mathcal{L}(\bm{y}, Q(\bm{s}, \bm{a})))$
+            \State \textcolor{red}{Perform optimization (AdamW) of $\theta$ using backpropagation of $\mathcal{L}$}
+            \State $\triangleright$ Update target network parameters
+            \State Update target network parameters $\theta^- \gets \tau \theta + (1 - \tau) \theta^-$
+            \State $\triangleright$ Update exploration rate
+            \State Decrease $\epsilon$   
+        \EndFor
+    \end{algorithmic}
+\end{algorithm}
+When different speeds and multiple networks are used, algorithm \ref{alg:delayed-transitions} has to be slightly modified. Instead of $Q$, $\hat{Q}$, $\mathcal{D}$, $\mathcal{L}$ and a single AdamW optimizer for $Q$'s parameters $\theta$, we now have an array of $n$ such objects for each of these modules. The correct objects are chosen in each timestep based on the particle's velocity which is extracted from the state. 
 
 \subsubsection{save and load}
 
