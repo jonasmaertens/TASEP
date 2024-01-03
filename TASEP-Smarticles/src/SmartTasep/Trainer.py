@@ -447,6 +447,7 @@ class Trainer(TrainerInterface):
                 (next_observation, next_mover), reward, terminated, truncated, info = self.env.step(action.item())
                 reward = torch.tensor([reward], device=self.device, dtype=torch.float32)
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+                self.last_states[self.mover] = (self.state, action, reward)
                 if next_mover in self.last_states:
                     transition = TensorDict({
                         "state": self.last_states[next_mover][0],
@@ -458,7 +459,6 @@ class Trainer(TrainerInterface):
                         self.memories[model_id].extend(transition)
                     else:
                         self.memory.extend(transition)
-                self.last_states[self.mover] = (self.state, action, reward)
                 self.mover = next_mover
             else:
                 (react_observation, next_observation), reward, terminated, truncated, info = self.env.step(
