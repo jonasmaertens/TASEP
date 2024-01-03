@@ -200,7 +200,7 @@ When different speeds and multiple networks are used, algorithm \ref{alg:delayed
 The \texttt{save} method all model parameters and collected metrics logs the ID of the newly saved model. The \texttt{load} method loads the model parameters and metrics of a previously saved model. This allows for easy saving and loading of trained agents. When no ID is provided during loading, a table is shown with all available models and their properties. The user can then select a model to load by entering its ID. The \texttt{train\_and\_save} method provides a wrapper for automatically saving the model after training.
 
 \subsubsection{run}
-The \texttt{run} method is a stripped down version of the \texttt{train} method that only runs the simulation for a specified number of time steps, omitting all operations that are only necessary for parameter optimization. This method is used for evaluation of trained agents. 
+The \texttt{run} method is a stripped down version of the \texttt{train} method that only runs the simulation for a specified number of time steps, omitting all operations only necessary for parameter optimization. A greedy policy is used instead of the epsilon-greedy policy used during training. This method is used for evaluation of trained agents. 
 
 
 \subsection{Playground}
