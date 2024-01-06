@@ -1,21 +1,34 @@
-import pandas as pd
+import numpy as np
 import glob
 import os
+import json
+import matplotlib.pyplot as plt
 
-# Read in the data
-total_df = pd.DataFrame()
-for file in glob.glob("data/hyperparam_tune/*.csv"):
-    if "total" in file:
-        continue
-    df = pd.read_csv(file)
-    total_df = pd.concat([total_df, df])
-total_df.drop_duplicates(subset=total_df.columns.difference(['current']), inplace=True)
-total_df.sort_values(by="current", inplace=True, ascending=False)
-total_df.to_csv("data/hyperparam_tune/total.csv", index=False)
-# if current > 0.5: move corresponding plot to "best" folder
-selected = total_df[total_df["current"] > 0.5]
-for index, row in selected.iterrows():
-    filename = f"example_model_{int(row['observation_distance'])}_{int(row['batch_size'])}_{row['gamma']}_{row['eps_start']}_{row['eps_end']}_{int(row['eps_decay'])}_{row['tau']}_{row['lr']}_{int(row['memory_size'])}.png"
-    print(filename)
-    file = glob.glob("plots/hyperparam_tune/" + filename)[0]
-    os.rename(file, f"plots/hyperparam_tune/best/{filename}")
+
+def sort_and_plot_globs(globs, average=10):
+    title = globs[0].split("/")[2]
+    plt.title(title)
+    labels = [float(file.split("/")[3]) for file in globs]
+    sorted_globs = [x for _, x in sorted(zip(labels, globs))]
+    for file in sorted_globs:
+        label = float(file.split("/")[3])
+        rewards = np.load(file)
+        # plot with moving average of 10
+        plt.plot(np.convolve(rewards, np.ones((average,)) / average, mode='valid'), label=f"{label}")
+
+    plt.legend()
+    plt.show()
+
+
+# eps_decay
+sort_and_plot_globs(glob.glob("data/hyperparam_optim/eps_decay/*/rewards.npy"), 10)
+
+# batch_size
+sort_and_plot_globs(glob.glob("data/hyperparam_optim/batch_size/*/rewards.npy"), 10)
+
+# gamma
+sort_and_plot_globs(glob.glob("data/hyperparam_optim/gamma/*/rewards.npy"), 10)
+
+# lr
+sort_and_plot_globs(glob.glob("data/hyperparam_optim/lr/*/rewards.npy"), 10)
+
