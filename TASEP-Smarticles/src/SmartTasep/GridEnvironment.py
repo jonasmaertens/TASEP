@@ -161,7 +161,8 @@ class GridEnv(gym.Env, GridEnvInterface):
         self.use_speeds = use_speeds
         self.speed_gradient_reward = speed_gradient_reward
         if self.use_speeds:
-            self.distinguishable_particles = True
+            if not self.distinguishable_particles:
+                raise ValueError("use_speeds can only be True if distinguishable_particles is True")
             if sigma is None:
                 raise ValueError("sigma must be specified if use_speeds is True")
         self.sigma = sigma

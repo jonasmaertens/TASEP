@@ -238,9 +238,12 @@ class TrainerInterface(ABC):
         pass
 
     @abstractmethod
-    def save(self):
+    def save(self) -> int:
         """
-        Saves the model, plot and currents to the models directory.
+        Saves the model, plot and currents to the models directory, and returns the id of the model.
+
+        Returns:
+            The id of the model
         """
         pass
 
@@ -249,9 +252,12 @@ class TrainerInterface(ABC):
         pass
 
     @abstractmethod
-    def train_and_save(self):
+    def train_and_save(self) -> int:
         """
         Trains the agent for the specified number of steps and saves the model, plot and currents to the models
         directory.
+
+        Returns:
+            The id of the model
         """
         pass

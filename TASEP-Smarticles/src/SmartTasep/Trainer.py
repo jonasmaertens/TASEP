@@ -66,6 +66,7 @@ class Trainer(TrainerInterface):
         self.currents = []
         self.rewards = []
         self.timesteps = []
+        self.all_rewards = np.zeros(self.total_steps)
         if "distinguishable_particles" in env_params and self.env_params["distinguishable_particles"]:
             self.last_states: dict[int, tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = dict()
             self.mover: Optional[int] = None
@@ -80,6 +81,12 @@ class Trainer(TrainerInterface):
             self.policy_net, self.target_net, self.optimizer, self.memory, self.criterion = self._init_model()
         self.steps_done = 0
 
+        if self.do_plot:
+            self.setup_plot()
+            plt.show(block=False)
+            plt.ion()
+
+    def setup_plot(self):
         # set up matplotlib figure with two axes
         dpi = 300
         # noinspection PyUnresolvedReferences
@@ -108,8 +115,6 @@ class Trainer(TrainerInterface):
         plt.tight_layout()
         plt.subplots_adjust(right=0.9)
         plt.subplots_adjust(left=0.1)
-        plt.show(block=False)
-        plt.ion()
 
     @classmethod
     def load(cls, model_id=None, sigma=None, total_steps=None, average_window=None, do_plot=None,
@@ -120,10 +125,12 @@ class Trainer(TrainerInterface):
             all_models = json.load(f)
         if model_id is None:
             model_id = cls.choose_model()
+        path = all_models[str(model_id)]["path"]
         # load model
-        with open(f"models/by_id/{model_id}/hyperparams.json", "r") as f:
+        with open(
+                os.path.join(path, "hyperparams.json"), "r") as f:
             hyperparams = json.load(f)
-        with open(f"models/by_id/{model_id}/env_params.json", "r") as f:
+        with open(os.path.join(path, "env_params.json"), "r") as f:
             env_params = json.load(f)
         if sigma is not None:
             env_params["sigma"] = sigma
@@ -144,12 +151,13 @@ class Trainer(TrainerInterface):
         diff_models = all_models[str(model_id)]["diff_models"]
         num_models = all_models[str(model_id)]["num_models"]
         if diff_models:
-            model = [f"models/by_id/{model_id}/policy_net_{net_id}.pt" for net_id in range(num_models)]
+            model = [os.path.join(path, f"policy_net_{net_id}.pt") for net_id in range(num_models)]
         else:
-            model = f"models/by_id/{model_id}/policy_net.pt"
+            model = os.path.join(path, f"policy_net.pt")
         trainer = cls(env_params, hyperparams, model=model, total_steps=tot_steps, do_plot=do_plot,
                       progress_bar=progress_bar, plot_interval=plot_interval, wait_initial=wait_initial,
-                      render_start=render_start, new_model=new_model, different_models=diff_models, num_models=num_models)
+                      render_start=render_start, new_model=new_model, different_models=diff_models,
+                      num_models=num_models)
         return trainer
 
     @staticmethod
@@ -418,28 +426,6 @@ class Trainer(TrainerInterface):
 
             model_id = self._get_model_id()
 
-            # if self.steps_done % self.plot_interval*4 == 0 and not just_reset and self.steps_done != 0:
-            #     # visualize the weights and biases of the network
-            #     params = self.policy_nets[model_id].state_dict()
-            #     self.axs[0, 0].cla()
-            #     self.axs[0, 1].cla()
-            #     self.axs[1, 0].cla()
-            #     self.axs[1, 1].cla()
-            #     self.axs[0, 2].cla()
-            #     self.axs[1, 2].cla()
-            #     self.axs[0, 0].hist(params["layer1.weight"].flatten().cpu().numpy(), bins=100)
-            #     self.axs[0, 0].set_title("layer1.weight")
-            #     self.axs[0, 1].hist(params["layer2.weight"].flatten().cpu().numpy(), bins=100)
-            #     self.axs[0, 1].set_title("layer2.weight")
-            #     self.axs[0, 2].hist(params["layer3.weight"].flatten().cpu().numpy(), bins=100)
-            #     self.axs[0, 2].set_title("layer3.weight")
-            #     self.axs[1, 0].hist(params["layer1.bias"].flatten().cpu().numpy(), bins=100)
-            #     self.axs[1, 0].set_title("layer1.bias")
-            #     self.axs[1, 1].hist(params["layer2.bias"].flatten().cpu().numpy(), bins=100)
-            #     self.axs[1, 1].set_title("layer2.bias")
-            #     self.axs[1, 2].hist(params["layer3.bias"].flatten().cpu().numpy(), bins=100)
-            #     self.axs[1, 2].set_title("layer3.bias")
-
             # Select action for current state
             action = self._select_action(self.state, model_id=model_id)
 
@@ -475,6 +461,9 @@ class Trainer(TrainerInterface):
                     "react_state": react_state
                 }, batch_size=1, device=self.device)
                 self.memory.extend(transition)
+
+            # Store reward in all_rewards array
+            self.all_rewards[self.steps_done] = reward.item()
 
             # Move to the next state
             self.state = next_state
@@ -520,10 +509,16 @@ class Trainer(TrainerInterface):
                 target_param.data.copy_(
                     self.hyperparams['TAU'] * policy_param.data + (1 - self.hyperparams['TAU']) * target_param.data)
 
-    def run(self):
+    def run(self, reset_stats=False):
+        if reset_stats:
+            self.currents = []
+            self.rewards = []
+            self.timesteps = []
+            self.all_rewards = np.zeros(self.total_steps)
+            self.reset_env()
+
         for self.steps_done in (
                 pbar := tqdm(range(self.total_steps), unit="steps", leave=False, disable=not self.progress_bar)):
-            # TODO: Avoid code duplication
             just_reset = False
             if self.wait_initial and self.steps_done == 101:
                 plt.show(block=False)
@@ -536,12 +531,15 @@ class Trainer(TrainerInterface):
             model_id = self._get_model_id()
             action = self._select_action(self.state, eps_greedy=False, model_id=model_id)
             if self.env_params["distinguishable_particles"]:
-                (next_observation, _), _, terminated, truncated, info = self.env.step(action.item())
+                (next_observation, _), reward, terminated, truncated, info = self.env.step(action.item())
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
             else:
-                (_, next_observation), _, terminated, truncated, info = self.env.step(
+                (_, next_observation), reward, terminated, truncated, info = self.env.step(
                     action.item())  # Perform action and get reward, reaction and next state
                 next_state = torch.tensor(next_observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+            # Store reward in all_rewards array
+            self.all_rewards[self.steps_done] = reward
 
             self.state = next_state
 
@@ -568,13 +566,13 @@ class Trainer(TrainerInterface):
             model_id = None
         return model_id
 
-    def save(self):
+    def save(self, path="by_id"):
         # create models directory if it doesn't exist
         if not os.path.exists(os.path.dirname("models/")):
             os.makedirs(os.path.dirname("models/"))
         # create by_id directory if it doesn't exist
-        if not os.path.exists(os.path.dirname("models/by_id/")):
-            os.makedirs(os.path.dirname("models/by_id/"))
+        if not os.path.exists(os.path.dirname(f"models/{path}/")):
+            os.makedirs(os.path.dirname(f"models/{path}/"))
         # create all_models.json if it doesn't exist
         if not os.path.exists("models/all_models.json"):
             with open("models/all_models.json", "w") as f:
@@ -588,31 +586,35 @@ class Trainer(TrainerInterface):
             # create unique model id, one higher than the highest existing id
             model_id = max([int(key) for key in all_models.keys()]) + 1
         # create model directory
-        os.makedirs(os.path.dirname(f"models/by_id/{model_id}/"))
+        os.makedirs(os.path.dirname(f"models/{path}/{model_id}/"))
         # save model policy net and target net
         if self.diff_models:
             for net_id, net in self.policy_nets.items():
-                torch.save(net.state_dict(), f"models/by_id/{model_id}/policy_net_{net_id}.pt")
+                torch.save(net.state_dict(), f"models/{path}/{model_id}/policy_net_{net_id}.pt")
             for net_id, net in self.target_nets.items():
-                torch.save(net.state_dict(), f"models/by_id/{model_id}/target_net_{net_id}.pt")
+                torch.save(net.state_dict(), f"models/{path}/{model_id}/target_net_{net_id}.pt")
         else:
-            torch.save(self.policy_net.state_dict(), f"models/by_id/{model_id}/policy_net.pt")
-            torch.save(self.target_net.state_dict(), f"models/by_id/{model_id}/target_net.pt")
+            torch.save(self.policy_net.state_dict(), f"models/{path}/{model_id}/policy_net.pt")
+            torch.save(self.target_net.state_dict(), f"models/{path}/{model_id}/target_net.pt")
         # save hyperparams
-        with open(f"models/by_id/{model_id}/hyperparams.json", "w") as f:
+        with open(f"models/{path}/{model_id}/hyperparams.json", "w") as f:
             json.dump(self.hyperparams, f, indent=4)
         # save env params
-        with open(f"models/by_id/{model_id}/env_params.json", "w") as f:
+        with open(f"models/{path}/{model_id}/env_params.json", "w") as f:
             json.dump(self.env_params, f, indent=4)
         # save currents
-        np.save(f"models/by_id/{model_id}/currents.npy", self.currents)
+        np.save(f"models/{path}/{model_id}/currents.npy", self.currents)
         # save timesteps
-        np.save(f"models/by_id/{model_id}/timesteps.npy", self.timesteps)
+        np.save(f"models/{path}/{model_id}/timesteps.npy", self.timesteps)
+        # save rewards
+        np.save(f"models/{path}/{model_id}/rewards.npy", self.rewards)
+        # save all_rewards
+        np.save(f"models/{path}/{model_id}/all_rewards.npy", self.all_rewards)
         # save plot
-        self._save_plot(f"models/by_id/{model_id}/plot.png", append_timestamp=False)
+        self._save_plot(f"models/{path}/{model_id}/plot.png", append_timestamp=False)
         # save model path and metadata to all_models.json
         all_models[str(model_id)] = {
-            "path": f"models/by_id/{model_id}/",
+            "path": f"models/{path}/{model_id}/",
             "hyperparams": self.hyperparams,
             "env_params": self.env_params,
             "total_steps": self.total_steps,
@@ -628,8 +630,9 @@ class Trainer(TrainerInterface):
         }
         with open("models/all_models.json", "w") as f:
             json.dump(all_models, f, indent=4)
-        print(f"Saved model with id {model_id} to models/by_id/{model_id}/")
+        print(f"Saved model with id {model_id} to models/{path}/{model_id}/")
         print(f"Load model with `trainer = Trainer.load({model_id})`")
+        return model_id
 
     def _save_plot(self, file=None, append_timestamp=True):
         if file is None:
@@ -641,12 +644,14 @@ class Trainer(TrainerInterface):
         # create directory if it doesn't exist
         if not os.path.exists(os.path.dirname(file)):
             os.makedirs(os.path.dirname(file))
+        if not self.do_plot:
+            self.setup_plot()
         self.ax_current.plot(self.timesteps, self.currents, color="blue")
         self.ax_reward.plot(self.timesteps, self.rewards, color="red")
         plt.savefig(file)
         plt.cla()
         plt.close()
 
-    def train_and_save(self):
+    def train_and_save(self, path="by_id"):
         self.train()
-        self.save()
+        return self.save(path)

@@ -1,0 +1,10 @@
+{
+    "BATCH_SIZE": 64,
+    "GAMMA": 0.1,
+    "EPS_START": 0.9,
+    "EPS_END": 0.05,
+    "EPS_DECAY": 10000,
+    "TAU": 0.005,
+    "LR": 0.005,
+    "MEMORY_SIZE": 1000000
+}
