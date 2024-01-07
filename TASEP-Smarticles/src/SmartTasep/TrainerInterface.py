@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TypedDict
+from typing import TypedDict, Iterable
 
 import matplotlib.pyplot
 
@@ -39,8 +39,9 @@ class TrainerInterface(ABC):
     def __init__(self, env_params: EnvParams, hyperparams: Hyperparams | None = None, reset_interval: int = None,
                  total_steps: int = 100000, render_start: int = None, do_plot: bool = True, plot_interval: int = 10000,
                  model: str | None = None, progress_bar: bool = True, wait_initial: bool = False,
-                 random_density: bool = False, new_model: bool = False, different_models: bool = False,
-                 num_models: int = 1, prio_exp_replay: bool = True):
+                 random_density: bool = False, new_model: bool = False, hidden_layer_sizes: Iterable[int] = None,
+                 different_models: bool = False,
+                 num_models: int = 1, prio_exp_replay: bool = True, activation_function=None):
         """
 
         **The TASEP-Smarticles Trainer class**
@@ -133,6 +134,8 @@ class TrainerInterface(ABC):
             wait_initial: Whether to wait 30 seconds before starting the simulation
             random_density: Whether to use a random density for the initial state
             new_model: Whether to use the new model
+            hidden_layer_sizes: The sizes of the hidden layers of the policy network
+            activation_function: The activation function of the network
             different_models: Whether to use different models for different speeds
             num_models: The number of models to use if different_models is True
             prio_exp_replay: Whether to use prioritized experience replay
@@ -143,7 +146,7 @@ class TrainerInterface(ABC):
     @abstractmethod
     def load(cls, model_id: int = None, sigma: float = None, total_steps: int = None, average_window=None, do_plot=None,
              wait_initial=None, render_start=None, window_height=None, moves_per_timestep=None, progress_bar=True,
-             new_model=None) -> "Trainer":
+             new_model=None, hidden_layer_sizes=None, activation_function=None) -> "Trainer":
         """
         Loads a model from the models directory and returns a Trainer object with the loaded model. Specify extra args
         to override the values in the loaded model.
@@ -160,6 +163,8 @@ class TrainerInterface(ABC):
             moves_per_timestep: Overrides the moves_per_timestep value in the loaded model
             progress_bar: Whether to show a progress bar
             new_model: Whether to use the new model
+            hidden_layer_sizes: The sizes of the hidden layers of the policy network
+            activation_function: The activation function of the network
         """
         pass
 

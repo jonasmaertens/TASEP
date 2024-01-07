@@ -3,6 +3,14 @@ import matplotlib.pyplot as plt
 import matplotlib
 import os
 
+matplotlib.use("pgf")
+matplotlib.rcParams.update({
+    "pgf.texsystem": "pdflatex",
+    'font.family': 'serif',
+    'text.usetex': True,
+    'pgf.rcfonts': False,
+})
+
 # Sigmoid function
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))

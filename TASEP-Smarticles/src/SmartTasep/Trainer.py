@@ -36,10 +36,13 @@ class Trainer(TrainerInterface):
     def __init__(self, env_params, hyperparams=None, reset_interval=None,
                  total_steps=100000, render_start=None, do_plot=True, plot_interval=10000,
                  model=None, progress_bar=True, wait_initial=False,
-                 random_density=False, new_model=False, different_models=False, num_models=3, prio_exp_replay=False):
+                 random_density=False, new_model=None, different_models=False, num_models=3, prio_exp_replay=False,
+                 hidden_layer_sizes=None, activation_function=None):
         self.env_params = env_params
         self.wait_initial = wait_initial
         self.prio_exp_replay = prio_exp_replay
+        self.hidden_layer_sizes = hidden_layer_sizes
+        self.activation_function = activation_function
         if "initial_state_template" in self.env_params or "initial_state" in self.env_params:
             random_density = False
         self.random_density = random_density
@@ -119,7 +122,7 @@ class Trainer(TrainerInterface):
     @classmethod
     def load(cls, model_id=None, sigma=None, total_steps=None, average_window=None, do_plot=None,
              wait_initial=None, render_start=None, window_height=None, moves_per_timestep=None, progress_bar=True,
-             new_model=None):
+             new_model=None, hidden_layer_sizes=None, activation_function=None):
         # load all_models.json
         with open("models/all_models.json", "r") as f:
             all_models = json.load(f)
@@ -306,14 +309,15 @@ class Trainer(TrainerInterface):
         return policy_net, target_net, optimizer, memory, criterion
 
     def _init_dqn(self, n_observations, n_actions, model):
-        policy_net = DQN(n_observations, n_actions, self.new_model).to(self.device)
+        policy_net = DQN(n_observations, n_actions, new_model=self.new_model, hidden_sizes=self.hidden_layer_sizes,
+                         activation_function=self.activation_function).to(self.device)
         if model is not None:
             try:
                 policy_net.load_state_dict(torch.load(model))
             except FileNotFoundError:
                 model = os.path.join(os.getcwd(), model)
                 policy_net.load_state_dict(torch.load(model))
-        target_net = DQN(n_observations, n_actions, self.new_model).to(self.device)
+        target_net = DQN(n_observations, n_actions, self.new_model, self.hidden_layer_sizes).to(self.device)
         target_net.load_state_dict(policy_net.state_dict())
         return policy_net, target_net
 

@@ -1,6 +1,7 @@
 # import sys
 # sys.path.append('src/SmartTasep/') # uncomment this line if PYTHNONPATH is not set in IDE
 from Trainer import Trainer, Hyperparams, EnvParams
+import torch.nn as nn
 
 if __name__ == '__main__':
     envParams = EnvParams(render_mode="human",
@@ -8,22 +9,23 @@ if __name__ == '__main__':
                           width=10,
                           moves_per_timestep=200,
                           window_height=100,
-                          observation_distance=4,
+                          observation_distance=2,
                           distinguishable_particles=True,
-                          # initial_state_template="checkerboard",
-                          density=0.5,
+                          initial_state_template="checkerboard",
+                          social_reward=0.8,
+                          #density=0.5,
                           use_speeds=True,
                           sigma=5,
-                          allow_wait=False,
+                          allow_wait=True,
                           # social_reward=0.8,
                           invert_speed_observation=True,
                           speed_observation_threshold=0.35,
-                          punish_inhomogeneities=True,
-                          inh_rew_idx=1,
+                          #punish_inhomogeneities=True,
+                          #inh_rew_idx=1,
                           # density=0.2,
-                          speed_gradient_reward=False,
-                          binary_speeds=True,
-                          choices=4,
+                          #speed_gradient_reward=False,
+                          #binary_speeds=True,
+                          #choices=4,
                           # speed_gradient_linearity=0.1,
                           )
     hyperparams = Hyperparams(BATCH_SIZE=64,
@@ -37,6 +39,6 @@ if __name__ == '__main__':
 
     trainer = Trainer(envParams, hyperparams, reset_interval=3000_000,
                       total_steps=3000_000, do_plot=True, plot_interval=4000, random_density=False, new_model=True,
-                      different_models=True, num_models=4, prio_exp_replay=False)
+                      different_models=True, num_models=4, prio_exp_replay=False, activation_function=nn.Sigmoid())
 
     trainer.train_and_save()

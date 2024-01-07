@@ -1,5 +1,16 @@
-\graphicspath{{img/appendix}}
+\graphicspath{{img/appendix}{img/impl}}
 
-\chapter{Appendix}
+\newcommand\invisiblesection[1]{%
+  \refstepcounter{chapter}%
+  \addcontentsline{toc}{chapter}{\protect\numberline{\thechapter}#1}%
+  \sectionmark{#1}}
 
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+\invisiblesection{Hyperparameter Optimization}
+\clearpage
+\subsubsection{Hyperparameter Optimization Plots}
+\begin{figure}[H]
+    \advance\leftskip-2.3cm
+    \includegraphics[width=1.28\textwidth]{hyperparam_optim.pdf}
+    \caption{Hyperparameter optimization plots analyzed in section \ref{sec:hyperparam_optim}.}
+    \label{fig:hyperparam_optim}
+\end{figure}
