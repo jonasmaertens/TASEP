@@ -217,3 +217,26 @@ The \texttt{Playground} class implements a playground for testing the behavior o
 
 \section{Hyperparameter Optimization}
 \label{sec:hyperparam_optim}
+Optimizing the hyperparameters of a reinforcement learning algorithm is a difficult, but important task. Previous research has shown that the choice of hyperparameters can have a significant impact on the performance of the algorithm \cite{henderson_deep_2019,parker-holder_automated_2022,noauthor_automl_nodate}. 
+\\
+\\
+The goal of hyperparameter optimization, or hyperparameter tuning, is to find a set of hyperparameters that maximizes the cumulative reward of the agent. This means that in order to evaluate a set of hyperparameters, we have to train a new agent with these hyperparameters and evaluate its performance by running the simulation for a number of time steps. 
+\\
+\\
+As the choice of one hyperparameter can impact the optimal values of the other hyperparameters, the hyperparameters have to be optimized simultaneously, for example using a grid search or a random search. These algorithms are embarrassingly parallel, as the evaluation of a set of hyperparameters is independent of the evaluation of other sets, but the number of sets that have to be evaluated grows exponentially with the number of hyperparameters. This makes hyperparameter optimization a computationally expensive task.
+\\
+Due to time constraints, a less computationally expensive approach was chosen for this thesis. Instead of performing a grid search or similar algorithm, the hyperparameters were first roughly optimized by a combination of reference to the literature, intuition and trial and error. Then, starting from this set of hyperparameters, the hyperparameters were optimized one by one, using the best value of a hyperparameter for all further tuning of other hyperparameters. This approach is not guaranteed to find the optimal hyperparameters, but it is computationally cheap and can yield good results. Furthermore, it shows how sensitive the algorithm is to the individual hyperparameters. This knowledge could be used to identify the most important hyperparameters and perform a more thorough optimization of these hyperparameters.
+\\
+\\
+The following eight hyperparameters were optimized:
+\begin{itemize}
+    \item \textbf{Learning rate} of the AdamW optimizer.
+    \item \textbf{Discount factor} $\gamma$.
+    \item \textbf{Replay buffer size}.
+    \item \textbf{Batch size} for training.
+    \item \textbf{Target network update rate} $\tau$.
+    \item \textbf{Exploration-exploitation tradeoff} via the decay rate of the exploration rate $\epsilon$.
+    \item \textbf{Neural network architecture} (number of hidden layers and neurons per layer).
+    \item \textbf{Activation function} of the neural network.
+\end{itemize}
+% note that optimal parameters depend on the task. at this point only performed for one task.
