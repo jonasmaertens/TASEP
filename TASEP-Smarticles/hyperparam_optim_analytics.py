@@ -28,7 +28,7 @@ def sort_and_plot_globs(globs, ax, average=10, legend_inside=False, title=""):
     for label, file in sorted_globs:
         rewards = np.load(file)
         # plot with moving average
-        averaged_rewards = np.convolve(rewards, np.ones((15,)) / 15, mode='valid')
+        averaged_rewards = np.convolve(rewards, np.ones((8,)) / 8, mode='valid')
         timesteps = np.arange(len(averaged_rewards)) * 2500
         ax.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))
         ax.plot(timesteps, averaged_rewards, label=f"{label}")
@@ -97,4 +97,4 @@ sort_and_plot_globs(glob.glob("data/hyperparam_optim/activation_function/*/rewar
 
 # Adjust layout for better appearance
 # plt.tight_layout()
-plt.savefig("../Thesis/img/impl/hyperparam_optim.pdf")
+plt.savefig("../Thesis/img/impl/hyperparam_optim_8.pdf")
