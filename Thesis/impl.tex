@@ -100,6 +100,7 @@ It is important to note that this problem is less about the absolute values of t
 
 
 \subsubsection{step}
+\label{subsubsec:implementation-step}
 Takes an action as an argument and returns the next state and the reward after performing the action. Actions are encoded as integers, which, as we will see, correspond to the index of the output neuron with the highest activation. The form of the next state or states depends on the environment parameters. See section \ref{subsubsec:implementation-train} for more details.
 \\
 \\
@@ -235,8 +236,49 @@ The following eight hyperparameters were optimized:
     \item \textbf{Replay buffer size}.
     \item \textbf{Batch size} for training.
     \item \textbf{Target network update rate} $\tau$.
-    \item \textbf{Exploration-exploitation tradeoff} via the decay rate of the exploration rate $\epsilon$.
+    \item \textbf{Exploration-exploitation tradeoff} via the decay constant $\eta$ of the exploration rate $\epsilon(t)=\epsilon_{\text{end}} + (\epsilon_{\text{start}} - \epsilon_{\text{end}}) e^{-n_{\text{steps}}/\eta}$.
     \item \textbf{Neural network architecture} (number of hidden layers and neurons per layer).
     \item \textbf{Activation function} of the neural network.
 \end{itemize}
-% note that optimal parameters depend on the task. at this point only performed for one task.
+It is important to note, that there isn't a single set of hyperparameters that is optimal for deep Q-learning in general. Instead, the optimal hyperparameters depend on the environment and the task. Various studies have shown that reinforcement learning algorithms are very sensitive to the choice of hyperparameters and even the state-of-the-art RL algorithms often fail to generalize beyond their specific task \cite{parker-holder_automated_2022,henderson_deep_2019,engstrom_implementation_2020,andrychowicz_what_2020}. This means that the hyperparameters have to be optimized for each environment and task individually. In this section, we will discuss the hyperparameters that were optimized for the smart TASEP with a simple reward structure that includes only the \texttt{social\_reward} option on top of the default reward (see section \ref{subsubsec:implementation-step}). A relatively high particle density of $\rho=0.5$ was chosen and particle speeds were sampled from a uniform distribution in the range $(0, 1)$.
+\\
+\\
+The starting point for the hyperparameter optimization was the following set of hyperparameters:
+\begin{itemize}
+    \item \textbf{Learning rate}: $0.005$
+    \item \textbf{Discount factor} $\gamma$: $0.8$
+    \item \textbf{Replay buffer size}: $10^6$ ($\geq$ number of training steps)
+    \item \textbf{Batch size}: $64$
+    \item \textbf{Target network update rate} $\tau$: $0.005$
+    \item \textbf{Epsilon decay constant}: $10^5$ 
+    \item \textbf{Neural network architecture}: 2 hidden layers with 128 neurons each
+    \item \textbf{Activation function}: ReLU (output layer uses identity activation)
+\end{itemize}
+In order to evaluate the performance of the algorithm, the mean reward collected over 10000 time steps was measured in regular intervals of 2500 training steps. For each new hyperparameter value, 100 such episodes of training followed by evaluation were run, training the agents for a total of 250000 optimization steps. The results were plotted with a moving average over 8 and 30 episodes to smooth out the noise. The plots are shown in figure \ref{fig:hyperparam_optim_8} and \ref{fig:hyperparam_optim_30} in appendix \ref{app:hyperparam_optim}.
+\\
+\\
+The following insights were gained from the hyperparameter optimization:
+\subsubsection{Epsilon decay}
+For this specific reward structure, the exploration-exploitation trade off is not very important. In fact, the experiment suggests that the agent performs slightly better without any exploitation at all. The dense, chaotic environment paired with the random initial weights apparently provides enough exploration to find a good policy even when acting greedily. This is not surprising, as the agent is not required to learn a complex policy, but only to move forward when possible and avoid collisions. A more thorough evaluation of the policies in the playground could provide more insight into the agent's behavior. I expect the reward to be only a rough measure of the agent's \enquote{intelligence}, as it is possible to achieve a high reward by simply waiting for the other particles to move out of the way and moving forward whenever possible. We would expect a more intelligent agent to actively avoid collisions and to treat slow particles differently from fast particles. Examples of such behavior will be analyzed in the next chapter. A decay constant of $10000$ was chosen for the following experiments, as it allows for some exploration in the beginning, but quickly converges to a greedy policy.
+
+\subsubsection{Discount factor}
+We see that discount factors in the range $0.5-0.9$ perform best. A slightly smaller discount factor of $0.3$ still performs reasonably well, but a discount factor of $\le0.1$ leads to a significant drop in performance. If the discount factor is chosen too large, the performance seems to oscillate around a lower mean reward. A discount factor of $0.9$ was chosen for the following experiments. Agents trained with this discount factor seem to learn slightly slower than agents trained with a smaller discount factor, but the performance at the end of training is better. I would also expect these agents to learn more complex policies, as they have to take into account the future rewards of their actions. 
+
+\subsubsection{Activation function}
+The ReLU and LeakyReLU activation functions perform best, which is not surprising, as they are the most commonly used activation functions in deep learning. The Softsign and tanh functions perform worse and the Sigmoid function performs worst. It is surprising to see that the Sigmoid function performs so much worse than the hyperbolic tangent, as they are rescaled versions of the same function. The tanh should also saturate slightly faster than the Sigmoid function, as it is steeper around the origin. I would expect it to be more prone to vanishing gradients than the Sigmoid function. \\
+The ReLU function was chosen in favor of the LeakyReLU function, as it seems to perform equally well and is slightly faster to compute.
+
+\subsubsection{Learning rate}
+As expected, large learning rates lead to unstable training and poor performance. They fail to find minima as they keep overshooting, leading to low rewards. Optimal learning rates seem to be smaller than $0.01$ with small variance for values in that range. The optimum seems to be around $0.001$, which is small enough to be stable, but still large enough to allow for fast learning. 
+
+\subsubsection{Batch size}
+The batch size seems to be inversely proportional to the speed of convergence of the algorithm. Larger batch sizes converge significantly slower than smaller batch sizes. This can be explained partly by the fact that agents with larger batch sizes start learning later, as they have to collect more transitions before they can collect the first batch and partly by the fact that for smaller batch sizes, the correlation between the transitions in a batch is smaller. Moreover, the scalar loss, which is propagated back through the network, is calculated as the mean loss over the batch. This means that the magnitude of the gradients does not depend on the batch size. 
+
+\subsubsection{Replay buffer size}
+As expected, larger replay buffers perform significantly better than smaller ones. If the buffer is too small, the algorithm fails to converge to a reasonable policy, as not enough independent transitions are stored in the buffer. Larger buffers perform better, saturating of course at the point where the buffer size becomes as large as the total number of transitions that are collected during training. For future experiments, the buffer should be chosen as large as the total number of training steps, if possible. 
+
+\subsubsection{Target network update rate}
+The target network update rate seems to have a threshold somewhere between $10^{-5}$ and $10^{-6}$ below which the performance drops significantly. Above this threshold, the performance seems to be only weakly dependent on the update rate, with smaller update rates being more robust. A very large update rate of $0.5$ still produces reasonable results, but the performance oscillates a lot during training. A target network update rate of $0.005$ was chosen for the following experiments, as it seems to be a good compromise between performance and stability.
+
+\subsubsection{Neural network architecture}
+In order to test the performance of different neural network architecture, networks with 0-3 hidden layers and different numbers of neurons per layer were trained. A purely linear network with no hidden layers performs very poorly, as expected. Networks with only 6 neurons per layer also perform poorly, although of course much better than the linear network. Interestingly, when only using 6-node hidden layers, the performance seems to decrease with the number of layers. This could be due to the fact that the network is not able to learn a good policy with only 6 neurons per layer, but the additional layers increase the number of parameters that have to be optimized. The best overall performance can be seen for networks with 24 neurons per hidden layer, with more layers performing slightly better than fewer layers. These networks reach almost the same performance as the larger networks by the end of the training, but converge much faster, as fewer parameters have to be optimized. A network with 2 hidden layers and 24 neurons per layer appears to be the best overall choice.
