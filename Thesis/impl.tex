@@ -272,7 +272,7 @@ The ReLU function was chosen in favor of the LeakyReLU function, as it seems to 
 As expected, large learning rates lead to unstable training and poor performance. They fail to find minima as they keep overshooting, leading to low rewards. Optimal learning rates seem to be smaller than $0.01$ with small variance for values in that range. The optimum seems to be around $0.001$, which is small enough to be stable, but still large enough to allow for fast learning. 
 
 \subsubsection{Batch size}
-The batch size seems to be inversely proportional to the speed of convergence of the algorithm. Larger batch sizes converge significantly slower than smaller batch sizes. This can be explained partly by the fact that agents with larger batch sizes start learning later, as they have to collect more transitions before they can collect the first batch and partly by the fact that for smaller batch sizes, the correlation between the transitions in a batch is smaller. Moreover, the scalar loss, which is propagated back through the network, is calculated as the mean loss over the batch. This means that the magnitude of the gradients does not depend on the batch size. 
+The batch size seems to be inversely proportional to the speed of convergence of the algorithm. Larger batch sizes converge significantly slower than smaller batch sizes. This can be explained partly by the fact that agents with larger batch sizes start learning later, as they have to collect more transitions before they can collect the first batch and partly by the fact that for smaller batch sizes, the correlation between the transitions in a batch is smaller. Moreover, the scalar loss, which is propagated back through the network, is calculated as the mean loss over the batch. This means that the magnitude of the gradients does not depend on the batch size. The optimum seems to be around $32$. With this batch size, the algorithm converges quickly and reaches the highest mean reward in the end.
 
 \subsubsection{Replay buffer size}
 As expected, larger replay buffers perform significantly better than smaller ones. If the buffer is too small, the algorithm fails to converge to a reasonable policy, as not enough independent transitions are stored in the buffer. Larger buffers perform better, saturating of course at the point where the buffer size becomes as large as the total number of transitions that are collected during training. For future experiments, the buffer should be chosen as large as the total number of training steps, if possible. 
@@ -282,3 +282,13 @@ The target network update rate seems to have a threshold somewhere between $10^{
 
 \subsubsection{Neural network architecture}
 In order to test the performance of different neural network architecture, networks with 0-3 hidden layers and different numbers of neurons per layer were trained. A purely linear network with no hidden layers performs very poorly, as expected. Networks with only 6 neurons per layer also perform poorly, although of course much better than the linear network. Interestingly, when only using 6-node hidden layers, the performance seems to decrease with the number of layers. This could be due to the fact that the network is not able to learn a good policy with only 6 neurons per layer, but the additional layers increase the number of parameters that have to be optimized. The best overall performance can be seen for networks with 24 neurons per hidden layer, with more layers performing slightly better than fewer layers. These networks reach almost the same performance as the larger networks by the end of the training, but converge much faster, as fewer parameters have to be optimized. A network with 2 hidden layers and 24 neurons per layer appears to be the best overall choice.
+
+\subsubsection{Summary}
+Although a more thorough hyperparameter optimization could be performed, the analysis allowed us to gain some meaningful insight into the smart TASEP's sensitivity to different hyperparameters and the ranges of their optimal values. 
+% bla bla
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{hyperparam_optim_initial_vs_final.pdf}
+    \caption{Blub averaged over 10 trainings, no moving average}
+    \label{fig:hyperparam_optim_8}
+\end{figure}
