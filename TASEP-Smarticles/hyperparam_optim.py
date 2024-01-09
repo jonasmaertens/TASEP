@@ -385,7 +385,81 @@ if __name__ == '__main__':
     # plt.legend()
     # plt.show()
 
-    train_for_activation_function(nn.Sigmoid())
+    # train_for_activation_function(nn.Sigmoid())
+
+    # compare initial and final hyperparameters
+    envParams = EnvParams(render_mode=None,
+                          length=100,
+                          width=10,
+                          moves_per_timestep=200,
+                          window_height=100,
+                          observation_distance=2,
+                          initial_state_template="checkerboard",
+                          use_speeds=True,
+                          distinguishable_particles=True,
+                          sigma=5,
+                          social_reward=True,
+                          allow_wait=True,
+                          invert_speed_observation=True)
+
+    hyperparams_final = Hyperparams(BATCH_SIZE=32,
+                                    GAMMA=0.9,
+                                    EPS_START=0.9,
+                                    EPS_END=0.05,
+                                    EPS_DECAY=10_000,
+                                    TAU=0.005,
+                                    LR=0.001,
+                                    MEMORY_SIZE=1000000)
+
+    hyperparams_initial = Hyperparams(BATCH_SIZE=64,
+                                      GAMMA=0.8,
+                                      EPS_START=0.9,
+                                      EPS_END=0.05,
+                                      EPS_DECAY=100_000,
+                                      TAU=0.005,
+                                      LR=0.005,
+                                      MEMORY_SIZE=1000000)
+
+    for j in range(10):
+        trainer = Trainer(envParams, hyperparams_final,
+                          total_steps=5_000,
+                          do_plot=False,
+                          plot_interval=5000,
+                          hidden_layer_sizes=[24, 24])
+        rewards_final = []
+        for i in tqdm(range(120), leave=False):
+            trainer.total_steps = 10000
+            trainer.run(reset_stats=True)
+            rewards_final.append(np.mean(trainer.all_rewards))
+            trainer.total_steps = 2500
+            trainer.train()
+
+        dir = f"data/hyperparam_optim/final/{j}"
+        os.makedirs(dir, exist_ok=True)
+        with open(f"{dir}/rewards.npy", "wb") as f:
+            np.save(f, np.array(rewards_final))
+        plt.plot(rewards_final, label=f"final_{j}")
 
 
+        trainer = Trainer(envParams, hyperparams_initial,
+                            total_steps=5_000,
+                            do_plot=False,
+                            plot_interval=5000,
+                            hidden_layer_sizes=[128, 128])
 
+        rewards_initial = []
+        for i in tqdm(range(120), leave=False):
+            trainer.total_steps = 10000
+            trainer.run(reset_stats=True)
+            rewards_initial.append(np.mean(trainer.all_rewards))
+            trainer.total_steps = 2500
+            trainer.train()
+
+        dir = f"data/hyperparam_optim/initial/{j}"
+        os.makedirs(dir, exist_ok=True)
+        with open(f"{dir}/rewards.npy", "wb") as f:
+            np.save(f, np.array(rewards_initial))
+
+        plt.plot(rewards_initial, label=f"initial_{j}")
+    plt.legend()
+    plt.show()
