@@ -130,10 +130,12 @@ class GridEnv(gym.Env, GridEnvInterface):
                  speed_gradient_reward=False,
                  speed_gradient_linearity=0.1,
                  inh_rew_idx=-1,
+                 forward_reward=1.5,
                  binary_speeds=False,
                  choices=2):
         self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
         self.social_reward = social_reward
+        self.forward_reward = forward_reward
         self.binary_speeds = binary_speeds
         self.choices = choices
         self.punish_inhomogeneities = punish_inhomogeneities
@@ -225,6 +227,12 @@ class GridEnv(gym.Env, GridEnvInterface):
             self.action_space: spaces.Discrete = spaces.Discrete(3)
 
     def _get_obs(self, new_mover=True):
+        # simulate sometimes picking an empty cell by checking a random number against the density
+        # in that case, increment the time and pick a new cell until a non-empty cell is found
+        while np.random.random() > self.density:
+            self.avg_window_time += 1
+            self.total_timesteps += 1
+
         # Select a random agent (a grid cell that is currently set to 1) and return
         # the observation of the grid around it
         if new_mover:
@@ -369,6 +377,8 @@ class GridEnv(gym.Env, GridEnvInterface):
                                              self.n) if not self.binary_speeds else binary_distribution(self.n,
                                                                                                         self.choices)
             self.state[self.state == 1] = random_speeds
+        # update density to actual density
+        self.density = self.n / (self.length * self.width)
         observation = self._get_obs()
         info = self._get_info()
         if self.render_mode == "human":
@@ -393,8 +403,9 @@ class GridEnv(gym.Env, GridEnvInterface):
         # Move the agent in the specified direction if possible.
         # If the agent is at the boundary of the grid, it will wrap around
         reward = 0
-        self.total_timesteps += 1
         self.avg_window_time += 1
+
+        self.total_timesteps += 1
         self._update_current()
         self._update_current_initial()
         if not self.use_speeds or self.np_random.random() < self.state[*self.current_mover] % 1:
@@ -478,23 +489,20 @@ class GridEnv(gym.Env, GridEnvInterface):
                     else:
                         reward -= 0.75 / (r ** 1.3) - 0.15
             elif self.inh_rew_idx == 1:
-                # muss schwächer, verlernt vorwärts
+                dv = abs(obs[*particle] - center)
                 r = np.linalg.norm(particle - np.array([self.obs_dist, self.obs_dist]))
-                v_int_id_1 = int(center * 4)
-                v_int_id_2 = int(obs[*particle] * 4)
-                dv = abs(v_int_id_1 - v_int_id_2)
-                if dv == 0:
-                    if r <= 1:
-                        reward += (-0.125 * r + 0.625)
+                if dv < 0.5:
+                    if r <= 1.5:
+                        pass
                     elif r > 5:
                         pass
                     else:
-                        reward += 3 * (-0.125 * r + 0.625)
+                        reward += -0.125 * r + 0.625
                 else:
                     if r > 3.5:
                         pass
                     else:
-                        reward -= 3 * (0.75 / (r ** 1.3) - 0.15)
+                        reward -= 0.75 / (r ** 1.3) - 0.15
         return reward
 
     def _speed_gradient(self, x):
@@ -520,7 +528,7 @@ class GridEnv(gym.Env, GridEnvInterface):
             self.current_mover[1] = next_x
             self.total_forward += 1
             self.avg_window_forward += 1
-            return 1.5
+            return self.forward_reward
 
     def _move_up_down(self, x_pos):
         has_moved = self._move_if_possible((x_pos, self.current_mover[1]))

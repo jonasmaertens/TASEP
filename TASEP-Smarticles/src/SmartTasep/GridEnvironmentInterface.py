@@ -67,6 +67,7 @@ class EnvParams(TypedDict):
     speed_gradient_reward: NotRequired[bool]
     speed_gradient_linearity: NotRequired[float]
     inh_rew_idx: NotRequired[int]
+    forward_reward: NotRequired[float]
     binary_speeds: NotRequired[bool]
     choices: NotRequired[int]
 
@@ -94,6 +95,7 @@ class GridEnvInterface(ABC):
                  speed_gradient_reward: bool = False,
                  speed_gradient_linearity: float = 0.1,
                  inh_rew_idx: int = -1,
+                 forward_reward: float = 1.5,
                  binary_speeds: bool = False,
                  choices: int = 2):
         """
@@ -140,6 +142,7 @@ class GridEnvInterface(ABC):
             speed_gradient_reward (bool, optional): Whether to encourage a vertical speed gradient in the system.
             speed_gradient_linearity (float, optional): The linearity of the speed gradient reward. Defaults to 0.1.
             inh_rew_idx (int, optional): The index of the reward formula that should be used for the inhomogeneity reward
+            forward_reward (float, optional): The reward for moving forward. Defaults to 1.5.
             binary_speeds: Whether to sample speeds from a binary distribution instead of a truncated normal distribution
             choices: How many options to choose from when sampling speeds from a "binary" distribution
         """

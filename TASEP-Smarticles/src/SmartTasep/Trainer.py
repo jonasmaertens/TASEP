@@ -2,7 +2,7 @@ import json
 import os
 import datetime
 import time
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 from typing import Optional
 
 import gymnasium as gym
@@ -314,6 +314,14 @@ class Trainer(TrainerInterface):
         if model is not None:
             try:
                 policy_net.load_state_dict(torch.load(model))
+            except RuntimeError:
+                # map old dict keys to new dict keys
+                old_state_dict = torch.load(model)
+                new_state_dict = OrderedDict()
+                for k, v in old_state_dict.items():
+                    k = k.replace("layer1", "model.0").replace("layer2", "model.2").replace("layer3", "model.4")
+                    new_state_dict[k] = v
+                policy_net.load_state_dict(new_state_dict)
             except FileNotFoundError:
                 model = os.path.join(os.getcwd(), model)
                 policy_net.load_state_dict(torch.load(model))
