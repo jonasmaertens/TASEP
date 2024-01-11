@@ -284,11 +284,13 @@ The target network update rate seems to have a threshold somewhere between $10^{
 In order to test the performance of different neural network architecture, networks with 0-3 hidden layers and different numbers of neurons per layer were trained. A purely linear network with no hidden layers performs very poorly, as expected. Networks with only 6 neurons per layer also perform poorly, although of course much better than the linear network. Interestingly, when only using 6-node hidden layers, the performance seems to decrease with the number of layers. This could be due to the fact that the network is not able to learn a good policy with only 6 neurons per layer, but the additional layers increase the number of parameters that have to be optimized. The best overall performance can be seen for networks with 24 neurons per hidden layer, with more layers performing slightly better than fewer layers. These networks reach almost the same performance as the larger networks by the end of the training, but converge much faster, as fewer parameters have to be optimized. A network with 2 hidden layers and 24 neurons per layer appears to be the best overall choice.
 
 \subsubsection{Summary}
-Although a more thorough hyperparameter optimization could be performed, the analysis allowed us to gain some meaningful insight into the smart TASEP's sensitivity to different hyperparameters and the ranges of their optimal values. 
-% bla bla
-\begin{figure}
+Although a more thorough hyperparameter optimization could be performed, the analysis allows us to gain some meaningful insight into the smart TASEP's sensitivity to different hyperparameters and the ranges of their optimal values. Figure \ref{fig:hyperparam_optim_final_vs_initial} compares the average performance of agents trained with the initial set of hyperparameters and the optimized parameters respectively. We can see that the initial set of hyperparameters was already quite good, achieving convergence to the same mean reward as the optimized set of hyperparameters. However, the optimized set of hyperparameters converges much faster, allowing for an earlier stop of the training.
+\\
+\\
+Note that the acquired set of hyperparameters is only optimal for this specific reward structure. As already mentioned, reinforcement learning algorithms are very sensitive to the choice of hyperparameters and the optimal hyperparameters depend on the environment and the task. In the environment used for this experiment, the conditions stay the same throughout the whole simulation. Imagine for example a reward structure that encourages particle clustering or an environment, where the density is not constant over time. In that case, the epsilon decay constant would probably be an important hyperparameter, as the agent would have to exploit more often in order to generate transitions for the later stages of the simulation. 
+\begin{figure}[h]
     \centering
     \includegraphics[width=\textwidth]{hyperparam_optim_initial_vs_final.pdf}
-    \caption{Blub averaged over 10 trainings, no moving average}
-    \label{fig:hyperparam_optim_8}
+    \caption{Average reward of smart TASEP agents trained with the initial set of hyperparameters and the final set of hyperparameters respectively. The plot is averaged over 10 separate trainings for each set of parameters.}
+    \label{fig:hyperparam_optim_final_vs_initial}
 \end{figure}
