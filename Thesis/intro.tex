@@ -20,6 +20,13 @@ In addition, the exponential increase in computation and storage capabilities as
 \\
 Today, AI systems are indispensable in many areas such as web search engines~\cite{google_howweuseai}, recommendation systems~\cite{burke_recommender_2011}, human speech recognition and generation~\cite{elevenlabs, hinton_deep_2012}, image recognition and generation~\cite{midjourney, krizhevsky_imagenet_2012} and personal assistants~\cite{openai_chatgpt_intro} and surpasses humans in high level strategy games like go and chess~\cite{silver_mastering_2016, silver_mastering_2017} as well as other video games~\cite{piper_ai_2019}.
 
+\section{Connecting AI with Physics}
+TODO
+
+\section{Stochastic Processes}
+\label{sec:stochastic-processes}
+TODO
+
 \chapter{Neural Networks}
 \label{ch:neural-networks}
 \section{Overview}
@@ -531,7 +538,7 @@ In an MDP, the agent's actions influence not only the immediate reward, but also
 They are a powerful abstraction that can be used to model a wide range of problems, from simple board games to complex real-world scenarios.
 \\
 MDPs can be seen as a generalization of discrete-time \textit{Markov chains}.
-Markov chains are a special case of \textit{stochastic processes}, where the next state of the system is determined only by the current state and not by any previous states.
+Markov chains are a special case of \textit{stochastic processes} (introduced in section \ref{sec:stochastic-processes}), where the next state of the system is determined only by the current state and not by any previous states.
 This property is called the \textit{Markov property} and can be expressed mathematically as \cite{serfozo_markov_2009}:
 \begin{equation}
     p(s_{t+1} | s_1, \dots, s_t) = p(s_{t+1} | s_t) = p_{ss'} \text{.}

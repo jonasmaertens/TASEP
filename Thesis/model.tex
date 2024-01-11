@@ -38,7 +38,7 @@ The TASEP can be generalized to higher dimensions. In this thesis, we will use t
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.8\textwidth]{tasep_2d.pdf}
-    \caption{A 2D TASEP with periodic boundary conditions. The number of particles is constant. Each particle has a probability $p$ to move clockwise and a probability $1-p$ to move counterclockwise. If the target site is occupied, the particle stays.}
+    \caption{A 2D ASEP with periodic boundary conditions. The number of particles is constant. Each particle has a probability $p$ to move forward, a probability $q$ to move backward and probabilities $a$ and $b$ to move up or down respectively. If the target site is occupied, the particle stays. $p+q+a+b=1$.}
     \label{fig:tasep_2d}
 \end{figure}
 In this thesis, we will increase the complexity of the 2D TASEP by introducing velocities. The velocity is implemented as a probability of actually performing an attempted jump. For example, if a particle's velocity is 0.5, it will only move in 50\% of the cases where a jump is attempted and the target site is empty. 
