@@ -1,0 +1,29 @@
+\documentclass[tikz,border=2mm]{standalone}
+\usetikzlibrary{calc}
+
+\begin{document}
+\begin{tikzpicture}[>=stealth, node distance=2cm]
+
+% Draw x-axis and label
+\draw[->] (-1.5,0) -- (10,0) node[right] {$t$ (time)};
+% Draw time axis
+\draw[->] (-1,-0.5) -- (-1,5) node[above] {$x_n$ (value)};
+
+% Nodes representing time points
+\foreach \i in {0,1,2,3,4,5}{
+    \node[circle, fill=black, inner sep=2pt, label=below:$t_\i$] (T\i) at ($1.8*(\i,0)$) {};
+}
+
+% Random variable values at each time point
+\foreach \i/\value in {0/2, 1/3, 2/1, 3/4, 4/2, 5/1.5}{
+    \node[circle, draw, minimum size=8mm] (X\i) at ($1.8*(\i,0) + (0, \value)$) {$x_{\i}$};
+}
+
+% Arrows indicating time evolution
+\foreach \i in {0,1,2,3,4}{
+    \pgfmathtruncatemacro{\next}{\i + 1}
+    \draw[->] (X\i) -- (X\next);
+}
+
+\end{tikzpicture}
+\end{document}
