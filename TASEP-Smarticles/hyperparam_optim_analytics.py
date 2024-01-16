@@ -5,14 +5,19 @@ import json
 import matplotlib
 import matplotlib.pyplot as plt
 
-matplotlib.use("pgf")
-matplotlib.rcParams.update({
-    "pgf.texsystem": "pdflatex",
-    'font.family': 'serif',
-    'font.size': 11,
-    'text.usetex': True,
-    'pgf.rcfonts': False,
-})
+import scienceplots
+
+plt.style.use(['science'])
+plt.rcParams['font.size'] = 11
+
+# matplotlib.use("pgf")
+# matplotlib.rcParams.update({
+#     "pgf.texsystem": "pdflatex",
+#     'font.family': 'serif',
+#     'font.size': 11,
+#     'text.usetex': True,
+#     'pgf.rcfonts': False,
+# })
 
 
 def sort_and_plot_globs(globs, ax, average=10, legend_inside=False, title=""):
@@ -28,7 +33,7 @@ def sort_and_plot_globs(globs, ax, average=10, legend_inside=False, title=""):
     for label, file in sorted_globs:
         rewards = np.load(file)
         # plot with moving average
-        averaged_rewards = np.convolve(rewards, np.ones((8,)) / 8, mode='valid')
+        averaged_rewards = np.convolve(rewards, np.ones((30,)) / 30, mode='valid')
         timesteps = np.arange(len(averaged_rewards)) * 2500
         ax.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))
         ax.plot(timesteps, averaged_rewards, label=f"{label}")
@@ -38,7 +43,7 @@ def sort_and_plot_globs(globs, ax, average=10, legend_inside=False, title=""):
         ax.legend(title=title)
         ax.set_ylabel("Average reward")
     else:
-        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title=title)
+        ax.legend(bbox_to_anchor=(1, 1), loc='upper left', title=title)
         # no y axis labels
         ax.set_yticklabels([])
     # get row and column index of subplot
@@ -63,63 +68,63 @@ def sort_and_plot_globs(globs, ax, average=10, legend_inside=False, title=""):
 
 
 # Create a 3x2 grid of subplots
-# fig, axs = plt.subplots(4, 2, figsize=(12, 15), constrained_layout=True)
-# cm = plt.get_cmap('gist_rainbow')
-#
-# # eps_decay
-# sort_and_plot_globs(glob.glob("data/hyperparam_optim/eps_decay/*/rewards.npy"), axs[0, 0], 10, legend_inside=True,
-#                     title="Epsilon decay constant")
-#
-# # batch_size
-# sort_and_plot_globs(glob.glob("data/hyperparam_optim/batch_size/*/rewards.npy"), axs[2, 0], 10, legend_inside=True,
-#                     title="Batch size")
-#
-# # gamma
-# sort_and_plot_globs(glob.glob("data/hyperparam_optim/gamma/*/rewards.npy"), axs[0, 1], 10,
-#                     title=r"Discount factor $\gamma$")
-#
-# # lr
-# sort_and_plot_globs(glob.glob("data/hyperparam_optim/lr/*/rewards.npy"), axs[1, 1], 10, title="Learning rate")
-#
-# # tau
-# sort_and_plot_globs(glob.glob("data/hyperparam_optim/tau/*/rewards.npy"), axs[3, 0], 10, legend_inside=True)
-#
-# # memory_size
-# sort_and_plot_globs(glob.glob("data/hyperparam_optim/memory_size/*/rewards.npy"), axs[2, 1], 10, title="Memory size")
-#
-# # hidden_layer_sizes
-# sort_and_plot_globs(glob.glob("data/hyperparam_optim/hidden_layer_sizes/*/rewards.npy"), axs[3, 1], 10,
-#                     title="Hidden layer sizes")
-#
-# # activation_function
-# sort_and_plot_globs(glob.glob("data/hyperparam_optim/activation_function/*/rewards.npy"), axs[1, 0], 10,
-#                     legend_inside=True, title="Activation function")
+fig, axs = plt.subplots(4, 2, figsize=(12, 15), constrained_layout=True)
+cm = plt.get_cmap('gist_rainbow')
+
+# eps_decay
+sort_and_plot_globs(glob.glob("data/hyperparam_optim/eps_decay/*/rewards.npy"), axs[0, 0], 10, legend_inside=True,
+                    title="Epsilon decay constant")
+
+# batch_size
+sort_and_plot_globs(glob.glob("data/hyperparam_optim/batch_size/*/rewards.npy"), axs[2, 0], 10, legend_inside=True,
+                    title="Batch size")
+
+# gamma
+sort_and_plot_globs(glob.glob("data/hyperparam_optim/gamma/*/rewards.npy"), axs[0, 1], 10,
+                    title=r"Discount factor $\gamma$")
+
+# lr
+sort_and_plot_globs(glob.glob("data/hyperparam_optim/lr/*/rewards.npy"), axs[1, 1], 10, title="Learning rate")
+
+# tau
+sort_and_plot_globs(glob.glob("data/hyperparam_optim/tau/*/rewards.npy"), axs[3, 0], 10, legend_inside=True)
+
+# memory_size
+sort_and_plot_globs(glob.glob("data/hyperparam_optim/memory_size/*/rewards.npy"), axs[2, 1], 10, title="Memory size")
+
+# hidden_layer_sizes
+sort_and_plot_globs(glob.glob("data/hyperparam_optim/hidden_layer_sizes/*/rewards.npy"), axs[3, 1], 10,
+                    title="Hidden layer sizes")
+
+# activation_function
+sort_and_plot_globs(glob.glob("data/hyperparam_optim/activation_function/*/rewards.npy"), axs[1, 0], 10,
+                    legend_inside=True, title="Activation function")
 
 # Adjust layout for better appearance
-# plt.tight_layout()
-# plt.savefig("../Thesis/img/impl/hyperparam_optim_8.pdf")
+plt.tight_layout()
+plt.savefig("../Thesis/img/impl/hyperparam_optim_30_sci.pdf")
 
 
 # initial vs final hyperparams
-smooth = 16
-initial_glob = glob.glob("data/hyperparam_optim/initial/*/rewards.npy")
-final_glob = glob.glob("data/hyperparam_optim/final/*/rewards.npy")
-initial_rewards = np.load(initial_glob[0])
-for file in initial_glob[1:]:
-    initial_rewards += np.load(file)
-initial_rewards /= len(initial_glob)
-final_rewards = np.load(final_glob[0])
-for file in final_glob[1:]:
-    final_rewards += np.load(file)
-final_rewards /= len(final_glob)
-#initial_rewards = np.convolve(initial_rewards, np.ones((smooth,)) / smooth, mode='valid')
-#final_rewards = np.convolve(final_rewards, np.ones((smooth,)) / smooth, mode='valid')
-timesteps = np.arange(len(initial_rewards)) * 2500
-plt.plot(timesteps, initial_rewards, label="Initial hyperparameters")
-plt.plot(timesteps, final_rewards, label="Final hyperparameters")
-plt.xlabel("Training steps")
-plt.ylabel("Average reward")
-plt.legend()
-plt.savefig("../Thesis/img/impl/hyperparam_optim_initial_vs_final.pdf")
+# smooth = 16
+# initial_glob = glob.glob("data/hyperparam_optim/initial/*/rewards.npy")
+# final_glob = glob.glob("data/hyperparam_optim/final/*/rewards.npy")
+# initial_rewards = np.load(initial_glob[0])
+# for file in initial_glob[1:]:
+#     initial_rewards += np.load(file)
+# initial_rewards /= len(initial_glob)
+# final_rewards = np.load(final_glob[0])
+# for file in final_glob[1:]:
+#     final_rewards += np.load(file)
+# final_rewards /= len(final_glob)
+# #initial_rewards = np.convolve(initial_rewards, np.ones((smooth,)) / smooth, mode='valid')
+# #final_rewards = np.convolve(final_rewards, np.ones((smooth,)) / smooth, mode='valid')
+# timesteps = np.arange(len(initial_rewards)) * 2500
+# plt.plot(timesteps, initial_rewards, label="Initial hyperparameters")
+# plt.plot(timesteps, final_rewards, label="Final hyperparameters")
+# plt.xlabel("Training steps")
+# plt.ylabel("Average reward")
+# plt.legend()
+# plt.savefig("../Thesis/img/impl/hyperparam_optim_initial_vs_final_sci.pdf")
 
 

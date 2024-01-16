@@ -2,6 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import os
+# import scienceplots
+#
+# plt.style.use(['science'])
+# plt.rcParams['font.size'] = 11
 
 matplotlib.use("pgf")
 matplotlib.rcParams.update({
@@ -11,21 +15,26 @@ matplotlib.rcParams.update({
     'pgf.rcfonts': False,
 })
 
+
 # Sigmoid function
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
+
 
 # Tanh function
 def tanh(x):
     return np.tanh(x)
 
+
 # ReLU function
 def relu(x):
     return np.maximum(0, x)
 
+
 # Leaky ReLU function
 def leaky_relu(x):
     return np.maximum(0.01 * x, x)
+
 
 # sign function
 def sign(x):
@@ -54,23 +63,39 @@ zeroLabel.set_transform(zeroLabel.get_transform() + offset)
 
 z = np.linspace(-10, 10, 100)
 
-a, = ax.plot(z, sigmoid(z), color='r')
-plt.savefig('sigmoid.pdf', dpi=300, bbox_inches='tight')
-a.remove()
+# plt.plot(z, sigmoid(z))
+# plt.savefig('sigmoid_sci.pdf')
+# plt.cla()
+#
+# plt.plot(z, tanh(z))
+# plt.savefig('tanh_sci.pdf')
+# plt.cla()
+#
+# plt.plot(z, relu(z))
+# plt.savefig('relu_sci.pdf')
+# plt.cla()
+#
+# plt.plot(z, leaky_relu(z))
+# plt.savefig('leaky_relu_sci.pdf')
+# plt.cla()
 
-b, = ax.plot(z, tanh(z), color='r')
-plt.savefig('tanh.pdf', dpi=300, bbox_inches='tight')
-b.remove()
-
-ax.yaxis.set_ticks([5, 10, -5, -10])
-
-c, = ax.plot(z, relu(z), color='r')
-plt.savefig('relu.pdf', dpi=300, bbox_inches='tight')
-c.remove()
-
-d, = ax.plot(z, leaky_relu(z), color='r')
-plt.savefig('leaky_relu.pdf', dpi=300, bbox_inches='tight')
-d.remove()
+# a, = ax.plot(z, sigmoid(z), color='r')
+# plt.savefig('sigmoid.pdf', dpi=300, bbox_inches='tight')
+# a.remove()
+#
+# b, = ax.plot(z, tanh(z), color='r')
+# plt.savefig('tanh.pdf', dpi=300, bbox_inches='tight')
+# b.remove()
+#
+# ax.yaxis.set_ticks([5, 10, -5, -10])
+#
+# c, = ax.plot(z, relu(z), color='r')
+# plt.savefig('relu.pdf', dpi=300, bbox_inches='tight')
+# c.remove()
+#
+# d, = ax.plot(z, leaky_relu(z), color='r')
+# plt.savefig('leaky_relu.pdf', dpi=300, bbox_inches='tight')
+# d.remove()
 
 
 
