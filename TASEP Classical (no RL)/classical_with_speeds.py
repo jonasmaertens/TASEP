@@ -8,6 +8,7 @@ import scienceplots
 
 plt.style.use(['science'])
 plt.rcParams['font.size'] = 11
+plt.rcParams['figure.figsize'] = (4.5, 3.2)  # (3,4) for truncnorm
 
 
 @njit
@@ -52,7 +53,7 @@ def simulate(sigma, log=True):
         currents = []
         # Beginning of a single run
         total_forward = 0
-        for move_attempt in range(N * totalMCS):
+        for move_attempt in range(totalSteps):
             # print("\n\n")
             # print(system)
             # print(move_attempt)
@@ -137,22 +138,23 @@ def evaluate():
     # current_128x6 = np.load(f"data/{path}sigma_vs_current_128x6.npy")
     # current_128x3 = np.load(f"data/{path}sigma_vs_current_128x3.npy")
     # current_128x4 = np.load(f"data/{path}sigma_vs_current_128x4.npy")
-    #current_128x5 = np.load(f"data/{path}sigma_vs_current_128x5.npy")
-    #current_128x2 = np.load(f"data/{path}sigma_vs_current_128x2.npy")
-    #current_128x1 = np.load(f"data/{path}sigma_vs_current_128x1.npy")
+    # current_128x5 = np.load(f"data/{path}sigma_vs_current_128x5.npy")
+    # current_128x2 = np.load(f"data/{path}sigma_vs_current_128x2.npy")
+    # current_128x1 = np.load(f"data/{path}sigma_vs_current_128x1.npy")
     sigmas = np.load(f"data/{path}sigma_vs_current_sigmas_{Ly}x{Lx}.npy")
     print(len(currents))
     # plt.figure(figsize=(6, 4))
+    # plt.plot(sigmas, currents, label="128x32")
     plt.plot(sigmas, currents, label="Random moves")
     plt.plot(sigmas, current_always_forward, label="Always forward")
-    #plt.plot(sigmas, current_128x6, label="128x6")
-    #plt.plot(sigmas, current_128x5, label="128x5")
-    #plt.plot(sigmas, current_128x4, label="128x4")
-    #plt.plot(sigmas, current_128x3, label="128x3")
-    #plt.plot(sigmas, current_128x2, label="128x2")
-    #plt.plot(sigmas, current_128x1, label="128x1")
+    # plt.plot(sigmas, current_128x6, label="128x6")
+    # plt.plot(sigmas, current_128x5, label="128x5")
+    # plt.plot(sigmas, current_128x4, label="128x4")
+    # plt.plot(sigmas, current_128x3, label="128x3")
+    # plt.plot(sigmas, current_128x2, label="128x2")
+    # plt.plot(sigmas, current_128x1, label="128x1")
     plt.legend()
-    plt.xlabel("Sigma (log scale)")
+    plt.xlabel(r"Standard deviation $\sigma$ (log scale)")
     plt.ylabel(f"Steady state current")
     # plt.title(f"Average current over {runsNumber} runs ({Ly}x{Lx})")
     plt.xscale("log")
@@ -188,6 +190,7 @@ def calc_indivual_sigmas():
         # plot
         plt.plot(times, currents, label=r"$\sigma$=" + f"{sigma}")
     plt.legend(ncol=2)
+    plt.ylim(0.038, 0.088)
     plt.xlabel("Timesteps")
     plt.ylabel(f"Current (moving avg.)")
     # plt.title(f"Average current over {runsNumber} runs")
@@ -216,10 +219,11 @@ def test_truncated_normal():
     # plt.xticks(np.arange(0, 1.01, 0.1))
     plt.xlabel("Speed")
     plt.ylabel("Probability density")
-    plt.savefig(f"plots/{path}truncated_normal.pdf")
+    plt.savefig(f"plots/{path}truncated_normal_small.pdf")
 
 
 if __name__ == '__main__':
+    totalSteps = 140 * 128 * 32
     totalMCS = 140  # Total number of Monte Carlo steps per single run
     runsNumber = 800  # Number of runs to average over
     Lx = 32  # Number of rows , width
@@ -228,15 +232,13 @@ if __name__ == '__main__':
     size = Lx * Ly
     current_averaging_time = int(N / 2) - 1  # Number of MCS to average over
     always_forward = False
-    path = "fixed/different_speeds/long/"
+    path = "fixed/different_speeds/longer/"
     if always_forward:
         path += "always_forward/"
     os.makedirs(f"plots/{path}", exist_ok=True)
     os.makedirs(f"data/{path}", exist_ok=True)
-    current_averaging_time = 1
-    calc_indivual_sigmas()
+    # current_averaging_time = 1
+    # calc_indivual_sigmas()
     # calc_sigma_vs_current()
-    # evaluate()
+    evaluate()
     # test_truncated_normal()
-
-
