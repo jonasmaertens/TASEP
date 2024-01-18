@@ -116,8 +116,12 @@ class Trainer(TrainerInterface):
         self.ax_current.yaxis.label.set_color("blue")
         self.ax_reward.yaxis.label.set_color("red")
         plt.tight_layout()
-        plt.subplots_adjust(right=0.9)
-        plt.subplots_adjust(left=0.1)
+        plt.subplots_adjust(right=0.89)
+        plt.subplots_adjust(left=0.11)
+        # force scientific notation on all axes
+        self.ax_current.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))
+        self.ax_current.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+        self.ax_reward.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
 
     @classmethod
     def load(cls, model_id=None, sigma=None, total_steps=None, average_window=None, do_plot=None,
