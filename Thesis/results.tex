@@ -27,7 +27,7 @@ This section will use the classical 2D (T)ASEP as introduced in section \ref{sec
 
 \subsection{Finding the Steady State}
 
-When we want to compare the average current of different ASEP configurations, we have to make sure that the system has reached a steady state. The steady state has been reached when the current fluctuates around a constant mean value without an overall upwards or downwards trend. The time it takes to reach the steady state depends on the system size, the density and the initial conditions. When using a checkerboard setup for example, it's intuitive that the current will be very high in the beginning of the simulation, as every particle has an empty site in front of it and can move forward. As time passes, the probability of being able to move forward decreases (for different reasons that we will examine in the next paragraphs), and the mean current drops. 
+When we want to compare the average current of different ASEP configurations, we have to make sure that the system has reached a steady state. The steady state has been reached when the current fluctuates around a constant mean value without an overall upwards or downwards trend. The time it takes to reach the steady state depends on the system size, the density and the initial conditions. When using a checkerboard setup for example, it's intuitive that the current will be very high in the beginning of the simulation, as every particle has an empty site in front of it and can move forward. As time passes, the probability of being able to move forward decreases (for different reasons that we will examine in the next paragraphs), and the mean current drops, asymptotically approaching the steady state current.
 \\
 \\
 Figures \ref{fig:currents_fixed_sigma_128x32} and \ref{fig:currents_fixed_sigma_128x3} show the current as a function of time steps since initialization of the system to the checkerboard pattern for different speed distribution standard deviations $\sigma$. We can see that for small $\sigma$, when all particles have similar speeds, the current converges quickly and reaches a steady state after about 100,000-150,000 time steps. For larger $\sigma$, particles have different speeds and the equilibration phase takes longer, as jams form and dissolve and slow particles move very rarely. For $\sigma = 5$, especially in the narrow system (Fig. \ref{fig:currents_fixed_sigma_128x3}), we see that the steady state is still not quite reached after 300,000 time steps. 
@@ -58,13 +58,50 @@ For the following experiments, the steady state current will be calculated by ru
 
 
 \section{Steady State Current as a Function of System Size and Speed Distribution}
+\label{sec:steady_state_current}
+Now that we have established a definition of what is to be measured and how this measurement can be done from the simulation data, we can check if the measured steady state current is in accord with our intuition and how it depends on the system parameters. 
 
-\begin{figure}[h]
+\subsection{Theoretical Expectation}
+\label{sec:theoretical_expectations}
+In order to derive an expression for the expected value of the current, we closely examine what happens during one time step. This will help us to understand the probability of an actual forward move happening during one time step, which, by our definition, is the current.
+\\
+The following steps are performed during one time step:
+\begin{enumerate}
+    \item Pick a random grid cell.
+    \item If the cell is occupied (probability $p_{occ}=\rho=0.5$), perform a move attempt as follows:
+    \item Check the speed: The move attempt is continued with probability $p_{spd}=\text{speed}$.
+    \item If the move attempt is continued, pick a direction (forward has probability $p=1/2$).
+    \item If the target cell is empty (probability $p_{emp}\approx 1-\rho$), perform the move.
+\end{enumerate}
+Where the expression $p_{emp}\approx 1-\rho$ only holds for an approximately uniform density distribution throughout the system. The average speed $\bar{v} = /bar{p_{spd}}$ is the expectation value $\mu$ of the speed distribution, which is set to $0.5$ in all experiments. The total probability of a forward move in one time step is the product of the probabilities of the individual steps:
+\begin{align}
+    \langle J\rangle &\coloneqq p_{occ} \cdot p_{spd} \cdot p \cdot p_{emp} \label{eq:current_theory} \\
+                     &\approx p \cdot \mu \cdot \rho (1-\rho) = \left(\frac{1}{2}\right)^4 \nonumber \\
+                     &= 0.0625 \nonumber
+\end{align}
+More thorough derivations of this expression for ASEP systems with equal speeds can be found in the literature, for example in \cite[section 2.3.2]{daquila_monte_nodate}.
+
+
+\subsection{Results of the Simulation}
+\label{sec:results_simulation_current_sigma_size}
+Figure \ref{fig:steady_state_current_sizes_log} shows the steady state current as a function of the speed distribution's standard deviation $\sigma$ for different system sizes. The steady state current has been obtained as explained previously and the data is averaged over 800 independent runs. For all system sizes, we observe a constant maximum current for $\sigma \ll 1$ that is only very slightly above the expected value of $0.0625$. The slight increase is probably due to the fact that the steady state is only reached in the limit of infinite time. Although being very close, after 450,000 time steps, the current is still dropping a tiny amount, as can be seen in figure \ref{fig:currents_fixed_sigma_128x3}. 
+\\
+As the width of the speed distribution grows to values of $\sigma \approx 1$, the current drops quickly before asymptotically converging to the minimum value, following a horizontally inverted logistic function. The logistic curve's midpoint is at $\sigma_0 \approx 0.2$ and the width of the transition is $\Delta \sigma \approx 1$. This makes sense, as the speed distribution is truncated at $0$ and $1$, so for values of $\sigma$ close to $0$, all particles have speeds close to $0.5$ and the current is close to its maximum value. When $\sigma$ grows, the speeds in the system get more and more diverse, until $\sigma$ reaches $1$, where the speed distribution is almost uniform and doesn't change much anymore. 
+\\
+The current drops although the mean speed in the system is still the same, because the probability of a particle moving forward is not only dependent on its own speed, but also indirectly on the speeds of the particles in front of it. The slow particles bottleneck the current as the fast particles have to wait for them to move forward, creating a jam. This effect is more pronounced in narrower systems, as small jams block a higher proportion of the system. In wide systems, particles can avoid jams by moving around them, and even if there's a jam in almost every lane, the probability of these jams to all be in the same column is very low. In narrow systems, this can happen, forming a wall of slow particles, which is hard to penetrate. This is clearly visible in figure \ref{fig:steady_state_current_sizes_log}, where the total drop in current is much higher for narrow systems. 
+\\
+\\
+Looking back at equation \ref{eq:current_theory}, we can also try to explain this behavior theoretically. When jams form, the density in the system is not uniform anymore. Instead, there are regions of high density (jams) and regions of low density (empty lanes). This increases the mean denisty in the neighborhood of a random particle, decreasing $p_{emp}=(1-\rho)$ and thus the probability of a forward move.  
+
+\begin{figure}[H]
     \centering
     \includegraphics{steady_state_current_sizes_log.pdf}
     \caption{Steady state current as a function of the speed distribution's standard deviation $\sigma$ for different system sizes. Steady state current is calculated as the average current over all remaining time steps after the steady state has been reached (the current has stopped dropping). The data is averaged over 800 independent runs.}
     \label{fig:steady_state_current_sizes_log}
 \end{figure}
+
+\section{A Naive Policy}
+
 
 \begin{figure}[h]
     \centering
