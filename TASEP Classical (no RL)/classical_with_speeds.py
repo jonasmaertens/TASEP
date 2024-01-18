@@ -231,14 +231,14 @@ if __name__ == '__main__':
     N = Lx * Ly // 2
     size = Lx * Ly
     current_averaging_time = int(N / 2) - 1  # Number of MCS to average over
-    always_forward = False
+    always_forward = True
     path = "fixed/different_speeds/longer/"
     if always_forward:
         path += "always_forward/"
     os.makedirs(f"plots/{path}", exist_ok=True)
     os.makedirs(f"data/{path}", exist_ok=True)
-    # current_averaging_time = 1
-    # calc_indivual_sigmas()
+    current_averaging_time = 1
+    calc_indivual_sigmas()
     # calc_sigma_vs_current()
-    evaluate()
+    # evaluate()
     # test_truncated_normal()
