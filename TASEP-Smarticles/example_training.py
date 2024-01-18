@@ -5,14 +5,14 @@ import torch.nn as nn
 
 if __name__ == '__main__':
     envParams = EnvParams(render_mode="human",
-                          length=100,
-                          width=10,
+                          length=128,
+                          width=24,
                           moves_per_timestep=200,
-                          window_height=100,
+                          window_height=200,
                           observation_distance=2,
                           distinguishable_particles=True,
                           initial_state_template="checkerboard",
-                          social_reward=0.8,
+                          social_reward=False,
                           #density=0.5,
                           use_speeds=True,
                           sigma=5,
@@ -38,7 +38,6 @@ if __name__ == '__main__':
                               MEMORY_SIZE=1_000_000)
 
     trainer = Trainer(envParams, hyperparams, reset_interval=3000_000,
-                      total_steps=3000_000, do_plot=True, plot_interval=4000, random_density=False, new_model=True,
-                      different_models=True, num_models=4, prio_exp_replay=False, activation_function=nn.Sigmoid())
+                      total_steps=3000_000, do_plot=True, plot_interval=4000, new_model=True)
 
     trainer.train_and_save()

@@ -8,7 +8,7 @@ import scienceplots
 
 plt.style.use(['science'])
 plt.rcParams['font.size'] = 11
-plt.rcParams['figure.figsize'] = (4.5, 3.2)  # (3,4) for truncnorm
+plt.rcParams['figure.figsize'] = (3, 3.5)  # (4.5, 3.2) for truncnorm
 
 
 @njit
@@ -240,5 +240,5 @@ if __name__ == '__main__':
     # current_averaging_time = 1
     # calc_indivual_sigmas()
     # calc_sigma_vs_current()
-    evaluate()
-    # test_truncated_normal()
+    # evaluate()
+    test_truncated_normal()
