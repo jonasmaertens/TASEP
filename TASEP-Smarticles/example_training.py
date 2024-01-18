@@ -1,7 +1,6 @@
 # import sys
 # sys.path.append('src/SmartTasep/') # uncomment this line if PYTHNONPATH is not set in IDE
 from Trainer import Trainer, Hyperparams, EnvParams
-import torch.nn as nn
 
 if __name__ == '__main__':
     envParams = EnvParams(render_mode="human",
@@ -12,10 +11,10 @@ if __name__ == '__main__':
                           observation_distance=2,
                           distinguishable_particles=True,
                           initial_state_template="checkerboard",
-                          social_reward=False,
+                          social_reward=True,
                           #density=0.5,
                           use_speeds=True,
-                          sigma=5,
+                          sigma=0.00001,
                           allow_wait=True,
                           # social_reward=0.8,
                           invert_speed_observation=True,
@@ -28,16 +27,16 @@ if __name__ == '__main__':
                           #choices=4,
                           # speed_gradient_linearity=0.1,
                           )
-    hyperparams = Hyperparams(BATCH_SIZE=64,
-                              GAMMA=0.8,
+    hyperparams = Hyperparams(BATCH_SIZE=32,
+                              GAMMA=0.85,
                               EPS_START=0.9,
                               EPS_END=0.05,
-                              EPS_DECAY=300_000,
+                              EPS_DECAY=100_000,
                               TAU=0.005,
-                              LR=0.005,
+                              LR=0.001,
                               MEMORY_SIZE=1_000_000)
 
-    trainer = Trainer(envParams, hyperparams, reset_interval=3000_000,
-                      total_steps=3000_000, do_plot=True, plot_interval=4000, new_model=True)
+    trainer = Trainer(envParams, hyperparams,
+                      total_steps=1_000_000, do_plot=True, plot_interval=4000, new_model=True)
 
     trainer.train_and_save()

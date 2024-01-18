@@ -77,9 +77,9 @@ Where the expression $p_{emp}\approx 1-\rho$ only holds for an approximately uni
 \begin{align}
     \langle J\rangle &\coloneqq p_{occ} \cdot p_{spd} \cdot p \cdot p_{emp} \label{eq:current_theory} \\
                      &\approx p \cdot \mu \cdot \rho (1-\rho) = \left(\frac{1}{2}\right)^4 \nonumber \\
-                     &= 0.0625 \nonumber
+                     &= 0.0625 \text{.}\nonumber
 \end{align}
-More thorough derivations of this expression for ASEP systems with equal speeds can be found in the literature, for example in \cite[section 2.3.2]{daquila_monte_nodate}.
+More thorough derivations of this expression for ASEP systems with equal speeds can be found in the literature, for example in \cite[section 2.3.2]{daquila_monte_nodate}. Equation \ref{eq:current_theory} also confirms that our choice of the density $\rho=1/2$ is optimal for maximizing the current in the system, as the maximum of the function $f(\rho) = \rho(1-\rho)$ is at $\rho=1/2$.
 
 
 \subsection{Results of the Simulation}
@@ -91,7 +91,7 @@ As the width of the speed distribution grows to values of $\sigma \approx 1$, th
 The current drops although the mean speed in the system is still the same, because the probability of a particle moving forward is not only dependent on its own speed, but also indirectly on the speeds of the particles in front of it. The slow particles bottleneck the current as the fast particles have to wait for them to move forward, creating a jam. This effect is more pronounced in narrower systems, as small jams block a higher proportion of the system. In wide systems, particles can avoid jams by moving around them, and even if there's a jam in almost every lane, the probability of these jams to all be in the same column is very low. In narrow systems, this can happen, forming a wall of slow particles, which is hard to penetrate. This is clearly visible in figure \ref{fig:steady_state_current_sizes_log}, where the total drop in current is much higher for narrow systems. 
 \\
 \\
-Looking back at equation \ref{eq:current_theory}, we can also try to explain this behavior theoretically. When jams form, the density in the system is not uniform anymore. Instead, there are regions of high density (jams) and regions of low density (empty lanes). This increases the mean denisty in the neighborhood of a random particle, decreasing $p_{emp}=(1-\rho)$ and thus the probability of a forward move.  
+Looking back at equation \ref{eq:current_theory}, we can also try to explain this behavior theoretically. When jams form, the density in the system is not uniform anymore. Instead, there are regions of high density (jams) and regions of low density (empty lanes). This increases the mean density in the neighborhood of a random particle, decreasing $p_{emp}=(1-\rho)$ and thus the probability of a forward move.  
 
 \begin{figure}[H]
     \centering
@@ -101,7 +101,26 @@ Looking back at equation \ref{eq:current_theory}, we can also try to explain thi
 \end{figure}
 
 \section{A Naive Policy}
-
+We have now established a baseline current for different system sizes and speed distributions. Before we move on to the smarticle training to try to optimize the current with reinforcement learning, let's see if we can improve the current with a simple hard-coded policy. 
+\\
+One of the simplest and yet effective policies is to always move forward if possible. Especially when we choose $\sigma$ to be very small and all particles have similar speeds, this policy should be very effective, as it keeps the density uniform and avoids jams. Furthermore, it is very easy to implement without writing any new code by just setting the probability $p$ to move forward to $1$ and all other probabilities ($a,b,q$) to $0$.
+\\
+\\
+Figure \ref{fig:steady_state_current_always_forward} compares the steady state current of this policy with the current from the last experiment, again as a function of the width of the truncated normal distribution. We can see that for small $\sigma$, our policy drastically improves the current, approximately doubling it. For larger $\sigma$, the current drops as before and drops even further, resulting in only about half the current of the baseline for $\sigma\gg 1$. 
+\\
+\\
+The reason for the extreme drop in current is that the policy is not able to deal with jams at all. The current in each lane is limited to the speed of the slowest particle in that lane. The resulting measured current then is the average of the currents in all lanes. 
+\\
+The current achieved by this policy for small $\sigma$ is even more interesting. It is the maximum current achievable by any policy in the TASEP with density $\rho=1/2$ and equal speeds $v=0.5$. I will not formally prove this statement here, but it is easy to see when looking at equation \ref{eq:current_theory}. Let's try to find this maximum analytically:
+\begin{align*}
+    \max(\langle J\rangle) &= \max(p_{occ} \cdot p_{spd} \cdot p \cdot p_{emp}) \\
+                           &\le \max(p_{occ}) \cdot \max(p_{spd}) \cdot \max(p) \cdot \max(p_{emp}) \\
+                           &= \rho \cdot \mu \cdot 1 \cdot (1-\rho) \\
+                            &= 0.125 \text{,}
+\end{align*}
+where I have set $p_{occ}=\rho$, $p_{spd}=\mu$, as they are external parameters that cannot be optimized by a policy. The policy cannot influence which particle is picked at a given timestep, so it cannot influence $p_{occ}$. The \textit{average} speed of a random particle will also always be the mean speed $\mu$. The maximum of $p$ that any policy can have is obviously $1$ (in general, this will not be a probability when using a policy, but the decision will be based on the particle's observation, but the maximum fraction of forward decisions is still 1). The maximum of $p_{emp}$ is $1-\rho$. This is a little harder to see. 
+\\
+For a density of $\rho=1/2$ and equal speeds, the optimal configuration of the system is a checkerboard pattern of particles and holes. In this configuration, every particle could move forward upon being picked ($p_{emp}=1$). As soon as one particle moves forward, we leave the optimal configuration and the probability of a forward move drops. This continues while the system becomes shuffled by the random picking of particles. As the policy cannot influence which particle is picked at each time step, the only way of preserving the shuffling that leads to a random configuration with $p_{emp}=1-\rho$ is to not move forward during time steps where a forward move would be possible. Policies can optimize the system's configuration in a way that \textit{temporarily} increases the current, but this will always be at the cost of a lower current in the future. %For different speeds we can optimize,,,
 
 \begin{figure}[h]
     \centering
