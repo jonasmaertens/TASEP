@@ -8,7 +8,7 @@ import scienceplots
 
 plt.style.use(['science'])
 plt.rcParams['font.size'] = 11
-plt.rcParams['figure.figsize'] = (3, 3.5)  # (4.5, 3.2) for truncnorm
+plt.rcParams['figure.figsize'] = (4.5, 3.2)  # (3, 3.5) for truncnorm
 
 
 @njit
@@ -145,8 +145,8 @@ def evaluate():
     print(len(currents))
     # plt.figure(figsize=(6, 4))
     # plt.plot(sigmas, currents, label="128x32")
-    plt.plot(sigmas, currents, label="Random moves")
-    plt.plot(sigmas, current_always_forward, label="Always forward")
+    plt.plot(sigmas[:-40], currents[:-40], label="Random moves")
+    # plt.plot(sigmas, current_always_forward, label="Always forward")
     # plt.plot(sigmas, current_128x6, label="128x6")
     # plt.plot(sigmas, current_128x5, label="128x5")
     # plt.plot(sigmas, current_128x4, label="128x4")
@@ -157,9 +157,9 @@ def evaluate():
     plt.xlabel(r"Standard deviation $\sigma$ (log scale)")
     plt.ylabel(f"Steady state current")
     # plt.title(f"Average current over {runsNumber} runs ({Ly}x{Lx})")
-    plt.xscale("log")
+    # plt.xscale("log")
     # plt.ylim(0.0485, 0.066)
-    plt.savefig(f"plots/{path}steady_state_current_both_log.pdf")
+    plt.savefig(f"plots/{path}steady_state_current_both_nonlog.pdf")
 
 
 def calc_sigma_vs_current():
@@ -240,5 +240,5 @@ if __name__ == '__main__':
     # current_averaging_time = 1
     # calc_indivual_sigmas()
     # calc_sigma_vs_current()
-    # evaluate()
-    test_truncated_normal()
+    evaluate()
+    # test_truncated_normal()
