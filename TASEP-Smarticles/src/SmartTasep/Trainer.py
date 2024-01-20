@@ -565,8 +565,15 @@ class Trainer(TrainerInterface):
                 self.timesteps.append(self.steps_done)
                 pbar.set_description(f"Current: {self.currents[-1]:.2f}")
                 if self.do_plot:
+                    # clear previous plot
+                    for artist in self.ax_current.lines + self.ax_reward.lines:
+                        artist.remove()
                     self.ax_current.plot(self.timesteps, self.currents, color="blue")
                     self.ax_reward.plot(self.timesteps, self.rewards, color="red")
+                    # plot average current in green
+                    self.ax_current.plot(self.timesteps,
+                                         np.ones(len(self.timesteps)) * np.mean(self.currents[-100:]),
+                                         color="green")
 
     def _get_model_id(self):
         if self.diff_models:
@@ -671,3 +678,12 @@ class Trainer(TrainerInterface):
     def train_and_save(self, path="by_id"):
         self.train()
         return self.save(path)
+
+    def save_run_data_for_plot(self, name):
+        # create directory if it doesn't exist
+        os.makedirs(f"data/{name}/")
+        # save currents
+        np.save(f"data/{name}/currents.npy", self.currents)
+        # save timesteps
+        np.save(f"data/{name}/timesteps.npy", self.timesteps)
+

@@ -7,6 +7,7 @@ from Hasel import hsl2rgb
 from Trainer import Trainer
 from GridEnvironment import invert_speed_obs
 import json
+import datetime
 
 choose_model = Trainer.choose_model
 
@@ -91,12 +92,17 @@ class Playground:
                         self.draw_background_and_arrow()
                         self.draw_matrix(self.state.T)
                         self.draw_matrix(self.next_state.T, right=True)
+                        self.draw_grid()
                         self.screen.blit(text,
                                          (self.length * 50 + 50 - text.get_width() / 2, self.length / 2 * 50 + 50))
                         pygame.display.flip()
                 # when the mouse button is released, the particle at the mouse position is toggled
                 elif event.type == pygame.MOUSEBUTTONUP:
                     pos = self.mouse_down_pos
+                    # if clicked on the right matrix, save an image of the current screen, with timestamp as filename
+                    if pos[0] > 50 * self.length + 100:
+                        os.makedirs("plots/playground", exist_ok=True)
+                        pygame.image.save(self.screen, f"plots/playground/{datetime.datetime.now()}.png")
                     # only toggle the particle if the initial click is inside the left matrix and the mouse was not
                     # dragged. If the mouse was dragged, the particle speed is already set
                     if self.dragging_distance < 0.05 and not (

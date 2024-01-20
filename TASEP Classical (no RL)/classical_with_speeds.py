@@ -159,7 +159,7 @@ def evaluate():
     # plt.title(f"Average current over {runsNumber} runs ({Ly}x{Lx})")
     # plt.xscale("log")
     # plt.ylim(0.0485, 0.066)
-    plt.savefig(f"plots/{path}steady_state_current_both_nonlog.pdf")
+    plt.savefig(f"plots/{path}test.pdf")
 
 
 def calc_sigma_vs_current():
@@ -231,14 +231,14 @@ if __name__ == '__main__':
     N = Lx * Ly // 2
     size = Lx * Ly
     current_averaging_time = int(N / 2) - 1  # Number of MCS to average over
-    always_forward = True
+    always_forward = False
     path = "fixed/different_speeds/longer/"
     if always_forward:
         path += "always_forward/"
     os.makedirs(f"plots/{path}", exist_ok=True)
     os.makedirs(f"data/{path}", exist_ok=True)
-    current_averaging_time = 1
-    calc_indivual_sigmas()
+    # current_averaging_time = 1
+    # calc_indivual_sigmas()
     # calc_sigma_vs_current()
-    # evaluate()
+    evaluate()
     # test_truncated_normal()

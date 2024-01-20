@@ -111,20 +111,50 @@ Figure \ref{fig:steady_state_current_always_forward} compares the steady state c
 \\
 The reason for the extreme drop in current is that the policy is not able to deal with jams at all. The current in each lane is limited to the speed of the slowest particle in that lane. The resulting measured current then is the average of the currents in all lanes. 
 \\
-The current achieved by this policy for small $\sigma$ is even more interesting. It is the maximum current achievable by any policy in the TASEP with density $\rho=1/2$ and equal speeds $v=0.5$. I will not formally prove this statement here, but it is easy to see when looking at equation \ref{eq:current_theory}. Let's try to find this maximum analytically:
-\begin{align*}
-    \max(\langle J\rangle) &= \max(p_{occ} \cdot p_{spd} \cdot p \cdot p_{emp}) \\
-                           &\le \max(p_{occ}) \cdot \max(p_{spd}) \cdot \max(p) \cdot \max(p_{emp}) \\
-                           &= \rho \cdot \mu \cdot 1 \cdot (1-\rho) \\
-                            &= 0.125 \text{,}
-\end{align*}
-where I have set $p_{occ}=\rho$, $p_{spd}=\mu$, as they are external parameters that cannot be optimized by a policy. The policy cannot influence which particle is picked at a given timestep, so it cannot influence $p_{occ}$. The \textit{average} speed of a random particle will also always be the mean speed $\mu$. The maximum of $p$ that any policy can have is obviously $1$ (in general, this will not be a probability when using a policy, but the decision will be based on the particle's observation, but the maximum fraction of forward decisions is still 1). The maximum of $p_{emp}$ is $1-\rho$. This is a little harder to see. 
-\\
-For a density of $\rho=1/2$ and equal speeds, the optimal configuration of the system is a checkerboard pattern of particles and holes. In this configuration, every particle could move forward upon being picked ($p_{emp}=1$). As soon as one particle moves forward, we leave the optimal configuration and the probability of a forward move drops. This continues while the system becomes shuffled by the random picking of particles. As the policy cannot influence which particle is picked at each time step, the only way of preserving the shuffling that leads to a random configuration with $p_{emp}=1-\rho$ is to not move forward during time steps where a forward move would be possible. Policies can optimize the system's configuration in a way that \textit{temporarily} increases the current, but this will always be at the cost of a lower current in the future. %For different speeds we can optimize,,,
-
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics{steady_state_current_both_log.pdf}
     \caption{Steady state current as a function of the speed distribution's standard deviation $\sigma$ for two different ASEP configurations. \enquote{Random moves} has a probability of $p=1/2$ to move forward probabilities $a=b=1/4$ to move up/down. \enquote{Always forward} has $p=1$ and $a=b=0$. A system of size 128x32 was used. The data is averaged over 800 independent runs.}
     \label{fig:steady_state_current_always_forward}
+\end{figure}
+The current achieved by this policy for small $\sigma$ is even more interesting. It can be used as a new, very strong baseline for the smarticle training in systems with equal speeds. At first glance, it might even seem like the theoretical maximum current. Finding this maximum analytically is not trivial and goes beyond the scope of this thesis. However, we can try to find an upper bound for the current by looking at equation \ref{eq:current_theory} again:
+\begin{align*}
+    \max(\langle J\rangle) &= \max(p_{occ} \cdot p_{spd} \cdot p \cdot p_{emp}) \\
+                           &\le \max(p_{occ}) \cdot \max(p_{spd}) \cdot \max(p) \cdot \max(p_{emp}) \\
+                           &= \rho \cdot \mu \cdot 1 \cdot \max(p_{emp}) \\
+                            &= 0.25 \cdot \max(p_{emp})\text{,}
+\end{align*}
+where $\max(x)$ is the maximum expected value of $x$ at a random time step, for a randomly picked particle. It therefore represents the maximum time-averaged value of $x$ that can be achieved by any policy. I have set $p_{occ}=\rho$, $p_{spd}=\mu$, as they are external parameters that cannot be optimized by a policy. The policy cannot influence which particle is picked at a given time step, so it cannot influence $p_{occ}$. The \textit{average} speed of a random particle will also always be the mean speed $\mu$. The maximum of $p$ that any policy can have is obviously $1$ (in general, this will not be a probability when using a policy, but the decision will be based on the particle's observation, but the maximum fraction of forward decisions is still 1). 
+\\
+The last factor, $max(p_{emp})$, is the hardest to approximate. There are configurations where $p_{emp}$ reaches its maximum value of $1$, but these configurations cannot last longer than one time step. In the checkerboard configuration for example, every particle has an empty site in front of it, so $p_{emp}=1$. However, as soon as one particle moves forward, two particles are immediately next to each other and $p_{emp}$ decreases. We therefore know that $\max(p_{emp})<1$.
+\\
+On the other hand, we know that $\max(p_{emp})\ge0.5=(1-\rho)$, as this upper bound is reached by the \enquote{always forward} policy. This places the upper bound for the current at
+\begin{equation}
+    0.25 > \max(\langle J\rangle) \ge 0.25 \cdot (1-\rho) = 0.125 \text{.}
+\end{equation}
+In order to keep $p_{emp}$ above $1-\rho$, which it would be for a randomized configuration, a policy has to intelligently fight against the disorder inevitably introduced by the random picking of particles. This is especially hard for systems with equal speeds, as the density in these systems has to be kept uniform, while also moving forward as often as possible.
+\\
+In the regime of high $\sigma$, where the \enquote{always forward} policy performs very poorly, $p_{emp}$ becomes a very interesting point of attack for a current-optimizing policy. When particles have very different speeds, a policy can organize the system in a way that slow particles are more densely packed than fast particles, increasing $p_{emp}$ for the fast particles while decreasing it for the slow particles. This increases the net current, as the fast particles can fulfill their potential to move forward more often. We will investigate this in more detail in the next sections.
+
+
+\section{Smarticles for Current Optimization}
+\label{sec:smarticle_current_optimization}
+This section will present the results of different smarticle trainings for slightly different goals. The main goal is always to maximize the current, but we will different approaches to achieve this goal, utilizing many of the features of the python package introduced in section \ref{sec:implementation-smarttasep}. Although the deep Q-learning algorithm is not deterministic e.g. due to the random initialization of the neural network weights, the results presented here have shown to be reproducible. Appendix \ref{app:code} contains the code that is needed to reproduce the results with the smart TASEP python package.
+
+\subsection{First Training: Equal Speeds}
+As a first experiment, we will try to maximize the current in a system with equal speeds. We will use a system of size $128 \times 24$ and a speed distribution with $\sigma=10^-4$. The reward structure for this first experiment is very simple and includes only the \texttt{social\_reward} in addition to the default reward. Optimal hyperparameters for this reward structure have already been found in section \ref{sec:hyperparam_optim}. The training was run for 500,000 time steps, with a reset of the environment after every 100,000 time steps.
+\\
+Figure \ref{fig:first_training_screenshot} shows a screenshot of the real-time visualization of the training after $\approx 350,000$ time steps. We can see that the training is almost converged at this point, confirming that $500,000$ time steps is enough to reach convergence for this problem. After the training, the simulation was run with a greedy policy for another $1.5$ million time steps to measure the steady state current. The results are shown in figure 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{first_training_screenshot.png}
+    \caption{A screenshot of the real-time visualization of the first training, taken after $\approx 350,000$ time steps. All particles have the same speed of $0.5$, which can also be seen from their yellow color. We can see that the algorithm has almost converged at this point.}
+    \label{fig:first_training_screenshot}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics{equal_speeds.pdf}
+    \caption{Steady state current as a function of the simulation time for the first trained smarticle agent. The green line shows the average current, which is at about $0.152$, outperforming not just the baseline by about 143\%, but also the \enquote{always forward} policy by about 22\%.}
 \end{figure}
