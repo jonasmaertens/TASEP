@@ -229,13 +229,14 @@ class GridEnv(gym.Env, GridEnvInterface):
     def _get_obs(self, new_mover=True):
         # simulate sometimes picking an empty cell by checking a random number against the density
         # in that case, increment the time and pick a new cell until a non-empty cell is found
-        while np.random.random() > self.density:
-            self.avg_window_time += 1
-            self.total_timesteps += 1
 
         # Select a random agent (a grid cell that is currently set to 1) and return
         # the observation of the grid around it
         if new_mover:
+            while np.random.random() > self.density:
+                self.avg_window_time += 1
+                self.total_timesteps += 1
+
             agent_indices = np.argwhere(self.state != 0)
             self.current_mover = agent_indices[self.np_random.integers(len(agent_indices))]
         # The observation is a square of size `self.observation_distance * 2 + 1`

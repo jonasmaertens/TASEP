@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import TypedDict, Iterable
 
-import matplotlib.pyplot
-
 from GridEnvironment import EnvParams
 from DQN import DQN
 import torch.optim as optim
@@ -178,7 +176,7 @@ class TrainerInterface(ABC):
 
     @staticmethod
     @abstractmethod
-    def move_figure(f: matplotlib.pyplot.Figure, x: int, y: int):
+    def move_figure(f, x: int, y: int):
         """
         Moves the figure f to the position (x, y)
         """

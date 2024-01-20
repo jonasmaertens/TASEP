@@ -8,20 +8,18 @@ if __name__ == '__main__':
                           width=24,
                           moves_per_timestep=200,
                           window_height=200,
-                          observation_distance=2,
+                          observation_distance=3,
                           distinguishable_particles=True,
                           initial_state_template="checkerboard",
                           social_reward=True,
-                          #density=0.5,
+                          # density=0.5,
                           use_speeds=True,
-                          sigma=0.00001,
+                          sigma=0.0001,
                           allow_wait=True,
-                          # social_reward=0.8,
                           invert_speed_observation=True,
                           speed_observation_threshold=0.35,
                           #punish_inhomogeneities=True,
                           #inh_rew_idx=1,
-                          # density=0.2,
                           #speed_gradient_reward=False,
                           #binary_speeds=True,
                           #choices=4,
@@ -34,9 +32,9 @@ if __name__ == '__main__':
                               EPS_DECAY=100_000,
                               TAU=0.005,
                               LR=0.001,
-                              MEMORY_SIZE=1_000_000)
+                              MEMORY_SIZE=500_000)
 
-    trainer = Trainer(envParams, hyperparams,
-                      total_steps=1_000_000, do_plot=True, plot_interval=4000, new_model=True)
+    trainer = Trainer(envParams, hyperparams, reset_interval=100_000,
+                      total_steps=500_000, do_plot=True, plot_interval=4000, new_model=True)
 
     trainer.train_and_save()
