@@ -144,17 +144,21 @@ This section will present the results of different smarticle trainings for sligh
 \subsection{First Training: Equal Speeds}
 As a first experiment, we will try to maximize the current in a system with equal speeds. We will use a system of size $128 \times 24$ and a speed distribution with $\sigma=10^-4$. The reward structure for this first experiment is very simple and includes only the \texttt{social\_reward} in addition to the default reward. Optimal hyperparameters for this reward structure have already been found in section \ref{sec:hyperparam_optim}. The training was run for 500,000 time steps, with a reset of the environment after every 100,000 time steps.
 \\
-Figure \ref{fig:first_training_screenshot} shows a screenshot of the real-time visualization of the training after $\approx 350,000$ time steps. We can see that the training is almost converged at this point, confirming that $500,000$ time steps is enough to reach convergence for this problem. After the training, the simulation was run with a greedy policy for another $1.5$ million time steps to measure the steady state current. The results are shown in figure 
-
-\begin{figure}
+\\
+Figure \ref{fig:first_training_screenshot} shows a screenshot of the real-time visualization of the training after $\approx 350,000$ time steps. We can see that the training is almost converged at this point, confirming that $500,000$ time steps is enough to reach convergence for this problem. After the training, the simulation was run with a greedy policy for another $1.5$ million time steps to measure the steady state current. The results are shown in figure \ref{fig:equal_speeds}. 
+\\
+\\
+We can see that the steady state is reached fairly quickly compared to the stochastic policies. The current fluctuates around a mean value of $0.152$, which is about 143\% higher than the baseline and about 22\% higher than the \enquote{always forward} policy. The amplitude of the fluctuations is about $0.03$, which is about 20\% of the mean value, but the lowest current measured is still higher than the \enquote{always forward} policy's current. 
+\begin{figure}[h]
     \centering
     \includegraphics[width=\textwidth]{first_training_screenshot.png}
     \caption{A screenshot of the real-time visualization of the first training, taken after $\approx 350,000$ time steps. All particles have the same speed of $0.5$, which can also be seen from their yellow color. We can see that the algorithm has almost converged at this point.}
     \label{fig:first_training_screenshot}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[h]
     \centering
     \includegraphics{equal_speeds.pdf}
     \caption{Steady state current as a function of the simulation time for the first trained smarticle agent. The green line shows the average current, which is at about $0.152$, outperforming not just the baseline by about 143\%, but also the \enquote{always forward} policy by about 22\%.}
+    \label{fig:equal_speeds}
 \end{figure}
