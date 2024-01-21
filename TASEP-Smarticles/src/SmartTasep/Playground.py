@@ -51,7 +51,7 @@ class Playground:
         # init pygame
         pygame.init()
         pygame.font.init()
-        self.screen = pygame.display.set_mode((self.length * 100 + 100, self.length * 50))
+        self.screen = pygame.display.set_mode((self.length * 100 + 100 + 1, self.length * 50 + 1))
         self.font = pygame.font.SysFont("Arial", 20)
         pygame.display.set_caption("Smart TASEP")
         self.draw_background_and_arrow()

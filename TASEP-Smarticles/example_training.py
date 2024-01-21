@@ -14,7 +14,7 @@ if __name__ == '__main__':
                           social_reward=True,
                           # density=0.5,
                           use_speeds=True,
-                          sigma=0.0001,
+                          sigma=10,
                           allow_wait=True,
                           invert_speed_observation=True,
                           speed_observation_threshold=0.35,

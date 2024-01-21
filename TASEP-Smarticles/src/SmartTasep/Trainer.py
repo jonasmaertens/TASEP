@@ -126,7 +126,7 @@ class Trainer(TrainerInterface):
     @classmethod
     def load(cls, model_id=None, sigma=None, total_steps=None, average_window=None, do_plot=None,
              wait_initial=None, render_start=None, window_height=None, moves_per_timestep=None, progress_bar=True,
-             new_model=None, hidden_layer_sizes=None, activation_function=None):
+             new_model=None, hidden_layer_sizes=None, activation_function=None, env_params=None):
         # load all_models.json
         with open("models/all_models.json", "r") as f:
             all_models = json.load(f)
@@ -138,7 +138,7 @@ class Trainer(TrainerInterface):
                 os.path.join(path, "hyperparams.json"), "r") as f:
             hyperparams = json.load(f)
         with open(os.path.join(path, "env_params.json"), "r") as f:
-            env_params = json.load(f)
+            env_params = json.load(f) if env_params is None else env_params
         if sigma is not None:
             env_params["sigma"] = sigma
         tot_steps = total_steps if total_steps else all_models[str(model_id)]["total_steps"]
@@ -241,6 +241,7 @@ class Trainer(TrainerInterface):
             # This works for QT and GTK
             # You can also use window.setGeometry
             window.move(x, y)
+
 
     def _init_env(self):
         if "GridEnv" not in gym.envs.registry:
@@ -536,7 +537,7 @@ class Trainer(TrainerInterface):
         for self.steps_done in (
                 pbar := tqdm(range(self.total_steps), unit="steps", leave=False, disable=not self.progress_bar)):
             just_reset = False
-            if self.wait_initial and self.steps_done == 101:
+            if self.wait_initial and self.steps_done == 1:
                 plt.show(block=False)
                 plt.pause(0.1)
                 self.env.render()

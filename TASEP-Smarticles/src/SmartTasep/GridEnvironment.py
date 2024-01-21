@@ -363,7 +363,7 @@ class GridEnv(gym.Env, GridEnvInterface):
                 self.state[self.state != 1] = 0
                 self.state = self.state.astype(self.use_dtype)
         else:
-            self.state = self.initial_state
+            self.state = self.initial_state.copy()
         if self.distinguishable_particles:
             random_integers = np.arange(1, self.n + 1, dtype=self.use_dtype)
             self.np_random.shuffle(random_integers)
