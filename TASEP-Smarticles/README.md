@@ -92,7 +92,6 @@ Classes in TASEP-Smarticles:
    ```python
    Playground() # shows a list of available models and prompts the user to choose one
    ```
-   ![]
    
 
 ## Author
