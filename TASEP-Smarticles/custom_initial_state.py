@@ -9,17 +9,17 @@ def text_phantom(text):
     font = '/Library/Fonts/Arial Unicode.ttf'
 
     # Create font
-    pil_font = ImageFont.truetype(font, size=200 // len(text),
+    pil_font = ImageFont.truetype(font, size=400 // len(text),
                                   encoding="unic")
     _, _, text_width, text_height = pil_font.getbbox(text)
 
     # create a blank canvas with extra space between lines
-    canvas = Image.new('RGB', [128, 32], (255, 255, 255))
+    canvas = Image.new('RGB', [260, 22], (255, 255, 255))
 
     # draw the text onto the canvas
     draw = ImageDraw.Draw(canvas)
-    offset = ((128 - text_width) // 2,
-              (22 - text_height) // 2)
+    offset = ((260 - text_width) // 2,
+              (14 - text_height) // 2)
     white = "#000000"
     draw.text(offset, text, font=pil_font, fill=white)
 
@@ -27,7 +27,7 @@ def text_phantom(text):
     return ((255 - np.asarray(canvas)) / 255.0)[:, :, 0]
 
 
-initial_state = text_phantom("SCIENCE")
+initial_state = text_phantom("TASEP-SMARTICLES")
 
 initial_state[initial_state != 0] = 1
 
@@ -37,13 +37,14 @@ initial_state = initial_state[:, ::-1]
 envParams = EnvParams(render_mode="human",
                       length=128,
                       width=32,
+                      window_height=170,
                       initial_state=initial_state,
                       distinguishable_particles=True,
                       use_speeds=True,
                       allow_wait=True,
                       sigma=10,
                       observation_distance=3,
-                      moves_per_timestep=5)
+                      moves_per_timestep=30)
 
 hyperparams = Hyperparams(BATCH_SIZE=32,
                           GAMMA=0.85,
@@ -54,6 +55,6 @@ hyperparams = Hyperparams(BATCH_SIZE=32,
                           LR=0.001,
                           MEMORY_SIZE=500_000)
 
-trainer = Trainer.load(41, env_params=envParams, wait_initial=10)
+trainer = Trainer.load(41, env_params=envParams, wait_initial=10, do_plot=False)
 
 trainer.run(reset_stats=True)
