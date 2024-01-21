@@ -1,11 +1,11 @@
 import numpy as np
 import pygame
-from DQN import DQN
+from .DQN import DQN
 import torch
 import os
-from Hasel import hsl2rgb
-from Trainer import Trainer
-from GridEnvironment import invert_speed_obs
+from .Hasel import hsl2rgb
+from .Trainer import Trainer
+from .GridEnvironment import invert_speed_obs
 import json
 import datetime
 

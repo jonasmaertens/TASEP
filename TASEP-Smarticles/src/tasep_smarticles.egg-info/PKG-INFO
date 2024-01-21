@@ -1,3 +1,19 @@
+Metadata-Version: 2.1
+Name: tasep_smarticles
+Version: 0.1.0
+Summary: A package implementing a Totally Asymmetric Simple Exclusion Process (TASEP) using reinforcement learning (RL) agents.
+Author-email: Jonas Märtens <***REMOVED***>
+Project-URL: homepage, https://github.com/jonasmaertens/TASEP
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: gymnasium
+Requires-Dist: pygame
+Requires-Dist: pyqt6
+Requires-Dist: tabulate
+Requires-Dist: torchrl
+Requires-Dist: tqdm
+
 # TASEP-Smarticles
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jonasmaertens/TASEP?style=flat)
@@ -7,7 +23,7 @@
 
 ## Overview
 
-The **SmartTasep** package implements a Totally Asymmetric Simple Exclusion Process (TASEP) using reinforcement
+The **TASEP-Smarticles** package implements a Totally Asymmetric Simple Exclusion Process (TASEP) using reinforcement
 learning (RL) agents. In this simulation, particles perceive their environment at each time step, and a neural network
 decides their next action (move forward, up, or down) to maximize the total current. The repository employs Double Deep
 Q Learning (DDQN) with a policy network and a target network that is updated using a soft update mechanism. Experience

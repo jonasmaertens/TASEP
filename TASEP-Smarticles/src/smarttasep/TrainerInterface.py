@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import TypedDict, Iterable
 
-from GridEnvironment import EnvParams
-from DQN import DQN
+from .GridEnvironment import EnvParams
+from .DQN import DQN
 import torch.optim as optim
 import torch.nn as nn
-from GridEnvironment import GridEnv
+from .GridEnvironment import GridEnv
 from torchrl.data import LazyTensorStorage, TensorDictPrioritizedReplayBuffer
 from torch import Tensor
 

@@ -1,0 +1,6 @@
+gymnasium
+pygame
+pyqt6
+tabulate
+torchrl
+tqdm

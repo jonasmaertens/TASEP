@@ -1,14 +1,13 @@
 import numpy as np
 import os
 import pygame
-from functools import cache
 
 import gymnasium as gym
 from gymnasium import spaces
-from Hasel import hsl2rgb
+from .Hasel import hsl2rgb
 
 from typing import Optional
-from GridEnvironmentInterface import ObsType, GridEnvInterface, EnvParams
+from .GridEnvironmentInterface import ObsType, GridEnvInterface, EnvParams
 
 default_env_params = {
     "render_mode": None,

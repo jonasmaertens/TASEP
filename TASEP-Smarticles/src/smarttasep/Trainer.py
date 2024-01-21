@@ -18,9 +18,9 @@ from torchrl.data import LazyTensorStorage, TensorDictPrioritizedReplayBuffer, T
 from tensordict import TensorDict
 from tqdm import tqdm
 
-from DQN import DQN
-from GridEnvironment import GridEnv
-from TrainerInterface import TrainerInterface, Hyperparams, EnvParams  # noqa: PyUnresolvedReferences
+from .DQN import DQN
+from .GridEnvironment import GridEnv
+from .TrainerInterface import TrainerInterface, Hyperparams, EnvParams  # noqa: PyUnresolvedReferences
 
 import matplotlib
 
@@ -169,7 +169,7 @@ class Trainer(TrainerInterface):
 
     @staticmethod
     def choose_model():
-        from GridEnvironment import default_env_params
+        from .GridEnvironment import default_env_params
         with open("models/all_models.json", "r") as f:
             all_models = json.load(f)
         # create table with all models
@@ -247,7 +247,7 @@ class Trainer(TrainerInterface):
         if "GridEnv" not in gym.envs.registry:
             gym.envs.registration.register(
                 id='GridEnv',
-                entry_point='GridEnvironment:GridEnv',
+                entry_point='smarttasep:GridEnv',
             )
         GridEnv.metadata["render_fps"] = 144
         env: GridEnv | gym.Env = gym.make("GridEnv", **self.env_params)
