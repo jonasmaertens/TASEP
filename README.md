@@ -87,12 +87,13 @@ Classes in TASEP-Smarticles:
    trainer = trainer.load() # shows a list of available models and prompts the user to choose one
    trainer.run()
    ```
+   ![](https://raw.githubusercontent.com/jonasmaertens/TASEP/main/TASEP-Smarticles/vids/speed_graident.gif)
    
 4. Test a learned policy interactively:
    ```python
    Playground() # shows a list of available models and prompts the user to choose one
    ```
-   ![]
+   ![](https://raw.githubusercontent.com/jonasmaertens/TASEP/main/TASEP-Smarticles/plots/playground/playground_demo.gif)
    
 
 ## Author
