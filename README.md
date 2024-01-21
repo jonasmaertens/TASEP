@@ -39,14 +39,14 @@ Classes in TASEP-Smarticles:
 1. Install the package using pip:
 
    ```bash
-   pip install tasep_smarticles
+   pip install smarttasep
 
 ## Using the package
 
 1. Import the package:
 
    ```python
-   from tasep_smarticles import Trainer, EnvParams, Hyperparams, Playground
+   from smarttasep import Trainer, EnvParams, Hyperparams, Playground
    ```
    
 2. Run a training session:
