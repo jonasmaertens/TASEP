@@ -1,12 +1,10 @@
-# import sys
-# sys.path.append('src/SmartTasep/') # uncomment this line if PYTHNONPATH is not set in IDE
-from Trainer import Trainer, Hyperparams, EnvParams
+from smarttasep import Trainer, Hyperparams, EnvParams
 
 if __name__ == '__main__':
     envParams = EnvParams(render_mode="human",
                           length=128,
                           width=24,
-                          #moves_per_timestep=200,
+                          moves_per_timestep=200,
                           window_height=200,
                           observation_distance=3,
                           distinguishable_particles=True,

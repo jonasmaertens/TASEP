@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smarttasep"
+version = "0.1.0"
+description = "A package implementing a Totally Asymmetric Simple Exclusion Process (TASEP) using reinforcement learning (RL) agents."
+authors = [
+     { name="Jonas Märtens", email="jonas.maertens@hotmail.de" },
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "gymnasium",
+    "pygame",
+    "pyqt6",
+    "tabulate",
+    "torchrl",
+    "tqdm",
+    "matplotlib",
+    "numpy",
+]
+
+[project.urls]
+homepage = "https://github.com/jonasmaertens/TASEP"

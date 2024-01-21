@@ -3,9 +3,11 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jonasmaertens/TASEP?style=flat)
 ![GitHub license](https://img.shields.io/github/license/jonasmaertens/TASEP)
 
+![](https://raw.githubusercontent.com/jonasmaertens/TASEP/main/TASEP-Smarticles/vids/smarticle-title.gif)
+
 ## Overview
 
-The **TASEP-Smarticles** package implements a Totally Asymmetric Simple Exclusion Process (TASEP) using reinforcement
+The **SmartTasep** package implements a Totally Asymmetric Simple Exclusion Process (TASEP) using reinforcement
 learning (RL) agents. In this simulation, particles perceive their environment at each time step, and a neural network
 decides their next action (move forward, up, or down) to maximize the total current. The repository employs Double Deep
 Q Learning (DDQN) with a policy network and a target network that is updated using a soft update mechanism. Experience
@@ -87,11 +89,13 @@ Classes in TASEP-Smarticles:
    trainer = trainer.load() # shows a list of available models and prompts the user to choose one
    trainer.run()
    ```
+   ![](https://raw.githubusercontent.com/jonasmaertens/TASEP/main/TASEP-Smarticles/vids/speed_gradient.gif)
    
 4. Test a learned policy interactively:
    ```python
    Playground() # shows a list of available models and prompts the user to choose one
    ```
+   ![](https://raw.githubusercontent.com/jonasmaertens/TASEP/main/TASEP-Smarticles/plots/playground/playground_demo.gif)
    
 
 ## Author
