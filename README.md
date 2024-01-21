@@ -3,6 +3,8 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jonasmaertens/TASEP?style=flat)
 ![GitHub license](https://img.shields.io/github/license/jonasmaertens/TASEP)
 
+![](https://raw.githubusercontent.com/jonasmaertens/TASEP/main/TASEP-Smarticles/vids/smarticle-title.gif)
+
 ## Overview
 
 The **TASEP-Smarticles** package implements a Totally Asymmetric Simple Exclusion Process (TASEP) using reinforcement
@@ -87,7 +89,7 @@ Classes in TASEP-Smarticles:
    trainer = trainer.load() # shows a list of available models and prompts the user to choose one
    trainer.run()
    ```
-   ![](https://raw.githubusercontent.com/jonasmaertens/TASEP/main/TASEP-Smarticles/vids/speed_graident.gif)
+   ![](https://raw.githubusercontent.com/jonasmaertens/TASEP/main/TASEP-Smarticles/vids/speed_gradient.gif)
    
 4. Test a learned policy interactively:
    ```python
