@@ -295,8 +295,12 @@ When trying to encourage the formation of global structures, we are trying to nu
 
 \subsection{Global Structures - The Easy Way}
 \label{sec:global_structure_easy}
-The first approach that we will try is to very explicitly supply the smarticles with the structure that we want to see. This can be done by supplying the agents with their absolute position on the transverse axis (with to an arbitrary origin) as an additional input feature. We can then create a reward function that is based on this position as well as the speed of the particle. 
-
+The first approach that we will try is to very explicitly supply the smarticles with the structure that we want to see. This can be done by supplying the agents with their absolute position on the transverse axis (with to an arbitrary origin) as an additional input feature. We can then create a reward function that is based on this position as well as the speed of the particle. The \texttt{speed-gradient-reward} function in the smarticles package implements this idea. It assigns a desired lane to the particle based on its speed and then rewards the agent proportionally to the distance to that lane. The speeds are mapped to lanes using the following function:
+\begin{equation}
+    \Delta y=1-a\cdot\left(\frac{\left(1+a\right)}{a}\right)^{v}+a \text{,}
+\end{equation}
+where $\Delta y$ is the relative distance from the center ($\Delta y=1$ is a distance of \texttt{system width / 2} from the center) and $v$ is the speed of the particle. The parameter $a$ controls the steepness of the function. In the limit of $a\rightarrow\infty$, the function becomes linear, with a slope of $1$, while for small $a$, the function grows exponentially. This allows us assign more lanes to the fast particles. Figure \ref{fig:speed_gradient} shows the mapping for different values of $a$. The decision to put the center lane into the middle of the screen is of course arbitrary, as the system is periodic in the transverse direction. 
+% add paragraphg about physical external potential / trapping potential, but not really physical, next paragraph more
 \begin{figure}[h]
 \centering
 \begin{subfigure}{\textwidth}
@@ -307,6 +311,6 @@ The first approach that we will try is to very explicitly supply the smarticles 
     \centering
     \includegraphics[width=\textwidth]{speed_gradient_100}
 \end{subfigure}
-\caption{Bla Blub}
+\caption{The mapping of speeds to lanes in the \texttt{speed-gradient-reward} function for different values of $a$. The images left of the graph are screenshots of the real-time visualization of the simulation.}
 \label{fig:speed_gradient}
 \end{figure}
