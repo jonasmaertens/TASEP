@@ -1,7 +1,6 @@
 # TASEP-Smarticles
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/jonasmaertens/TASEP?style=flat)
-![GitHub license](https://img.shields.io/github/license/jonasmaertens/TASEP)
+[![PyPI version](https://badge.fury.io/py/smarttasep.svg)](https://badge.fury.io/py/smarttasep)![GitHub license](https://img.shields.io/github/license/jonasmaertens/TASEP)
 
 ![](https://raw.githubusercontent.com/jonasmaertens/TASEP/main/TASEP-Smarticles/vids/smarticle-title.gif)
 
