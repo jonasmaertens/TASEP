@@ -270,4 +270,43 @@ We can see that the agent has learned a complex policy, that not only enables it
 % nice policies, but not really global structures
 % when thinking of systems without periodic boundary conditions, global structures are important to keep the particles together
 % also nice for different densities for different speeds, to increase the current
-        
+We have already seen two different policies that both perform very well, but until now, the smarticles have only learned to act on their own, although some social behavior is incorporated into the previous policies. It could however be beneficial to encourage the formation of global structures, like lanes or clusters. 
+\\
+\\
+For one, this could improve the total current, as a higher priority could be assigned to the fast particles, allowing them to move in a lower density environment, while the slow particles are more densely packed. Even with uniform density throughout the system, the formation of \textit{fast lanes} and \textit{slow lanes} could be beneficial, as it prevents the fast particles from getting stuck behind slow particles.
+\\
+Furthermore, even outside the context of current optimization, global structures are important for the stability of the system. When the system is not periodic in the transverse direction, the particles have to be kept together to efficiently create a directed flow. Imagine a real-world application where smarticles are not moving on a tube's surface, but on a plane. In this case, the width of the particle stream would increase with the distance traveled. This is because although the mean movement in the transverse direction is zero, the variance is not. For such a system, it is important to keep the particles together, which can be achieved by encouraging the formation of global structures.
+
+\subsection{A Physicist's Perspective on the Reward Structure}
+\label{sec:physics_reward_structure}
+The formation of global structures arising from microscopic interactions is an interesting point to again make the connection to physics. We can compare the way physical matter is formed from physical particles with the way that smart matter is formed from smarticles. 
+\\
+\\
+Physical matter in thermodynamic equilibrium organizes in a way that minimizes or maximizes a certain thermodynamic potential such as the free energy or the entropy. This is the result of the microscopic interactions between the particles that make up the matter. For most systems, it is not feasible to describe the microscopic state of a system as a function of time, as the number of degrees of freedom grows exponentially with the number of particles. Instead, we use statistical mechanics to describe the system in terms of macroscopic observables, such as the density or the temperature. We can then derive the expected value of these observables by averaging over all possible microscopic states of the system.
+\\
+\\
+Similarly, when using reinforcement learning to train a system of smarticles, we try to define a high level quantity that we want to optimize, such as the current. We then use this quantity as a reward signal to train the smarticles to maximize it. The microscopic interactions between the smarticles are learned and therefore \textit{defined} by the smarticles themselves, without us having to worry about them. In a sense, we let the smarticles discover the \enquote{physical} laws that would have to govern the system in order to maximize the reward. As a next step, we can then try to derive these laws from the trained policy, as we have done in section \ref{sec:model_analysis}.
+\\
+\\
+Sometimes, different laws (policies) can lead to very different macroscopic behavior while still maximizing the same high level quantity. For example, the current can be maximized by a policy that keeps the system mixed, as well as by a policy that forms lanes. One could compare this to the different phases of matter in physics, where the laws that govern the microscopic interactions are the same, but the macroscopic behavior changes drastically, often also involving symmetry breaking. Here however, the laws are different, while the high level quantity that is optimized is the same. The macroscopic behavior arising from the new laws of interaction may still be very similar to the behavior arising from the old laws, but it could also be very different. 
+\\
+\\
+When trying to encourage the formation of global structures, we are trying to nudge the smarticles towards a certain set of laws that we think will lead to the desired behavior, \textit{while still maximizing the current}. We do this by incorporating a new reward signal into the reward structure, which is based on the microscopic state of the system. In order to find a suitable reward signal, we \textit{can} look back at physics, drawing inspiration from the laws that govern the formation of global structures in physical equilibrium matter.
+
+\subsection{Global Structures - The Easy Way}
+\label{sec:global_structure_easy}
+The first approach that we will try is to very explicitly supply the smarticles with the structure that we want to see. This can be done by supplying the agents with their absolute position on the transverse axis (with to an arbitrary origin) as an additional input feature. We can then create a reward function that is based on this position as well as the speed of the particle. 
+
+\begin{figure}[h]
+\centering
+\begin{subfigure}{\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{speed_gradient_0.4}
+\end{subfigure}
+\begin{subfigure}{\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{speed_gradient_100}
+\end{subfigure}
+\caption{Bla Blub}
+\label{fig:speed_gradient}
+\end{figure}
