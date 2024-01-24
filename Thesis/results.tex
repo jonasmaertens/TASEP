@@ -300,7 +300,6 @@ The first approach that we will try is to very explicitly supply the smarticles 
     \Delta y=1-a\cdot\left(\frac{\left(1+a\right)}{a}\right)^{v}+a \text{,}
 \end{equation}
 where $\Delta y$ is the relative distance from the center ($\Delta y=1$ is a distance of \texttt{system width / 2} from the center) and $v$ is the speed of the particle. The parameter $a$ controls the steepness of the function. In the limit of $a\rightarrow\infty$, the function becomes linear, with a slope of $1$, while for small $a$, the function grows exponentially. This allows us assign a higher proportion of lanes to the fast particles. Figure \ref{fig:speed_gradient} shows the mapping for different values of $a$. The decision to put the center lane into the middle of the screen is of course arbitrary, as the system is periodic in the transverse direction. 
-% add paragraphg about physical external potential / trapping potential, but not really physical, next paragraph more
 \begin{figure}[H]
 \centering
 \begin{subfigure}{\textwidth}
@@ -325,7 +324,7 @@ The second problem that can arise is visible in the screenshot of the linear gra
 Next, we will analyze the effect of the \texttt{speed\_gradient\_reward} on the current. We will pick the system with $a=0.4$ as it is the most interesting one, actually prioritizing the fast particles over the slow particles. As the equilibration time for this policy is longer than for the previous policies, the simulation was run for 8.5 million time steps. The results are shown in figure \ref{fig:speed_grad_current}. 
 \\
 \\
-We can see that the current shows a steep increase in the beginning, while the slower particles are still moving to their desired lanes. The slope then decreases as the slowest particles try to reach their lanes and eventually converges to a steady state value of about $0.134$. This is about 15\% higher than the current of the previous policy and about 157\% higher than the baseline. The whole equilibration process can be seen as an animation in the video 
+We can see that the current shows a steep increase in the beginning, while the slower particles are still moving to their desired lanes. The slope then decreases as the slowest particles try to reach their lanes and eventually converges to a steady state value of about $0.134$. This is about 15\% higher than the current of the previous policy and about 157\% higher than the baseline. The whole equilibration process can be seen as a video at \cite{maertens_smarticle_lane_vid}.
 
 \begin{figure}[H]
     \centering
@@ -336,4 +335,6 @@ We can see that the current shows a steep increase in the beginning, while the s
 
 After these results, it is clear that even if the lane strategy may not be \textit{the} most efficient transport strategy for the TASEP, it still clearly outperforms the meandering flow strategy and is therefore a very promising approach. The next step will be to try to encourage the formation of lanes in a more natural way, without explicitly supplying the smarticles with the desired structure.
 \\
-The current approach for the lane formation is not easy to implement in a real-world application, as it requires the smarticles to communicate in order to agree on a common origin. One could of course also think about the smarticles moving in an external potential, but this could hardly be called a \textit{physical} potential. It would have to be a trapping potential in one direction, while allowing movement in the other direction and most importantly, the minimum of the potential (the location of the trap) would have to be different for different speeds. Research on such potentials has been done in the context of trapped ion quantum computers, giving rise for example to the Paul trap \cite[II.A]{bruzewicz_trapped-ion_2019}.
+The current approach for the lane formation is not easy to implement in a real-world application, as it requires the smarticles to communicate in order to agree on a common origin. One could of course also think about the smarticles moving in an external potential, but this could hardly be called a \textit{physical} potential. It would have to be a trapping potential in one direction, while allowing movement in the other direction and most importantly, the minimum of the potential (the location of the trap) would have to be different for different speeds. Research on such potentials has been done in the context of trapped ion quantum computers, giving rise for example to the Paul trap \cite[II.A]{bruzewicz_trapped-ion_2019}. It would however be easier if the smarticles could form lanes just by local interactions. This is what we will try to achieve in the next section.
+
+\subsection{Global Structures - The Nice Way}
