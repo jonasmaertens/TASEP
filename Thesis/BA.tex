@@ -32,6 +32,8 @@
 \usepackage{hyperref}
 \usepackage{lipsum}
 \usepackage{microtype}
+\usepackage{xcolor} 
+\definecolor{LightGray}{gray}{0.9}
 
 \usepackage{tikz}
 \usetikzlibrary{positioning}
@@ -49,12 +51,7 @@
 
     \input{cover}
 
-
-    \input{acknowledgements}
-
-
     \input{abstract}
-
 
     \input{intro}
 
@@ -64,14 +61,18 @@
 
     \input{results}
 
-    \cleardoublepage
-    \addcontentsline{toc}{chapter}{References}
-    \printbibliography
-
+    \newpage
+    \thispagestyle{plain}
 
     \begin{appendix}
         \input{appendix}
+        \input{acknowledgements}
     \end{appendix}
+
+    \newpage
+    \thispagestyle{empty}
+    \addcontentsline{toc}{chapter}{References}
+    \printbibliography
 
 
     \clearpage{\pagestyle{empty}\cleardoublepage}
