@@ -338,9 +338,6 @@ After these results, it is clear that even if the lane strategy may not be \text
 The current approach for the lane formation is not easy to implement in a real-world application, as it requires the smarticles to communicate in order to agree on a common origin. One could of course also think about the smarticles moving in an external potential, but this could hardly be called a \textit{physical} potential. It would have to be a trapping potential in one direction, while allowing movement in the other direction and most importantly, the minimum of the potential (the location of the trap) would have to be different for different speeds. Research on such potentials has been done in the context of trapped ion quantum computers, giving rise for example to the Paul trap \cite[II.A]{bruzewicz_trapped-ion_2019}. It would however be easier if the smarticles could form lanes just by local interactions. This is what we will try to achieve in the next section.
 
 \subsection{Global Structures - The Nice Way}
-% later binning speeds
-% incorporate absolute speed into reward for different treatment
-% agent naturally learns to follow the "forces", reward optimization is like energy minimization
 In this second structure emergence experiment, we will try to let global structures emerge just from local \enquote{interactions}. Local interactions, in this context, are again the physical analogy to what we're really doing: Finding a reward function that is just based on the observation of a single particle. This, however, is a much harder endeavor than the previous approach. We will therefore introduce two modifications to the experiment:
 \begin{enumerate}
     \item We will limit the speed distribution to a binary distribution, with only two speeds: $0.25$ and $0.95$. This will make it easier for the smarticles to form lanes, as it reduces the complexity of the problem. Instead of a quasi-continuous gradient, the smarticles now only have to form two distinct lanes.
@@ -353,6 +350,7 @@ The hardest part of this experiment is to find a suitable reward function. I wil
         -0.75 \cdot r^{-1.3} - 0.15 & \text{if } \Delta v \ge 0.5 \text{ and } r \le 3.5 \\
         0 & \text{otherwise} \text{,}
     \end{cases}
+    \label{eq:lane_reward_func}
 \end{equation}
 where $r$ is the distance between two particles and $\Delta v$ is the difference in speed between them. This pairwise potential is taken between the current particle and every other particle in its observation and summed up to form the reward. 
 \\
@@ -403,3 +401,33 @@ The proposed reward structure was put to the test in different trainings and sub
 \end{figure}
 
 For one of the lane-forming agents, the current was again measured over time. The results are shown in figure \ref{fig:lanes_current}. The current fluctuates around a mean value of about $0.112$. We don't have a baseline for this configuration yet, as the density has been changed to $\rho=0.4$ to make the organization easier and mean speed is now $0.6$, which is higher than the speed of the baseline. We can set an optimistic baseline using equation \ref{eq:current_theory}, yielding $J_{\text{baseline}}=0.4\cdot(1-0.4)\cdot0.6\cdot0.5=0.072$. The current of the lane-forming policy would then be about 56\% higher than the baseline, but a lot lower than the current of the previous policies. The magnitude of the fluctuations is about $0.02$, about as large as that of the meandering flow policy. The speed gradient policy has a much smaller fluctuation amplitude, as the \enquote{hard coded} structure of the lanes is much more stable than the emergent structure.
+\\
+\\
+Compared to the previous sections, these results may seem underwhelming at first. This experiment does however serve as a proof of concept, showing that it is possible to encourage the formation of global structures in the smarticles from local interactions. Combined with the results of the previous section, we can conclude that the lane forming strategy is a very promising approach for smarticle applications in transport optimization. The following points can be identified as possible next steps to improve and build on the potential defined in equation \ref{eq:lane_reward_func}:
+\begin{itemize}
+    \item \textbf{Different Speeds:} The current experiment was done with a binary speed distribution. It would be interesting to see if the same strategy can be applied to a more complex speed distribution, starting with discrete distributions with more than two speeds and then moving on to continuous distributions, possibly binning the speeds into discrete intervals that are mapped to different networks. 
+    \item \textbf{Asymmetry:} The absolute value of particle speeds could be incorporated into the attractive part of the potential, so that particles with lower speeds cluster closer together than particles with higher speeds. The same has proven to be beneficial for the speed gradient policy, increasing the current.
+    \item \textbf{Efficiency:} One of the main problems of the current policy is the gap between the lanes. This could potentially be fixed by restricting the repulsion between particles of different speeds to a smaller range, so that slow particles are pushed out of the fast lanes, but not further away from them (and vice versa). One could also try to include a very short range repulsion between particles of the same speed, to prevent them from clustering too closely together. This already happens to some extent, as particles are rewarded more for being further than $r=1.5$ away from particles of the same speed than for being closer than that. The height of this step could be increased. 
+\end{itemize}
+
+\chapter{Conclusion and Outlook}
+\label{chap:conclusion}
+The goal of this thesis was to investigate the potential of smart matter as a tool for transport optimization in systems that obey the rules of the simple exclusion process. We have explored the foundations of machine learning, especially reinforcement learning with deep neural networks and have seen how these algorithms can be combined with the simple exclusion process in two dimensions to create a simulation of smarticles. This theoretical framework was implemented in the modular \texttt{smarttasep} Python package, which was eventually used to train and test different smarticle agents.
+\\
+\\
+After establishing a baseline with the classical stochastic TASEP model as well as a simple, hard-coded policy, we showed that a very simple reward structure is enough for a smarticle agent to learn a policy that not only massively outperforms the baseline, but also includes some simple social behavior. A hands-on analysis of the policy on the \texttt{Playground} has proved to be a very useful tool to get an intuitive understanding of the policy that the agent has learned.
+\\
+\\
+We realized that simple rewards will in general only lead to the convergence of the DQN algorithm to a local extremum, and in our case to a simple, yet effective policy. In order to investigate the potential of more complex policies, we have introduced a reward structure that encourages the formation of global structures, to try to nudge the algorithm towards a more complex policy that potentially increases the current even more. The search for these lane-forming policies was successful, resulting in two proof of concept policies. 
+\\
+The first one uses a very explicit reward structure that is based on the absolute position of the particle on the transverse axis. Although this approach is not very practical for most real-world applications, it has shown that the formation of lanes is a very promising approach to increase the current. 
+\\
+The second approach uses a more natural reward structure that is based on the observation of a single particle. The version presented in this thesis was not able to outperform the simple policy, but it showed that lane structures can emerge from local interactions. It can serve not just as a proof of concept but also as a building block for future research. Different proposals for improvements and next steps have been presented. 
+\\
+\\
+I think that final results, for one, show that the smarticles are a very promising tool for transport optimization in suitable systems and could be used for various real-world applications such as traffic optimization for self-driving cars or the directed transport of medicine in the human body by smart nanobots. 
+\\
+For another, this thesis was an interesting dive into the world of machine learning and smart matter. Both fields are very active areas of research, and I'm sure that we will see a lot of exciting developments in the future. The thesis can serve as one of the first examples of smart matter simulations and the modular \texttt{smarttasep} package could be used as a building block for future research on similar topics. 
+\\
+\\
+
