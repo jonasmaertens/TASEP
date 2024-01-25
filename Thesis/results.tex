@@ -339,6 +339,7 @@ The current approach for the lane formation is not easy to implement in a real-w
 
 \subsection{Global Structures - The Nice Way}
 % later binning speeds
+% incorporate absolute speed into reward for different treatment
 % agent naturally learns to follow the "forces", reward optimization is like energy minimization
 In this second structure emergence experiment, we will try to let global structures emerge just from local \enquote{interactions}. Local interactions, in this context, are again the physical analogy to what we're really doing: Finding a reward function that is just based on the observation of a single particle. This, however, is a much harder endeavor than the previous approach. We will therefore introduce two modifications to the experiment:
 \begin{enumerate}
@@ -353,16 +354,52 @@ The hardest part of this experiment is to find a suitable reward function. I wil
         0 & \text{otherwise} \text{,}
     \end{cases}
 \end{equation}
-where $r$ is the distance between two particles and $\Delta v$ is the difference in speed between them. This pairwise potential is taken between the current particle and every other particle in the observation and summed up to form the reward. 
+where $r$ is the distance between two particles and $\Delta v$ is the difference in speed between them. This pairwise potential is taken between the current particle and every other particle in its observation and summed up to form the reward. 
 \\
 \\
-% Overwhelming at first, but analyze in detail, look at figure is better than equation
-% first check speed diff, then check distance, this way its easy to understand
+This might look complicated at first, but it will make sense after analyzing its basic properties. Let's turn to figure \ref{fig:lane_reward_func_3d} to get a better understanding of the reward function. We start by looking at the portion of the potential for $\Delta v > 0.5$ (the front left part of the plot). Here, the potential is less than or equal to zero for all distances. For distances larger than $r=3.5$, the potential is zero. For smaller distances, the potential is negative and decreases with decreasing distance. This just means that the agent is punished (negative reward) for being close to particles that have a very different speed ($\Delta v > 0.5$). This part tries to separate the fast and slow particles, but it isn't enough to form lanes already. Imagine a crowd of two kinds of people, homogeneously mixed. If everyone just tries to keep their distance to people of the other kind, the result will still be a mixed crowd with no structure.
+\\
+This is where the posterior portion of the potential comes into play. For $\Delta v < 0.5$, the potential is positive and increases with decreasing distance. This means that the agent is rewarded for being close to particles with a similar speed. For distances smaller than $r=1.5$, the potential drops back to zero, so as to keep the density inside the lanes low enough to move.
+\\
+\\
+The combination of these two potentials is what makes the lanes emerge. The particles are rewarded for clustering together with particles of similar speed and these clusters are then separated by the negative reward between particles of different speeds. If the reward for forward moves is high enough compared to the clustering reward, the clusters will naturally stretch out in the forward direction, forming lanes.
 
-
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics{lane_reward_func_3d_cropped.pdf}
     \caption{The reward function (\enquote{potential}) that achieves the emergence of large fast and slow lanes in the system. It takes the velocity difference and the distance between two particles as input. The potential is calculated between the agent and every other particle in the current observation and then summed up.}
     \label{fig:lane_reward_func_3d}
 \end{figure}
+
+After calling this function \enquote{potential} for the last few paragraphs, let's quickly look at why this makes sense. A physical potential gives rise to a force (its gradient) which drives the particles toward a configuration of (locally) minimal energy. In our case, the total reward takes the role of the energy and the algorithm tries to \textit{maximize} it. This is why contrary to physics, the negative areas of our potential are repulsive, while the positive areas are attractive. The \enquote{forces} in our case are encoded into the learned policy of the smarticles. In the general case of a partly stochastic policy, one could call these forces \enquote{voluntary forces}, as an agent doesn't necessarily follow the force that is applied to it. Another important distinction is that when the discount factor is large enough, the agent will value the future reward higher than the immediate reward. This can lead to a policy that actually moves away from a local maximum of the reward, if it can reach a higher maximum in the future. This is something that fundamentally distinguishes smart matter from physical matter, as physical matter will always move towards a local minimum of the potential, possibly getting stuck in a local minimum that is not the global minimum. (Note that this \textit{can} of course also happen in smart matter)
+\\
+\\
+The proposed reward structure was put to the test in different trainings and subsequent simulations. Training an agent with a complicated reward function makes the training process less stable, and the final policies may differ. Depending on which exact realization of the lanes is discovered first, policies can have a slight bias towards a lane tilt in either direction or a suboptimal tendency to cluster also in the horizontal direction, leading to jams. I will present different approaches to mitigate these problems in the future, after the analysis of the current performance. Figure \ref{fig:lanes} shows two screenshots of different trained agents. While policy in figure \ref{fig:lanes_straight} has learned to form straight, horizontal lanes, the policy in figure \ref{fig:lanes_tilt} has a slight bias towards going up, leading to a tilted lane structure. Furthermore, both screenshots show a two to three cell gap between the lanes. This is suboptimal, as the unused space could be filled with particles, lowering the mean density in the lanes and therefore increasing the current. 
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{lanes_straight.png}
+        \caption{These agents have learned to form straight lanes}
+        \label{fig:lanes_straight}
+    \end{subfigure}
+    \vskip\baselineskip
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{lanes_tilt.png}
+        \caption{These agents have learned a small bias towards going up, leading to a tilted lane structure}
+        \label{fig:lanes_tilt}
+    \end{subfigure}
+    \caption{Screenshots of the real-time visualizations of the simulation for two different policies trained with the \texttt{lane\_reward} function. The agents have learned to form lanes, but the lanes are not always perfectly straight. The environment has a density of $\rho=0.4$ and a binary speed distribution with speeds $0.25$ and $0.95$.}
+    \label{fig:lanes}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics{lanes_current.pdf}
+    \caption{Current as a function of the simulation time for the smarticle agent trained with the \texttt{lane\_reward} function. The green line shows the average current, which is at about $0.112$. The current is consistently higher than the baseline, but lower than that of the previous policies.}
+    \label{fig:lanes_current}
+\end{figure}
+
+For one of the lane-forming agents, the current was again measured over time. The results are shown in figure \ref{fig:lanes_current}. The current fluctuates around a mean value of about $0.112$. We don't have a baseline for this configuration yet, as the density has been changed to $\rho=0.4$ to make the organization easier and mean speed is now $0.6$, which is higher than the speed of the baseline. We can set an optimistic baseline using equation \ref{eq:current_theory}, yielding $J_{\text{baseline}}=0.4\cdot(1-0.4)\cdot0.6\cdot0.5=0.072$. The current of the lane-forming policy would then be about 56\% higher than the baseline, but a lot lower than the current of the previous policies. The magnitude of the fluctuations is about $0.02$, about as large as that of the meandering flow policy. The speed gradient policy has a much smaller fluctuation amplitude, as the \enquote{hard coded} structure of the lanes is much more stable than the emergent structure.
