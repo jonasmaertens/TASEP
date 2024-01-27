@@ -1,16 +1,12 @@
 \graphicspath{{img/appendix}{img/impl}}
 
-\newcommand\invisiblesection[1]{%
-  \refstepcounter{chapter}%
-  \addcontentsline{toc}{chapter}{\protect\numberline{\thechapter}#1}%
-  \sectionmark{#1}}
 
-\invisiblesection{Hyperparameter Optimization}
+\chapter{Hyperparameter Optimization}
 \subsubsection{Hyperparameter Optimization Plots (moving avg. of 8)}
 \label{app:hyperparam_optim}
 \begin{figure}[H]
-    \advance\leftskip-2.3cm
-    \includegraphics[width=1.28\textwidth]{hyperparam_optim_8_sci.pdf}
+    \includegraphics[width=1.1\textwidth]{hyperparam_optim_8_sci_low.pdf}
+    \vspace*{-1.5cm}
     \caption{Hyperparameter optimization plots analyzed in section \ref{sec:hyperparam_optim}.}
     \label{fig:hyperparam_optim_8}
 \end{figure}
@@ -18,8 +14,7 @@
 \subsubsection{Hyperparameter Optimization Plots (moving avg. of 30)}
 \label{app:hyperparam_optim_30}
 \begin{figure}[H]
-    \advance\leftskip-2.3cm
-    \includegraphics[width=1.28\textwidth]{hyperparam_optim_30_sci.pdf}
+    \includegraphics[width=1.1\textwidth]{hyperparam_optim_30_sci.pdf}
     \caption{Hyperparameter optimization plots analyzed in section \ref{sec:hyperparam_optim}.}
     \label{fig:hyperparam_optim_30}
 \end{figure}
@@ -35,8 +30,8 @@ This appendix contains the code that is needed to reproduce the results presente
   python -m pip install smarttasep
 \end{minted}
 On some systems, the \texttt{python} command might be replaced by \texttt{python3} or \texttt{py}. The library's source code can be found at \cite{maertens_smarttasep_github_2023}.
-\\
-\\
+
+
 Only the code for running the training is shown here. After training, the model is automatically saved and the unique model ID is printed to the console. Models can be evaluated by running the simulation:
 \begin{minted}
     [bgcolor=LightGray, fontsize=\footnotesize]

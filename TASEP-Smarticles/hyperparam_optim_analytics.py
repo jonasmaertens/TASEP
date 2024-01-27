@@ -33,7 +33,7 @@ def sort_and_plot_globs(globs, ax, average=10, legend_inside=False, title=""):
     for label, file in sorted_globs:
         rewards = np.load(file)
         # plot with moving average
-        averaged_rewards = np.convolve(rewards, np.ones((30,)) / 30, mode='valid')
+        averaged_rewards = np.convolve(rewards, np.ones((8,)) / 8, mode='valid')
         timesteps = np.arange(len(averaged_rewards)) * 2500
         ax.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))
         ax.plot(timesteps, averaged_rewards, label=f"{label}")
@@ -64,11 +64,10 @@ def sort_and_plot_globs(globs, ax, average=10, legend_inside=False, title=""):
     elif row == 3:
         ax.set_ylim(0.19, 0.395)
     if row == 3 and col == 0:
-        ax.legend(ncol=2, title=r"Target network update rate $\tau$")
-
+        ax.legend(ncol=3, title=r"Target network update rate $\tau$")
 
 # Create a 3x2 grid of subplots
-fig, axs = plt.subplots(4, 2, figsize=(12, 15), constrained_layout=True)
+fig, axs = plt.subplots(4, 2, figsize=(12, 12), constrained_layout=True)
 cm = plt.get_cmap('gist_rainbow')
 
 # eps_decay
@@ -102,7 +101,7 @@ sort_and_plot_globs(glob.glob("data/hyperparam_optim/activation_function/*/rewar
 
 # Adjust layout for better appearance
 plt.tight_layout()
-plt.savefig("../Thesis/img/impl/hyperparam_optim_30_sci.pdf")
+plt.savefig("../Thesis/img/impl/hyperparam_optim_8_sci_low.pdf")
 
 
 # initial vs final hyperparams
