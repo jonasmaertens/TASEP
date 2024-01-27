@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: smarttasep
-Version: 0.1.0
+Version: 0.1.3
 Summary: A package implementing a Totally Asymmetric Simple Exclusion Process (TASEP) using reinforcement learning (RL) agents.
 Author-email: Jonas Märtens <***REMOVED***>
 Project-URL: homepage, https://github.com/jonasmaertens/TASEP
@@ -18,8 +18,7 @@ Requires-Dist: numpy
 
 # TASEP-Smarticles
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/jonasmaertens/TASEP?style=flat)
-![GitHub license](https://img.shields.io/github/license/jonasmaertens/TASEP)
+[![PyPI version](https://badge.fury.io/py/smarttasep.svg)](https://badge.fury.io/py/smarttasep)![GitHub license](https://img.shields.io/github/license/jonasmaertens/TASEP)
 
 ![](https://raw.githubusercontent.com/jonasmaertens/TASEP/main/TASEP-Smarticles/vids/smarticle-title.gif)
 
@@ -57,14 +56,14 @@ Classes in TASEP-Smarticles:
 1. Install the package using pip:
 
    ```bash
-   pip install tasep_smarticles
+   pip install smarttasep
 
 ## Using the package
 
 1. Import the package:
 
    ```python
-   from tasep_smarticles import Trainer, EnvParams, Hyperparams, Playground
+   from smarttasep import Trainer, EnvParams, Hyperparams, Playground
    ```
    
 2. Run a training session:
