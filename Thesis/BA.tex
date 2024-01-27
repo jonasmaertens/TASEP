@@ -3,9 +3,7 @@
 
 \usepackage[english]{babel}
 \usepackage{csquotes}
-
 \usepackage[pdftex]{graphicx}
-
 \usepackage{layouts}
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -47,34 +45,20 @@
 
 
 \begin{document}
-
-
     \input{cover}
-
     \input{abstract}
-
     \input{intro}
-
     \input{model}
-
     \input{impl}
-
     \input{results}
-
-    \newpage
-    \thispagestyle{plain}
-
     \begin{appendix}
         \input{appendix}
         \input{acknowledgements}
     \end{appendix}
-
     \newpage
     \thispagestyle{empty}
     \addcontentsline{toc}{chapter}{References}
     \printbibliography
-
-
     \clearpage{\pagestyle{empty}\cleardoublepage}
     \input{declaration}
 \end{document}

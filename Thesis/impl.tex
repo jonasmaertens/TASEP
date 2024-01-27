@@ -36,12 +36,12 @@ The implementation consists of a simple python script with the main loop for the
 \end{algorithm}
 
   
-\section{SmartTASEP Python Package}
+\section{SmartTasep Python Package}
 \label{sec:implementation-smarttasep}
 
 \subsection{Overview}
 \label{subsec:implementation-overview}
-The smart TASEP was implemented as a PyPi package available at (TODO). The package is called \texttt{SmartTasep} and can be installed using pip. This makes it easy to not only reproduce the results of this thesis, but also to conduct further research using the smart TASEP. The package is well documented and contains a number of examples that show how to use the package. Features include:
+The smart TASEP was implemented as publicly available PyPi package. The package is called \texttt{SmartTasep} and can be installed using pip. This makes it easy to not only reproduce the results of this thesis, but also to conduct further research using the smart TASEP. The package is well documented and contains a number of examples that show how to use the package. Features include:
 \begin{itemize}
     \item \textbf{Training} of DDQN agents in the 2D TASEP
     \item \textbf{Evaluation} of trained agents
@@ -79,8 +79,8 @@ The package consists of different modules that are shown in figure \ref{fig:impl
 \subsection{GridEnv and EnvParams}
 \label{subsec:implementation-gridenv}
 The \texttt{GridEnv} class implements the 2D TASEP environment for a reinforcement learning agent. It is a subclass of the \texttt{gym.Env} class from the OpenAI \texttt{gym} library \cite{brockman_openai_2016}. This allows the environment to be used with any reinforcement learning algorithm that is compatible with the OpenAI Gym interface. The environment is initialized with an \texttt{EnvParams} object, which may contain a number of parameters to customize the environment size and initial conditions, the reward structure, the visualization and metrics as well as other properties e.g. to control the dynamics of the reinforcement learning algorithm. 
-\\
-\\
+
+
 Internally, the \texttt{GridEnv} class also uses a 2D array to store the state of the system. For indistinguishable particles with equal velocities, this is a binary array, where 0 represents an empty site and 1 represents a site occupied by a particle. Section \ref{subsec:implementation-trainer} will explain that sometimes, particles have to be distinguishable. In that case, the binary array is not suited to store the state. Instead, during initialization, each particle is assigned a unique integer ID, which is stored in the array instead of the ones. If the particles have different velocities, the velocities are stored by adding them to the ID. As the velocities are floats in the range $(0,1)$, they can be stored in the same array without any loss of information. We can retrieve the ID and velocity $v$ of a particle by using the floor and modulo operators on the stored value $s$ respectively:
 \begin{equation}
     \text{ID} = \lfloor s \rfloor \text{,} \quad v = s \bmod 1 \text{.}
@@ -103,21 +103,21 @@ Particle velocities are included in the observations, as they are relevant to th
     \label{eq:inverse-velocities}
 \end{equation}
 This has two possible advantages. Firstly, slow particles are now represented by high values, because they correspond to \enquote{more blockage} in the system. Intuitively, it makes sense to frame the problem in this way, as slow particles are not only worse for the transport, but also more persistent in the observation. Secondly and more importantly, the shift $v_{\text{shift}}$ prevents fast particles from being invisible. Without the velocity inversion, particles with very low velocities become indistinguishable from empty sites, which makes it impossible for the agent to learn to avoid them. The inversion alone does not solve this problem, as particles with very high velocities now become invisible. 
-\\
-\\
-It is important to note that this problem is less about the absolute values of the observations and more about the distinguishability between observations. At first glance, it seems like this rescaling of velocities is not necessary, as the weights can be negative and the biases can be adjusted to compensate for the shifted values. However, this is not the case, as the rescaling is only applied to the particles, not to the empty sites. 
+
+
+It is important to note that this problem is less about the absolute values of the observations and more about the distinguishability between observations. At first glance, it seems like this rescaling of velocities is not necessary, as the weights can be negative, and the biases can be adjusted to compensate for the shifted values. However, this is not the case, as the rescaling is only applied to the particles, not to the empty sites. 
 
 
 \subsubsection{step}
 \label{subsubsec:implementation-step}
 Takes an action as an argument and returns the next state and the reward after performing the action. Actions are encoded as integers, which, as we will see, correspond to the index of the output neuron with the highest activation. The form of the next state or states depends on the environment parameters. See section \ref{subsubsec:implementation-train} for more details.
-\\
-\\
+
+
 The reward is calculated based on the reward structure that was defined in the \texttt{EnvParams} object. Each option can be included or excluded from the reward calculation, which allows for a high degree of customization. Examples include:
 \begin{itemize}
     \item The default structure yields a positive reward for moving forward, a negative reward for trying to move into an occupied site and zero reward for waiting or switching lanes. 
     \item The \texttt{social\_reward} option adds a negative reward switching lanes into a site with a particle behind it. The magnitude of the reward is proportional to the velocity of the blocked particle. The analogy in the traffic flow interpretation is the car horn that a driver behind you would use if you switched lanes in front of them.
-    \item The \texttt{punish\_inhomogeneties} option combined with the \texttt{inh\_rew\_idx} parameter can add different complex potential-like rewards to encourage the emergence of global structures. This will be explained in more detail in section TODO
+    \item The \texttt{punish\_inhomogeneties} option combined with the \texttt{inh\_rew\_idx} parameter can add different complex potential-like rewards to encourage the emergence of global structures. This will be explained in more detail in section \ref{sec:global_structures}
 \end{itemize}
 When rendering is enabled, the step method also renders the state of the system in regular intervals. The system matrix is rendered using the \texttt{pygame} library, which is fast enough to not bottleneck the simulation. Velocities are encoded as colors using the HSL color space, which makes it easy to convert velocities to hues. The velocity range $(0,1)$ is mapped to the hue range $(0,120)$, which corresponds to the red to green range. 
 
@@ -126,8 +126,8 @@ When rendering is enabled, the step method also renders the state of the system 
 \subsection{DQN}
 \label{subsec:implementation-dqn}
 The \texttt{DQN} class implements the deep neural network that is used to approximate the action-values $Q(s,a)$. It is a subclass of the \texttt{torch.nn.Module} class from the PyTorch library. The network has two hidden layers and uses the \texttt{ReLU} activation function introduced in section \ref{subsec:activation-functions}. The output layer uses the identity activation function, as we want to approximate the action-values directly. During initialization, the size of the flattened observation array and the number of actions are passed as arguments, to determine the size of the input and output layers respectively. An additional parameter switches between two 128-neuron hidden layers and a 24-neuron hidden layer followed by a 12-neuron hidden layer. 
-\\
-\\
+
+
 As a subclass of the \texttt{torch.nn.Module} class, the \texttt{DQN} class implements the \texttt{forward} method, which performs the forward pass. The \texttt{forward} method can be called with a single observation when evaluating the network or with a batch of observations when training the network. Backpropagation is efficiently implemented in PyTorch using automatic differentiation, as explained in section \ref{subsec:backprop}. During a forward pass, all operations (e.g. network layer operations, activation functions, loss function) automatically store the information that is needed for backpropagation in the \texttt{torch.Tensor} objects used for the calculations. When the \texttt{backward} method is called on the loss tensor at the end of the forward pass, the gradients are automatically calculated and stored in the \texttt{grad} attribute of each tensor. These gradients are then used to update the network parameters as will be explained in section \ref{subsec:implementation-trainer}.
 
 
@@ -135,8 +135,8 @@ As a subclass of the \texttt{torch.nn.Module} class, the \texttt{DQN} class impl
 \subsection{ReplayBuffer}
 \label{subsec:implementation-replaybuffer}
 The replay buffer is also one of the performance-critical parts of the implementation. Instead of a naive custom implementation, the \texttt{SmartTasep} package uses the \texttt{TensorDictReplayBuffer} or \texttt{TensorDictPrioritizedReplayBuffer} classes together with the \texttt{LazyTensorStorage} class from the \texttt{torchrl} library \cite{bou_torchrl_2023}. The \texttt{torchrl} library is a reinforcement learning library based on PyTorch that implements many very efficient modules for high performance reinforcement learning training using parallel environments, multithreading and supports computation on the GPU. The \texttt{ReplayBuffer} classes implement very efficient sampling, storage and priority update of single transitions or batches. 
-\\
-\\
+
+
 The \texttt{torchrl} library implements many more features that could be used to improve the performance of the smart TASEP, but due to the limited time of this thesis and the early stage of the library, only the replay buffer was used. The \texttt{SmartTasep} package uses the \texttt{TensorDictReplayBuffer} class for uniform sampling and the \texttt{TensorDictPrioritized\-ReplayBuffer} class for prioritized sampling. The \texttt{LazyTensorStorage} class is used internally by these classes to store the transitions. 
 
 
@@ -162,8 +162,8 @@ The size of the observation arrays and the action space is determined by the \te
 \subsubsection{train}
 \label{subsubsec:implementation-train}
 The \texttt{train} method implements the training loop. As the TASEP is not an episodic task, the method consists of only one loop running the simulation for a specified number of time steps. Optionally, the training can be performed pseudo-episodically, where the environment is reset in regular intervals, possibly with changing initial conditions, for example to train smarticles in environments with variable density. I refer to this as \textit{pseudo}-episodic, as we are still using a replay buffer with stored transitions from previous episodes.
-\\
-\\
+
+
 Depending on the parameters, the \texttt{train} method uses slightly different algorithms that differ in the way that transitions are stored in the replay buffer. There are essentially three distinct ways to generate transitions:
 \begin{enumerate}
     \item \textbf{Immediate transitions:} The environment returns the observation of the particle that took the action immediately after the action was executed. When this observation is used in transitions, the state-next state pairs contain no information about the environment dynamics, as there is no time between the states for the environment/other particles to react to the action. In this case, the smarticles learn a policy for a static environment, while actually living in a very dynamic environment. Note that in this case, the environment has to also return an additional next state for a new particle in order to move different particles in each time step.
@@ -193,7 +193,7 @@ Depending on the parameters, the \texttt{train} method uses slightly different a
             \EndIf
             \normalcolor
             \State $\triangleright$ Update Q-network parameters
-            \State Sample random minibatch of transitions $(\bm{s}, \bm{a}, \bm{r}, \bm{s'})$ from $\mathcal{D}$
+            \State Sample random mini-batch of transitions $(\bm{s}, \bm{a}, \bm{r}, \bm{s'})$ from $\mathcal{D}$
             \State Set $\bm{y} = \bm{r} + \gamma \max_{a'} \hat{Q}(\bm{s'}, a')$
             \State Calculate mean loss $\mathcal{L} = \text{mean}(\mathcal{L}(\bm{y}, Q(\bm{s}, \bm{a})))$
             \State \textcolor{blue}{Perform optimization (AdamW) of $\theta$ using backpropagation of $\mathcal{L}$}
@@ -204,7 +204,7 @@ Depending on the parameters, the \texttt{train} method uses slightly different a
         \EndFor
     \end{algorithmic}
 \end{algorithm}
-When different speeds and multiple networks are used, algorithm \ref{alg:delayed-transitions} has to be slightly modified. Instead of $Q$, $\hat{Q}$, $\mathcal{D}$, $\mathcal{L}$ and a single AdamW optimizer for $Q$'s parameters $\theta$, we now have an array of $n$ such objects for each of these modules. The correct objects are chosen in each timestep based on the particle's velocity which is extracted from the state. 
+When different speeds and multiple networks are used, algorithm \ref{alg:delayed-transitions} has to be slightly modified. Instead of $Q$, $\hat{Q}$, $\mathcal{D}$, $\mathcal{L}$ and a single AdamW optimizer for $Q$'s parameters $\theta$, we now have an array of $n$ such objects for each of these modules. The correct objects are chosen in each time step based on the particle's velocity which is extracted from the state. 
 
 \subsubsection{save and load}
 The \texttt{save} method all model parameters and collected metrics logs the ID of the newly saved model. The \texttt{load} method loads the model parameters and metrics of a previously saved model. This allows for easy saving and loading of trained agents. When no ID is provided during loading, a table is shown with all available models and their properties. The user can then select a model to load by entering its ID. The \texttt{train\_and\_save} method provides a wrapper for automatically saving the model after training.
@@ -228,16 +228,16 @@ The \texttt{Playground} class implements a playground for testing the behavior o
 \section{Hyperparameter Optimization}
 \label{sec:hyperparam_optim}
 Optimizing the hyperparameters of a reinforcement learning algorithm is a difficult, but important task. Previous research has shown that the choice of hyperparameters can have a significant impact on the performance of the algorithm \cite{henderson_deep_2019,parker-holder_automated_2022,noauthor_automl_nodate}. 
-\\
-\\
+
+
 The goal of hyperparameter optimization, or hyperparameter tuning, is to find a set of hyperparameters that maximizes the cumulative reward of the agent. This means that in order to evaluate a set of hyperparameters, we have to train a new agent with these hyperparameters and evaluate its performance by running the simulation for a number of time steps. 
-\\
-\\
+
+
 As the choice of one hyperparameter can impact the optimal values of the other hyperparameters, the hyperparameters have to be optimized simultaneously, for example using a grid search or a random search. These algorithms are embarrassingly parallel, as the evaluation of a set of hyperparameters is independent of the evaluation of other sets, but the number of sets that have to be evaluated grows exponentially with the number of hyperparameters. This makes hyperparameter optimization a computationally expensive task.
 \\
 Due to time constraints, a less computationally expensive approach was chosen for this thesis. Instead of performing a grid search or similar algorithm, the hyperparameters were first roughly optimized by a combination of reference to the literature, intuition and trial and error. Then, starting from this set of hyperparameters, the hyperparameters were optimized one by one, using the best value of a hyperparameter for all further tuning of other hyperparameters. This approach is not guaranteed to find the optimal hyperparameters, but it is computationally cheap and can yield good results. Furthermore, it shows how sensitive the algorithm is to the individual hyperparameters. This knowledge could be used to identify the most important hyperparameters and perform a more thorough optimization of these hyperparameters.
-\\
-\\
+
+
 The following eight hyperparameters were optimized:
 \begin{itemize}
     \item \textbf{Learning rate} of the AdamW optimizer.
@@ -249,9 +249,9 @@ The following eight hyperparameters were optimized:
     \item \textbf{Neural network architecture} (number of hidden layers and neurons per layer).
     \item \textbf{Activation function} of the neural network.
 \end{itemize}
-It is important to note, that there isn't a single set of hyperparameters that is optimal for deep Q-learning in general. Instead, the optimal hyperparameters depend on the environment and the task. Various studies have shown that reinforcement learning algorithms are very sensitive to the choice of hyperparameters and even the state-of-the-art RL algorithms often fail to generalize beyond their specific task \cite{parker-holder_automated_2022,henderson_deep_2019,engstrom_implementation_2020,andrychowicz_what_2020}. This means that the hyperparameters have to be optimized for each environment and task individually. In this section, we will discuss the hyperparameters that were optimized for the smart TASEP with a simple reward structure that includes only the \texttt{social\_reward} option on top of the default reward (see section \ref{subsubsec:implementation-step}). A relatively high particle density of $\rho=0.5$ was chosen and particle speeds were sampled from a uniform distribution in the range $(0, 1)$.
-\\
-\\
+It is important to note, that there isn't a single set of hyperparameters that is optimal for deep Q-learning in general. Instead, the optimal hyperparameters depend on the environment and the task. Various studies have shown that reinforcement learning algorithms are very sensitive to the choice of hyperparameters and even the state-of-the-art RL algorithms often fail to generalize beyond their specific task \cite{parker-holder_automated_2022,henderson_deep_2019,engstrom_implementation_2020,andrychowicz_what_2020}. This means that the hyperparameters have to be optimized for each environment and task individually. In this section, we will discuss the hyperparameters that were optimized for the smart TASEP with a simple reward structure that includes only the \texttt{social\_reward} option on top of the default reward (see section \ref{subsubsec:implementation-step}). A relatively high particle density of $\rho=0.5$ was chosen, and particle speeds were sampled from a uniform distribution in the range $(0, 1)$.
+
+
 The starting point for the hyperparameter optimization was the following set of hyperparameters:
 \begin{itemize}
     \item \textbf{Learning rate}: $0.005$
@@ -264,8 +264,8 @@ The starting point for the hyperparameter optimization was the following set of 
     \item \textbf{Activation function}: ReLU (output layer uses identity activation)
 \end{itemize}
 In order to evaluate the performance of the algorithm, the mean reward collected over 10000 time steps was measured in regular intervals of 2500 training steps. For each new hyperparameter value, 100 such episodes of training followed by evaluation were run, training the agents for a total of 250000 optimization steps. The results were plotted with a moving average over 8 and 30 episodes to smooth out the noise. The plots are shown in figure \ref{fig:hyperparam_optim_8} and \ref{fig:hyperparam_optim_30} in appendix \ref{app:hyperparam_optim}.
-\\
-\\
+
+
 The following insights were gained from the hyperparameter optimization:
 \subsubsection{Epsilon decay}
 For this specific reward structure, the exploration-exploitation trade off is not very important. In fact, the experiment suggests that the agent performs slightly better without any exploitation at all. The dense, chaotic environment paired with the random initial weights apparently provides enough exploration to find a good policy even when acting greedily. This is not surprising, as the agent is not required to learn a complex policy, but only to move forward when possible and avoid collisions. A more thorough evaluation of the policies in the playground could provide more insight into the agent's behavior. I expect the reward to be only a rough measure of the agent's \enquote{intelligence}, as it is possible to achieve a high reward by simply waiting for the other particles to move out of the way and moving forward whenever possible. We would expect a more intelligent agent to actively avoid collisions and to treat slow particles differently from fast particles. Examples of such behavior will be analyzed in the next chapter. A decay constant of $10000$ was chosen for the following experiments, as it allows for some exploration in the beginning, but quickly converges to a greedy policy.
@@ -274,7 +274,7 @@ For this specific reward structure, the exploration-exploitation trade off is no
 We see that discount factors in the range $0.5-0.9$ perform best. A slightly smaller discount factor of $0.3$ still performs reasonably well, but a discount factor of $\le0.1$ leads to a significant drop in performance. If the discount factor is chosen too large, the performance seems to oscillate around a lower mean reward. A discount factor of $0.9$ was chosen for the following experiments. Agents trained with this discount factor seem to learn slightly slower than agents trained with a smaller discount factor, but the performance at the end of training is better. I would also expect these agents to learn more complex policies, as they have to take into account the future rewards of their actions. 
 
 \subsubsection{Activation function}
-The ReLU and LeakyReLU activation functions perform best, which is not surprising, as they are the most commonly used activation functions in deep learning. The Softsign and tanh functions perform worse and the Sigmoid function performs worst. It is surprising to see that the Sigmoid function performs so much worse than the hyperbolic tangent, as they are rescaled versions of the same function. The tanh should also saturate slightly faster than the Sigmoid function, as it is steeper around the origin. I would expect it to be more prone to vanishing gradients than the Sigmoid function. \\
+The ReLU and LeakyReLU activation functions perform best, which is not surprising, as they are the most commonly used activation functions in deep learning. The softsign and tanh functions perform worse and the Sigmoid function performs worst. It is surprising to see that the Sigmoid function performs so much worse than the hyperbolic tangent, as they are rescaled versions of the same function. The tanh should also saturate slightly faster than the Sigmoid function, as it is steeper around the origin. I would expect it to be more prone to vanishing gradients than the Sigmoid function. \\
 The ReLU function was chosen in favor of the LeakyReLU function, as it seems to perform equally well and is slightly faster to compute.
 
 \subsubsection{Learning rate}
@@ -294,8 +294,8 @@ In order to test the performance of different neural network architecture, netwo
 
 \subsubsection{Summary}
 Although a more thorough hyperparameter optimization could be performed, the analysis allows us to gain some meaningful insight into the smart TASEP's sensitivity to different hyperparameters and the ranges of their optimal values. Figure \ref{fig:hyperparam_optim_final_vs_initial} compares the average performance of agents trained with the initial set of hyperparameters and the optimized parameters respectively. We can see that the initial set of hyperparameters was already quite good, achieving convergence to the same mean reward as the optimized set of hyperparameters. However, the optimized set of hyperparameters converges much faster, allowing for an earlier stop of the training.
-\\
-\\
+
+
 Note that the acquired set of hyperparameters is only optimal for this specific reward structure. As already mentioned, reinforcement learning algorithms are very sensitive to the choice of hyperparameters and the optimal hyperparameters depend on the environment and the task. In the environment used for this experiment, the conditions stay the same throughout the whole simulation. Imagine for example a reward structure that encourages particle clustering or an environment, where the density is not constant over time. In that case, the epsilon decay constant would probably be an important hyperparameter, as the agent would have to exploit more often in order to generate transitions for the later stages of the simulation. 
 \begin{figure}[h]
     \centering
