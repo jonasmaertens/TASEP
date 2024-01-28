@@ -534,7 +534,6 @@ The algorithm for a whole training step (i.e. one forward pass and one backward 
 
 \subsection{Gradient Descent Optimization Algorithms}
 \label{subsec:sgd}
-% \cite{ruder_overview_2017}, \cite{loshchilov_decoupled_2019}, \cite{kingma_adam_2017}
 The gradient descent algorithm outlined in section \ref{subsec:loss-functions} can be implemented in different ways, depending on how the training examples are used. 
 \\
 \textit{Batch gradient descent} uses the whole training set to calculate the gradient in each iteration \cite{ruder_overview_2017}, making it very accurate, but also computationally expensive. \textit{Stochastic gradient descent} (SGD) on the other hand uses only a single training example to calculate the gradient in each iteration \cite{ruder_overview_2017}. This allows for online learning, where the network is trained efficiently on the fly while it is being used, but it also introduces a lot of noise into the gradient calculation, overshooting the minima. 
@@ -674,7 +673,7 @@ The agent should then be able to figure out the best way to achieve the goal by 
 For example, if the goal is to teach a robot to walk, the agent should receive a reward for moving forward while maintaining a certain balance, but not for moving its legs in a certain way.
 \\
 In order to be able to learn from these rewards, not just the immediate reward $r_t$ should be taken into account, but also the rewards that the agent will receive in the future.
-This is done by introducing the notion of \textit{return}
+This is done by introducing the notion of \textit{return}.
 The return $G_t$ is a measure of the cumulative reward that the agent will receive from time step $t$ onwards \cite[ch. 3.3]{sutton_reinforcement_nodate}.
 The simplest form of return is just the sum of all future rewards:
 \begin{equation}
@@ -701,7 +700,7 @@ The discounted reward formula can be rewritten recursively as \cite[55]{sutton_r
     \label{eq:discounted-return-recursive}
 \end{align}
 This recursive formulation is very important, as it allows us to express the return in terms of the return at the next time step.
-This will be useful in the next section, where we want to calculate the expected return of a state-action pair.
+This will be useful in the next sections, where we want to calculate the expected return of a state-action pair.
 
 \subsubsection{Policies}
 \label{subsubsec:policies}
@@ -888,7 +887,7 @@ This makes the learning process even more stable, as the target network paramete
 
 \subsection{Experience Replay}
 \label{subsec:experience-replay}
-At the beginning of this section, DQN was introduced as an off-policy algorithm. Mnih et al. introduced a technique called \textit{experience replay} \cite{mnih_human-level_2015}, which massively improves the algorithms' quality. The technique is inspired by the way that humans learn \cite{mnih_human-level_2015} and works by storing tuples of states, actions, rewards and next states $(s_t, a_t, r_t, s_{t+1})$, called \textit{transitions} in a \textit{replay buffer}. During training, the network is updated by sampling a batch of transitions from the replay buffer and performing a gradient descent step on the loss function. This not only allows the network to learn from the same experience multiple times, increasing sample efficiency but also breaks up the correlation between consecutive samples, which would otherwise decrease learning efficiency and stability \cite{mnih_human-level_2015}. In order to prevent the replay buffer from growing infinitely, the oldest samples are discarded when the buffer is full. This total buffer size and the sampling batch size are hyperparameters that have to be tuned for each problem. 
+At the beginning of this section, DQN was introduced as an off-policy algorithm. Mnih et al. introduced a technique called \textit{experience replay} \cite{mnih_human-level_2015}, which massively improves the algorithm's quality. The technique is inspired by the way that humans learn \cite{mnih_human-level_2015} and works by storing tuples of states, actions, rewards and next states $(s_t, a_t, r_t, s_{t+1})$, called \textit{transitions} in a \textit{replay buffer}. During training, the network is updated by sampling a batch of transitions from the replay buffer and performing a gradient descent step on the loss function. This not only allows the network to learn from the same experience multiple times, increasing sample efficiency but also breaks up the correlation between consecutive samples, which would otherwise decrease learning efficiency and stability \cite{mnih_human-level_2015}. In order to prevent the replay buffer from growing infinitely, the oldest samples are discarded when the buffer is full. This total buffer size and the sampling batch size are hyperparameters that have to be tuned for each problem. 
 
 
 % problem rare transitions -> prioritized experience replay
