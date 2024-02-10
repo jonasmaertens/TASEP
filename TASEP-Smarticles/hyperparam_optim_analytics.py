@@ -47,6 +47,7 @@ def sort_and_plot_globs(globs, ax, average=10, legend_inside=False, title=""):
         # no y axis labels
         ax.set_yticklabels([])
     # get row and column index of subplot
+    # return
     row, col = np.where(axs == ax)
     if col == 1:
         # remove y axis labels
@@ -65,6 +66,14 @@ def sort_and_plot_globs(globs, ax, average=10, legend_inside=False, title=""):
         ax.set_ylim(0.19, 0.395)
     if row == 3 and col == 0:
         ax.legend(ncol=3, title=r"Target network update rate $\tau$")
+
+
+# # plot only hidden layer sizes
+# fig, axs = plt.subplots(1, 1, constrained_layout=True, figsize=(6, 4))
+# cm = plt.get_cmap('gist_rainbow')
+# sort_and_plot_globs(glob.glob("data/hyperparam_optim/hidden_layer_sizes/*/rewards.npy"), axs, 10, title="Hidden layer sizes")
+# plt.savefig("../Presentation/img/hyperparam_optim_hidden_layer_sizes.pdf")
+# exit(0)
 
 # Create a 3x2 grid of subplots
 fig, axs = plt.subplots(4, 2, figsize=(12, 12), constrained_layout=True)

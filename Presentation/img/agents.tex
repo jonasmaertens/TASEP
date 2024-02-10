@@ -1,0 +1,26 @@
+\documentclass[tikz]{standalone}
+\usetikzlibrary{spy, positioning}
+
+\begin{document}
+\begin{tikzpicture}[spy using outlines={rectangle, magnification=0.9, width=3cm, height=3cm, connect spies}]
+  \foreach \x in {0,...,7} {
+    \foreach \y in {0,...,4} {
+      \draw (\x,\y) rectangle ++(1,1); % Draw gridlines
+    }
+  }
+  \foreach \i/\j/\k in {red/1/1, green/2/2, blue/3/3, yellow/4/4, purple/5/1, orange/6/2, brown/7/3, pink/1/4, cyan/2/3, magenta/3/2, lime/4/1, olive/5/4} {
+    \fill[\i] (\j+0.5,\k+0.5) circle (0.3); % Fill specific cells with different colors
+  }
+  \spy [red, every spy on node/.append style={ultra thick}] on (5.5,1.5) in node (spy) at (1.4,-2); % Spy on the purple particle and name the node "spy"
+  \node[right=2cm of {(1.4,-2)}] (image) {\includegraphics[width=1.6cm]{brain.png}}; % Add the image node to the right of the spy node
+  \draw[->, line width=0.4mm] (3,-2) -- (image); % Draw an arrow from the spy node to the image node
+
+  % Add decision options and arrows pointing from the brain to these options
+  \node[draw, right=1cm of image] (down) {Down};
+  \node[draw, above=0.5cm of down] (up) {Up};
+  \node[draw, below=0.5cm of down] (forward) {Forward};
+  \draw[->, line width=0.4mm] (image) -- (up);
+  \draw[->, line width=0.4mm] (image) -- (down);
+  \draw[->, line width=0.4mm] (image) -- (forward);
+\end{tikzpicture}
+\end{document}

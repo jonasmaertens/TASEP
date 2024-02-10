@@ -41,15 +41,18 @@
 \begin{frame}{Overview}
     \begin{columns}
       \column{0.5\textwidth}
-      Smart TASEP: Deep Q-Learning in Intelligent Matter Simulations
+      \begin{block}{Smart TASEP: Deep Q-Learning in Intelligent Matter Simulations}
       \begin{itemize}
         \item TASEP: Totally Asymmetric Simple Exclusion Process
         \item Smart TASEP: TASEP with intelligent agents \\
               $\rightarrow$ Intelligent Matter Simulations
         \item Deep Q-Learning: Reinforcement Learning with Neural Networks
       \end{itemize}
+      \end{block}
       \column{0.5\textwidth}
-      cool TASEP teaser pic
+      \begin{figure}
+        \includegraphics[width=\textwidth]{img/smarttasep.png}
+      \end{figure}
     \end{columns}
 \end{frame}
 
@@ -57,7 +60,7 @@
 \begin{frame}{TASEP}
     \begin{columns}
       \column{0.5\textwidth}
-      TASEP: Totally Asymmetric Simple Exclusion Process
+      \begin{block}{TASEP: Totally Asymmetric Simple Exclusion Process}
       \begin{itemize}
         \item Stochastic Process on a grid lattice
         \item Exclusion: Only one particle per site
@@ -69,8 +72,16 @@
         \item Periodic Boundary Conditions
         \item Insertion and Extraction rates at the boundaries
       \end{itemize}
+      \end{block}
       \column{0.5\textwidth}
-      both TASEP pics
+      \begin{figure}
+        \includegraphics[width=0.7\textwidth]{../Thesis/img/model/out/tasep_a.pdf}
+        \caption*{ASEP with periodic boundary conditions}
+      \end{figure}
+      \begin{figure}
+        \includegraphics[width=\textwidth]{../Thesis/img/model/out/tasep_b.pdf}
+        \caption*{ASEP with insertion and extraction rates}
+      \end{figure}
     \end{columns}
 \end{frame}
 
@@ -94,8 +105,16 @@
           \item If different, jams
         \end{itemize}
       \end{block}
-      \column{0.5\textwidth}
-      TASEP pic with speeds, maybe kinesin
+      \column{0.4\textwidth}
+      \begin{figure}
+        \includegraphics[width=\textwidth]{../Thesis/img/model/out/tasep_2d.pdf}
+        \caption*{2D ASEP}
+      \end{figure}
+      \vskip -1em
+      \begin{figure}
+        \includegraphics[width=\textwidth]{img/kinesin.jpeg}
+        \caption*{Intracellular transport}
+      \end{figure}
     \end{columns}
 \end{frame}
 
@@ -103,7 +122,7 @@
 \begin{frame}{Smart TASEP}
     \begin{columns}
       \column{0.5\textwidth}
-      Smart TASEP: TASEP with intelligent agents
+      \begin{block}{Smart TASEP: TASEP with intelligent agents}
       \begin{itemize}
         \item have a goal (e.g. go forward)
         \item sense the environment
@@ -112,15 +131,18 @@
       \end{itemize}
       $\rightarrow$ Intelligent Matter Simulation \\
       $\rightarrow$ Reinforcement Learning - reward based
+      \end{block}
       \column{0.5\textwidth}
-      Observation distance pic? Leading to action?
+      \begin{figure}
+        \includegraphics[width=\textwidth]{img/out/agents.pdf}
+      \end{figure}
     \end{columns}
 \end{frame}
 
 \section{Deep Q-Learning}
 \begin{frame}{Deep Q-Learning: Overview}
     \begin{columns}
-      \column{0.5\textwidth}
+      \column{0.6\textwidth}
       \begin{block}{Deep Q-Learning Algorithm}
         \begin{itemize}
           \item Reinforcement learning with deep neural networks
@@ -129,16 +151,25 @@
           \item Off-policy: Learns from old experiences
         \end{itemize}
       \end{block}
-      \column{0.5\textwidth}
-      DQL components
+      \column{0.4\textwidth}
+      \begin{figure}
+        \includegraphics[width=\textwidth]{img/out/dql.pdf}
+      \end{figure}
     \end{columns}
 \end{frame}
+
+
 \begin{frame}{Deep Q-Learning: The policy}
-    large picture of flattened observation fed into a neural network, leading to a Q-value for each action
+  \vskip -1em
+    \begin{figure}
+      \includegraphics[width=0.9\textwidth]{img/out/policy_net.pdf}
+    \end{figure}
 \end{frame}
+
+
 \begin{frame}{Deep Q-Learning: Optimization}
     \begin{columns}
-      \column{0.5\textwidth}
+      \column{0.55\textwidth}
       \begin{block}{How does the network learn?}
         \begin{itemize}
           \item Neural Network $\rightarrow$ backpropagation on loss
@@ -154,8 +185,10 @@
                 \end{itemize}
         \end{itemize}
       \end{block}
-      \column{0.5\textwidth}
-      backpropagation pic
+      \column{0.45\textwidth}
+      \begin{figure}
+        \includegraphics[width=\textwidth]{img/out/backprop.pdf}
+      \end{figure}
     \end{columns}
 \end{frame}
 
@@ -215,10 +248,13 @@ Let's have a look at some examples! (show usage videos)
 \end{frame}
 
 \begin{frame}{Hyperparameter Optimization: Example}
-    hidden layers sizes example
+  \begin{figure}
+    \includegraphics[width=0.7\textwidth]{img/hyperparam_optim_hidden_layer_sizes.pdf}
+    \caption*{\hspace{2cm} Example of a hyperparameter optimization for the hidden layer sizes.}
+  \end{figure}
 \end{frame}
 
-\section[Baseline]{Results: Baseline}
+\section[Results - Baseline]{Results: Baseline}
 \begin{frame}{Overview of Experiments}
   \begin{block}{Goals}
     \begin{itemize}
@@ -421,13 +457,19 @@ Let's have a look at some examples! (show usage videos)
       \end{itemize}
     \end{block}
     \column{0.5\textwidth}
-    messy tasep pic
-    fast lane slow lane picture
+    \begin{figure}
+      \includegraphics[width=\textwidth]{img/messy_tasep.png}
+      \caption*{Screenshot of the simulation with the current policy}
+    \end{figure}
+    \begin{figure}
+      \includegraphics[width=\textwidth]{img/fast_lane_slow_lane.png}
+      \caption*{Separating fast and slow lanes increases the mean velocity}
+    \end{figure}
   \end{columns}
 \end{frame}
 
 \begin{frame}{Smarticles: Hard-coded Lanes}
-  Approach 1: Hard code the lanes, supply smarticles with lane information\\
+  \textbf{Approach 1}: Hard code the lanes, supply smarticles with lane information\\
   \begin{equation*}
     \Delta y = 1-a\cdot\left(\frac{1+a}{a}\right)^v+a
   \end{equation*}
@@ -457,7 +499,7 @@ Let's have a look at some examples! (show usage videos)
 \end{frame}
 
 \begin{frame}{Smarticles: Self-organized Lanes}
-  Approach 2: Let the smarticles learn the lanes themselves from local \enquote{interactions}\\
+  \textbf{Approach 2}: Let the smarticles learn the lanes themselves from local \enquote{interactions}\\
   \begin{equation*}
     \text{V}(r, \Delta v) = \begin{cases}
       -0.125 \cdot r + 0.625 & \text{if } \Delta v < 0.5 \text{ and } 1.5 < r \le 5 \\
@@ -508,7 +550,31 @@ Let's have a look at some examples! (show usage videos)
 
 \section{Conclusion and Outlook}
 \begin{frame}{Conclusion and Outlook}
-
+  \begin{columns}
+    \column{0.5\textwidth}
+    \begin{block}{Achievements and Insights}
+      \begin{itemize}
+        \item Baseline: Theory and simulation match
+        \item Established framework for intelligent matter simulations with interacting agents
+        \item Intelligent matter in form of smarticles dramatically increases the current
+        \item Large-scale structures and collective behavior emerge from local \enquote{interactions}
+      \end{itemize}
+    \end{block}
+    \column{0.5\textwidth}
+    \begin{block}{Future Research}
+      \begin{itemize}
+        \item Modular \texttt{smarttasep} package for easy experimentation
+        \item Generalize results:
+        \begin{itemize}
+          \item Structure formation with more than two particle types
+          \item Different cluster densities for different speeds
+          \item Reduce the gap between the lanes
+        \end{itemize}
+        \item Try different strategies other than lane formation
+        \item Generalize results to more complex systems (e.g. higher dimensions, continuous space)
+      \end{itemize}
+    \end{block}
+  \end{columns}
 \end{frame}
 
 

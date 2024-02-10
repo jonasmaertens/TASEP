@@ -1,0 +1,59 @@
+\documentclass[tikz,border=3mm]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{calc, arrows.meta}
+
+% define hex color
+\definecolor{myblue}{HTML}{4287f5}
+\definecolor{myred}{HTML}{eb4034}
+
+\pgfmathdeclarerandomlist{MyRandomColors}{%
+{myblue}%
+{myred}%
+}
+
+\begin{document}
+\begin{tikzpicture}[
+    node/.style={circle, draw=black, fill=gray!#1, minimum size=0.65cm, very thick},
+    arrow/.style={->, >=Triangle, shorten >=1pt, shorten <=1pt},
+]
+
+% Draw nodes
+\foreach \i in {1,...,8} {
+    \node[node=\pdfuniformdeviate 100] (n1\i) at (0, \i) {};
+}
+\foreach \i in {1,...,6} {
+    \node[node=\pdfuniformdeviate 100] (n2\i) at (2.5, \i+1) {};
+}
+\foreach \i in {1,...,6} {
+    \node[node=\pdfuniformdeviate 100] (n3\i) at (5, \i+1) {};
+}
+\foreach \i in {1,...,3} {
+    \node[node=\pdfuniformdeviate 100] (n4\i) at (7.5, \i+3) {};
+}
+
+% Draw edges
+\foreach \i in {1,...,6} {
+    \foreach \j in {1,...,8} {
+        % draw arrow with random line width
+        \pgfmathrandomitem{\RandomColor}{MyRandomColors} 
+        \draw[arrow, \RandomColor, line width=\pdfuniformdeviate 2pt] (n2\i) -- (n1\j);
+    }
+}
+\foreach \i in {1,...,6} {
+    \foreach \j in {1,...,6} {
+       \pgfmathrandomitem{\RandomColor}{MyRandomColors} 
+        \draw[arrow, \RandomColor, line width=\pdfuniformdeviate 2pt] (n3\i) -- (n2\j);
+    }
+}
+\foreach \i in {1,...,3} {
+    \foreach \j in {1,...,6} {
+         \pgfmathrandomitem{\RandomColor}{MyRandomColors} 
+          \draw[arrow, \RandomColor, line width=\pdfuniformdeviate 2pt] (n4\i) -- (n3\j);
+    }
+}
+
+% Draw large arrow above the network
+\draw[->, line width=6pt, >=Triangle, red] (6,8) -- (2,8);
+
+\end{tikzpicture}
+\end{document}
