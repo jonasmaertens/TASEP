@@ -2,10 +2,10 @@ from smarttasep import Trainer, Hyperparams, EnvParams
 
 if __name__ == '__main__':
     envParams = EnvParams(render_mode="human",
-                          length=128,
+                          length=100,
                           width=32,
                           moves_per_timestep=200,
-                          window_height=200,
+                          window_height=300,
                           observation_distance=3,
                           distinguishable_particles=True,
                           initial_state_template="checkerboard",
@@ -18,10 +18,10 @@ if __name__ == '__main__':
                           #speed_observation_threshold=0.35,
                           #punish_inhomogeneities=True,
                           #inh_rew_idx=1,
-                          speed_gradient_reward=True,
+                          #speed_gradient_reward=True,
                           #binary_speeds=True,
                           #choices=4,
-                          speed_gradient_linearity=0.1,
+                          #speed_gradient_linearity=0.1,
                           )
     hyperparams = Hyperparams(BATCH_SIZE=32,
                               GAMMA=0.85,

@@ -1,7 +1,7 @@
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 import matplotlib.pyplot as plt
-from Trainer import Trainer, Hyperparams, EnvParams
+from smarttasep import EnvParams, Hyperparams, Trainer
 
 
 def text_phantom(text):
@@ -9,17 +9,17 @@ def text_phantom(text):
     font = '/Library/Fonts/Arial Unicode.ttf'
 
     # Create font
-    pil_font = ImageFont.truetype(font, size=400 // len(text),
+    pil_font = ImageFont.truetype(font, size=300 // len(text),
                                   encoding="unic")
     _, _, text_width, text_height = pil_font.getbbox(text)
 
     # create a blank canvas with extra space between lines
-    canvas = Image.new('RGB', [260, 22], (255, 255, 255))
+    canvas = Image.new('RGB', [100, 100], (255, 255, 255))
 
     # draw the text onto the canvas
     draw = ImageDraw.Draw(canvas)
-    offset = ((260 - text_width) // 2,
-              (14 - text_height) // 2)
+    offset = ((215 - text_width) // 2,
+              (50 - text_height) // 2)
     white = "#000000"
     draw.text(offset, text, font=pil_font, fill=white)
 
@@ -27,17 +27,17 @@ def text_phantom(text):
     return ((255 - np.asarray(canvas)) / 255.0)[:, :, 0]
 
 
-initial_state = text_phantom("TASEP-SMARTICLES")
+initial_state = text_phantom("SMART\nTASEP")
 
 initial_state[initial_state != 0] = 1
 
 # invert around y axis
-initial_state = initial_state[:, ::-1]
+# initial_state = initial_state[:, ::-1]
 
 envParams = EnvParams(render_mode="human",
-                      length=128,
-                      width=32,
-                      window_height=170,
+                      length=100,
+                      width=100,
+                      window_height=750,
                       initial_state=initial_state,
                       distinguishable_particles=True,
                       use_speeds=True,
