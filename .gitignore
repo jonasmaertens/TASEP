@@ -8,3 +8,4 @@ Thesis/out/*
 **/out/*
 !**/out/*.pdf
 !**/out/*.png
+Presentation/demo_video.mov

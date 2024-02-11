@@ -180,7 +180,7 @@ class Trainer(TrainerInterface):
                 if param not in value["env_params"]:
                     value["env_params"][param] = default_env_params[param]
             table.append([key,
-                          value["total_steps"],
+                          # value["total_steps"],
                           value["hyperparams"]["BATCH_SIZE"],
                           value["hyperparams"]["GAMMA"],
                           value["hyperparams"]["EPS_START"],
@@ -188,7 +188,7 @@ class Trainer(TrainerInterface):
                           value["hyperparams"]["EPS_DECAY"],
                           value["hyperparams"]["TAU"],
                           value["hyperparams"]["LR"],
-                          value["hyperparams"]["MEMORY_SIZE"],
+                          # value["hyperparams"]["MEMORY_SIZE"],
                           value["env_params"]["length"],
                           value["env_params"]["width"],
                           value["env_params"]["observation_distance"],
@@ -220,10 +220,31 @@ class Trainer(TrainerInterface):
             with_header_hide=None,
         )
         print(tabulate(table, headers=[
-            "id", "tot_step", "BATCH", "γ", "ε_0", "ε_end", "ε_dec", "τ",
-            "LR", "MEM", "len", "width", "r_obs", "disting.",
+            "id",
+            # "tot_step",
+            "BATCH",
+            "γ",
+            "ε_0",
+            "ε_end",
+            "ε_dec",
+            "τ",
+            "LR",
+            # "MEM",
+            "len",
+            "width",
+            "r_obs",
+            "disting.",
             "speeds",
-            "σ", "avg_wdw", "wait", "horn", "inv_spd", "spd_thld", "rnd_ρ", "inhom", "spd_grad", "lnrty"
+            "σ",
+            "avg_wdw",
+            "wait",
+            "horn",
+            "inv_spd",
+            "spd_thld",
+            "rnd_ρ",
+            "inhom",
+            "spd_grad",
+            "lnrty"
         ], tablefmt=grid))
         # prompt user to select a model
         model_id = int(input("Enter model id: "))
