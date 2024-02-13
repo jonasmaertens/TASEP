@@ -60,18 +60,20 @@
 \begin{frame}{TASEP}
     \begin{columns}
       \column{0.5\textwidth}
-      \begin{block}{TASEP: Totally Asymmetric Simple Exclusion Process}
+      \begin{block}{TASEP: \alert<4>{Totally Asymmetric} \alert<3>{Simple} \alert<2>{Exclusion} \alert<1>{Process}}
       \begin{itemize}
-        \item Stochastic Process on a grid lattice
-        \item Exclusion: Only one particle per site
-        \item Simple: Jumps only one cell far 
-        \item Asymmetric: Only to the right
+        \item<1-> Stochastic Process on a grid lattice
+        \item<2-> Exclusion: Only one particle per site
+        \item<3-> Simple: Jumps only one cell far 
+        \item<4-> Totally Asymmetric: $p=1,q=0$
       \end{itemize}
+      \onslide<5->{
       Possible with either
       \begin{itemize}
-        \item Periodic Boundary Conditions
-        \item Insertion and Extraction rates at the boundaries
+        \item Periodic boundary conditions
+        \item Open boundary conditions
       \end{itemize}
+      }
       \end{block}
       \column{0.5\textwidth}
       \begin{figure}
@@ -80,7 +82,7 @@
       \end{figure}
       \begin{figure}
         \includegraphics[width=\textwidth]{../Thesis/img/model/out/tasep_b.pdf}
-        \caption*{ASEP with insertion and extraction rates}
+        \caption*{ASEP with open boundary conditions}
       \end{figure}
     \end{columns}
 \end{frame}
@@ -88,15 +90,16 @@
 \begin{frame}{Modifications}
     \begin{columns}
       \column{0.5\textwidth}
-      Two modifications (before smart)
-      \begin{block}{(T)ASEP}
+      Two modifications (before smarticles)
+      \begin{block}{2D (T)ASEP}
         \begin{itemize}
           \item Symmetric in one direction and totally asymmetric in the other
-          \item Directed flow with multiple lanes
-          \item compare traffic flow, kinesin transport
-          \item motivates transport optimization
+          \item<2-> Directed flow with multiple lanes
+          \item<2-> compare traffic flow, kinesin transport
+          \item<2-> motivates transport optimization
         \end{itemize}
       \end{block}
+      \onslide<3->{
       \begin{block}{Speeds}
         \begin{itemize}
           \item Each particle has a speed
@@ -105,16 +108,19 @@
           \item If different, jams
         \end{itemize}
       \end{block}
+      }
       \column{0.4\textwidth}
       \begin{figure}
         \includegraphics[width=\textwidth]{../Thesis/img/model/out/tasep_2d.pdf}
         \caption*{2D ASEP}
       \end{figure}
       \vskip -1em
+      \onslide<2->{
       \begin{figure}
         \includegraphics[width=\textwidth]{img/kinesin.jpeg}
         \caption*{Intracellular transport}
       \end{figure}
+      }
     \end{columns}
 \end{frame}
 
@@ -124,7 +130,7 @@
       \column{0.5\textwidth}
       \begin{block}{Smart TASEP: TASEP with intelligent agents}
       \begin{itemize}
-        \item have a goal (e.g. go forward)
+        \item have a goal (e.g. optimize transport)
         \item sense the environment
         \item act according to the goal and the environment
         \item learn from the environment themselves
@@ -296,7 +302,7 @@ Let's have a look at some examples! (show usage videos)
     \end{figure}
     \onslide<3>\begin{figure}
       \includegraphics[width=\textwidth]{../Thesis/img/results/currents_fixed_sigma_128x32.pdf}
-      \caption*{Equilibration of the current}
+      \caption*{Equilibration of the current in a 128x32 system. \\ 800 runs and 5000 steps averaged.}
     \end{figure}
     \onslide<4->\begin{figure}
       \includegraphics[width=\textwidth]{../Thesis/img/results/steady_state_current_sizes_log.pdf}
@@ -499,6 +505,8 @@ Let's have a look at some examples! (show usage videos)
 \end{frame}
 
 \begin{frame}{Smarticles: Self-organized Lanes}
+  \onslide<1->Absolute positioning for hard-coded lanes is not always possible.\\
+  \onslide<2->
   \textbf{Approach 2}: Let the smarticles learn the lanes themselves from local \enquote{interactions}\\
   \begin{equation*}
     \text{V}(r, \Delta v) = \begin{cases}
