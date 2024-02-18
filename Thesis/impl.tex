@@ -11,7 +11,7 @@ All code is available at \cite{maertens_smarttasep_github_2023}, with the smart 
 \label{sec:implementation-classical-2d-tasep}
 The first step is to implement the classical 2D TASEP. This will serve as a baseline for the performance of the smarticles. 
 \\
-The implementation consists of a simple Python script with the main loop for the simulation just-in-time-compiled to machine code using the \texttt{numba} library \cite{lam_numba_2015}. The system is represented as a 2D array of integers, where 0 represents an empty site and 1 represents a site occupied by a particle. The main loop is shown in algorithm \ref{alg:2d-tasep}. In each time step, a random particle is selected and a random direction is chosen. If the target site is empty, the particle moves to the target site and the move counter for the chosen direction is incremented. When different velocities are used, a random number is drawn and the jump is only performed when the random number is smaller than the velocity. In this case, the velocities are floats in the range $(0,1)$ and stored in the array instead of the ones. Finally, the time step counter is incremented and the loop starts again.
+The implementation consists of a simple Python script with the main loop for the simulation just-in-time-compiled to machine code using the \texttt{numba} library \cite{lam_numba_2015}. The system is represented as a 2D array of integers, where 0 represents an empty site and 1 represents a site occupied by a particle. The main loop is shown in algorithm \ref{alg:2d-tasep} and implements a Monte Carlo random sequential update scheme. In each time step, a random particle is selected and a random direction is chosen. If the target site is empty, the particle moves to the target site and the move counter for the chosen direction is incremented. When different velocities are used, a random number is drawn and the jump is only performed when the random number is smaller than the velocity. In this case, the velocities are floats in the range $(0,1)$ and stored in the array instead of the ones. Finally, the time step counter is incremented and the loop starts again.
 
 \begin{algorithm}[H]
     \caption{Main loop of the 2D TASEP simulation.}
@@ -25,7 +25,7 @@ The implementation consists of a simple Python script with the main loop for the
             \State Select random position $\bm{x}=(x_1,x_2)^T$ in system
             \If {site $S_{x_1,x_2}\neq 0$}
                 \State Select random direction $\bm{d} \in \{\text{up}, \text{down}, \text{forward}\}$ with probabilities $\tfrac{1}{4}, \tfrac{1}{4}, \tfrac{1}{2}$
-                \If {site $\bm{x}+\bm{d}$ == 0 \textbf{and} $\bm{d} \neq \text{left}$ \textbf{and} random $r\in (0,1) < S_{x_1,x_2}$}
+                \If {site $\bm{x}+\bm{d}$ == 0 \textbf{and} $\bm{d} \neq \text{left}$ \textbf{and} random $r\in (0,1) < S_{x_1,x_2}=v_{x_1,x_2}$}
                     \State Swap sites $S_{x_1,x_2}$ and $S_{x_1+d_1,x_2+d_2}$ to perform jump
                     \State $m_d \gets m_d + 1$
                 \EndIf
@@ -63,7 +63,7 @@ The package consists of different modules that are shown in figure \ref{fig:impl
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\textwidth]{uml.pdf}
+    \includegraphics[width=\textwidth]{uml_bigfont.pdf}
     \caption{UML diagram of the \texttt{SmartTasep} python package. Only selected methods and attributes are shown. The full documentation is available at \cite{maertens_smarttasep_github_2023}.}
     \label{fig:implementation}
 \end{figure}
@@ -180,7 +180,7 @@ Depending on the parameters, the \texttt{train} method uses slightly different a
         \State Initialize target network $\hat{Q}$ with parameters $\theta^-=\theta$
         \State Initialize environment to get initial state $s_1$, \textcolor{blue}{initial particle ID $i_1$}
         \State Initialize $\epsilon$ to $\epsilon_0$
-        \State \textcolor{blue}{Initialize temporary storage $\mathcal{M}$ for $(s,a,r)$ tuples indexed by particle ID}
+        \State \textcolor{blue}{Initialize temporary storage $\mathcal{M}$ (Hashmap) for $(s,a,r)$ tuples with particle IDs as keys}
         \For{steps $t=1,\dots,T$}
             \State $\triangleright$ Generate new transition
             \State Perform forward pass through $Q$ to get action-values $Q(s_t, a')$ 
@@ -188,7 +188,7 @@ Depending on the parameters, the \texttt{train} method uses slightly different a
             \State Execute action $a_t$ in environment and observe reward $r_t$, next state $s_{t+1}$ \textcolor{blue}{and ID $i_{t+1}$}
             \color{blue}
             \State $\mathcal{M}[i_t] \gets (s_t, a_t, r_t)$ 
-            \If{$i_{t+1} \in \mathcal{M}$}
+            \If{key $i_{t+1}$ in $\mathcal{M}$}
                 \State Store transition $(^*\mathcal{M}[i_{t+1}], s_{t+1})$ in $\mathcal{D}$
             \EndIf
             \normalcolor
@@ -233,7 +233,7 @@ Optimizing the hyperparameters of a reinforcement learning algorithm is a diffic
 The goal of hyperparameter optimization, or hyperparameter tuning, is to find a set of hyperparameters that maximizes the cumulative reward of the agent. This means that in order to evaluate a set of hyperparameters, we have to train a new agent with these hyperparameters and evaluate its performance by running the simulation for a number of time steps. 
 
 
-As the choice of one hyperparameter can impact the optimal values of the other hyperparameters, the hyperparameters have to be optimized simultaneously, for example using a grid search or a random search. These algorithms are embarrassingly parallel, as the evaluation of a set of hyperparameters is independent of the evaluation of other sets, but the number of sets that have to be evaluated grows exponentially with the number of hyperparameters. This makes hyperparameter optimization a computationally expensive task.
+As the choice of one hyperparameter can impact the optimal values of the other hyperparameters, the hyperparameters have to be optimized simultaneously, for example using a grid search or a random search. These algorithms are very well parallelizable, as the evaluation of a set of hyperparameters is independent of the evaluation of other sets, but the number of sets that have to be evaluated grows exponentially with the number of hyperparameters. This makes hyperparameter optimization a computationally expensive task.
 \\
 Due to time constraints, a less computationally expensive approach was chosen for this thesis. Instead of performing a grid search or similar algorithm, the hyperparameters were first roughly optimized by a combination of reference to the literature, intuition and trial and error. Then, starting from this set of hyperparameters, the hyperparameters were optimized one by one, using the best value of a hyperparameter for all further tuning of other hyperparameters. This approach is not guaranteed to find the optimal hyperparameters, but it is computationally cheap and can yield good results. Furthermore, it shows how sensitive the algorithm is to the individual hyperparameters. This knowledge could be used to identify the most important hyperparameters and perform a more thorough optimization of these hyperparameters.
 
@@ -268,7 +268,7 @@ In order to evaluate the performance of the algorithm, the mean reward collected
 
 The following insights were gained from the hyperparameter optimization:
 \subsubsection{Epsilon decay}
-For this specific reward structure, the exploration-exploitation trade-off is not very important. In fact, the experiment suggests that the agent performs slightly better without any exploitation at all. The dense, chaotic environment paired with the random initial weights apparently provides enough exploration to find a good policy even when acting greedily. This is not surprising, as the agent is not required to learn a complex policy, but only to move forward when possible and avoid collisions. A more thorough evaluation of the policies in the playground could provide more insight into the agent's behavior. I expect the reward to be only a rough measure of the agent's \enquote{intelligence}, as it is possible to achieve a high reward by simply waiting for the other particles to move out of the way and moving forward whenever possible. We would expect a more intelligent agent to actively avoid collisions and treat slow particles differently from fast particles. Examples of such behavior will be analyzed in the next chapter. A decay constant of $10000$ was chosen for the following experiments, as it allows for some exploration in the beginning, but quickly converges to a greedy policy.
+For this specific reward structure, the exploration-exploitation trade-off is not very important. In fact, the experiment suggests that the agent performs slightly better without any exploitation during training at all. The dense, chaotic environment paired with the random initial weights apparently provides enough exploration to find a good policy also when only acting greedily. This is not surprising, as the agent is not required to learn a complex policy, but only to move forward when possible and avoid collisions. A more thorough evaluation of the policies in the playground could provide more insight into the agent's behavior. I expect the reward to be only a rough measure of the agent's \enquote{intelligence}, as it is possible to achieve a high reward by simply waiting for the other particles to move out of the way and moving forward whenever possible. We would expect a more intelligent agent to actively avoid collisions and treat slow particles differently from fast particles. Examples of such behavior will be analyzed in the next chapter. A decay constant of $10000$ was chosen for the following experiments, as it allows for some exploration in the beginning, but quickly converges to a greedy policy.
 
 \subsubsection{Discount factor}
 We see that discount factors in the range of $0.5-0.9$ perform best. A slightly smaller discount factor of $0.3$ still performs reasonably well, but a discount factor of $\le0.1$ leads to a significant drop in performance. If the discount factor is chosen too large, the performance seems to oscillate around a lower mean reward. A discount factor of $0.9$ was chosen for the following experiments. Agents trained with this discount factor seem to learn slightly slower than agents trained with a smaller discount factor, but the performance at the end of training is better. I would also expect these agents to learn more complex policies, as they have to take into account the future rewards of their actions. 

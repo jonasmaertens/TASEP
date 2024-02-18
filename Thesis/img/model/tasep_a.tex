@@ -14,8 +14,11 @@
     \fill (\angle:2cm) circle (0.1cm);
 
   % Draw the arrows
-
   \path (180:2.1cm) edge[->,bend right=70] node[midway, left] {$q$} (202.5:2.1cm);
   \path (180:2.1cm) edge[->,bend left=70] node[midway, left] {$p$} (157.5:2.1cm);
+
+  % Draw arrow on the inside indicating drive direction
+  \path (130:1.7cm) edge[->,bend left=40] node[midway, below] {drive} (50:1.7cm);
+
 \end{tikzpicture}
 \end{document}

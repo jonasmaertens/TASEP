@@ -17,14 +17,14 @@ The 1D TASEP can be treated with periodic boundary conditions, where the first a
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.5\textwidth]{tasep_a.pdf}
-    \caption{A 1D TASEP with periodic boundary conditions. The number of particles is constant. Each particle has a probability $p$ to move clockwise and a probability $1-p$ to move counterclockwise. If the target site is occupied, the particle stays.}
+    \includegraphics[width=0.55\textwidth]{tasep_a.pdf}
+    \caption{A 1D ASEP with periodic boundary conditions. The number of particles is constant. Each particle has a probability $p$ to move clockwise and a probability $1-p$ to move counterclockwise. If the target site is occupied, the particle stays. If $p=1$ and $q=0$, the process is totally asymmetric (TASEP).}
     \label{fig:tasep_1d_periodic}
 \end{figure}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.8\textwidth]{tasep_b.pdf}
+    \includegraphics[width=0.75\textwidth]{tasep_b.pdf}
     \caption{A 1D finite TASEP. The reservoir on the left inserts particles with rate $\alpha$ and the reservoir on the right removes particles with rate $\beta$.}
     \label{fig:tasep_1d_finite}
 \end{figure}
@@ -38,10 +38,10 @@ The TASEP can be generalized to higher dimensions. In this thesis, we will use t
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.8\textwidth]{tasep_2d.pdf}
-    \caption{A 2D ASEP with periodic boundary conditions. The number of particles is constant. Each particle has a probability $p$ to move forward, a probability $q$ to move backward and probabilities $a$ and $b$ to move up or down respectively. If the target site is occupied, the particle stays. $p+q+a+b=1$.}
+    \caption{A 2D ASEP with periodic boundary conditions. The number of particles is constant. Each particle has a probability $p$ to move forward, a probability $q$ to move backward and probabilities $a$ and $b$ to move up or down respectively. If the target site is occupied, the particle stays. The hopping probabilities should be chosen such that $p+q+a+b=1$.}
     \label{fig:tasep_2d}
 \end{figure}
-In this thesis, we will increase the complexity of the 2D TASEP by introducing velocities. The velocity is implemented as a probability of actually performing an attempted jump. For example, if a particle's velocity is 0.5, it will only move in 50\% of the cases where a jump is attempted and the target site is empty. 
+In this thesis, we will increase the complexity of the 2D TASEP by introducing velocities. The velocity is implemented as a probability $v$ of actually performing an attempted jump. For example, if a particle's velocity is $v=0.5$, it will only move in 50\% of the cases where a jump is attempted and the target site is empty. For a particle with velocity $v$, the new transition rate thus becomes $p_{\text{new}} = p \cdot v$. 
 
 
 After a basic numerical treatment of the classical 2D TASEP, we will try to optimize the total transport in these systems by introducing \textit{smarticles}. 
@@ -51,4 +51,4 @@ After a basic numerical treatment of the classical 2D TASEP, we will try to opti
 Smarticles (\textbf{Smart} Part\textbf{icles}) are a form of active matter as described in section \ref{sec:intelligent-matter}. In this thesis, we will use smarticles to optimize the transport in the 2D TASEP and observe how global structures can emerge from local interactions. The smarticles will be implemented as particles with a neural network that decides where to move based on the surroundings. 
 
 
-This can be framed as a reinforcement learning problem, where the reward structure is defined by the goal of the system, which is to maximize transport. Local interactions can also be integrated into the reward structure in order to bias the learned behavior towards certain global structures.  
+This can be framed as a reinforcement learning problem, where the reward structure is defined by the goal of the system, which is to maximize transport along the drive direction. Local interactions can also be integrated into the reward structure in order to bias the learned behavior towards certain global structures.  
