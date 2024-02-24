@@ -111,7 +111,7 @@
       }
       \column{0.4\textwidth}
       \begin{figure}
-        \includegraphics[width=\textwidth]{../Thesis/img/model/out/tasep_2d.pdf}
+        \includegraphics[width=\textwidth]{../Thesis/img/model/out/tasep_2d_nodrive.pdf}
         \caption*{2D ASEP}
       \end{figure}
       \vskip -1em
@@ -233,10 +233,6 @@
     \end{columns}
 \end{frame}
 
-\begin{frame}{The \texttt{smarttasep} package: Examples}
-Let's have a look at some examples! (show usage videos)
-\end{frame}
-
 \begin{frame}{Hyperparameter Optimization}
   For each experiment, the Hyperparameters should be optimized. 
     \begin{block}{Parameters}
@@ -292,6 +288,7 @@ Let's have a look at some examples! (show usage videos)
         \item<2-> Normally distributed speeds
         \item<3-> Waiting for steady state
         \item<4-> Measuring average current
+        \item<4-> Consistent with theoretical value of 0.0625
       \end{itemize}
     \end{block}
     \column{0.6\textwidth}
@@ -302,36 +299,13 @@ Let's have a look at some examples! (show usage videos)
     \end{figure}
     \onslide<3>\begin{figure}
       \includegraphics[width=\textwidth]{../Thesis/img/results/currents_fixed_sigma_128x32.pdf}
-      \caption*{Equilibration of the current in a 128x32 system. \\ 800 runs and 5000 steps averaged.}
+      \caption*{Reaching the steady state in a 128x32 system. \\ 800 runs and 5000 steps averaged.}
     \end{figure}
     \onslide<4->\begin{figure}
       \includegraphics[width=\textwidth]{../Thesis/img/results/steady_state_current_sizes_log.pdf}
       \caption*{Steady state current as a function of $\sigma$ for different system sizes.\\800 runs and 150k steps averaged.}
     \end{figure}
     \end{overprint}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{Results: Theory}
-  \begin{columns}
-    \column{0.35\textwidth}
-    \begin{block}{Conditions for a forward move}
-      \begin{enumerate}
-        \item randomly picked cell is occupied ($p_\text{occ}=\rho$)
-        \item speed allows move ($p_\text{spd}=\bar{v}=\mu$)
-        \item forward direction is picked ($p=0.5$)
-        \item next cell is empty ($p_\text{emp}=1-\rho$)$^*$
-      \end{enumerate}
-    \end{block}
-    \begin{align*}
-      \implies \left\langle J \right\rangle &= p \cdot \mu \cdot \rho \cdot (1-\rho) \\
-      &= 0.0625
-    \end{align*}
-    \column{0.6\textwidth}
-    \begin{figure}
-      \includegraphics[width=\textwidth]{../Thesis/img/results/steady_state_current_sizes_log.pdf}
-      \caption*{Steady state current as a function of $\sigma$ for different system sizes.}
-    \end{figure}
   \end{columns}
 \end{frame}
 
@@ -348,70 +322,25 @@ Let's have a look at some examples! (show usage videos)
         \item optimum for low $\sigma$?
       \end{itemize}
     \end{block}
-    \begin{align*}
-      \max \left\langle J \right\rangle &= \max \left( p_\text{occ} \cdot p_\text{spd} \cdot p_\text{fwd} \cdot p_\text{emp} \right) \\
-      &\le \rho \cdot \mu \cdot 1 \cdot \max(p_\text{emp}) 
-    \end{align*}
-    \begin{equation*}
-     \text{and}\quad 0.5 \le \max(p_\text{emp}) < 1
-    \end{equation*}
     \column{0.6\textwidth}
     \begin{figure}
       \includegraphics[width=\textwidth]{../Thesis/img/results/steady_state_current_both_log.pdf}
       \caption*{Naive policy}
     \end{figure}
   \end{columns}
-  
 \end{frame}
 
 \section[Smarticles]{Results: Smarticles}
-\begin{frame}{Smarticles: Equal speeds}
-  \begin{columns}
-    \column{0.35\textwidth}
-    \begin{block}{Simple reward}
-      \begin{itemize}
-        \item Positive reward for going forward
-        \item Negative reward for occupied destination
-        \item Zero reward for going up or down or staying
-        \item Small negative reward for blocking others
-      \end{itemize}
-    \end{block}
-
-    \column{0.65\textwidth}
-      \begin{figure}
-        \includegraphics[width=\textwidth]{../Thesis/img/results/first_training_screenshot.png}
-        \caption*{Screenshot of the first smarticle training}
-      \end{figure}
-      
-  \end{columns}
-
-\end{frame}
-
-\begin{frame}{Smarticles: Equal speeds}
-  \begin{columns}
-    \column{0.45\textwidth}
-    \begin{block}{Resulting current}
-      \begin{itemize}
-        \item $\left\langle J \right\rangle \approx 0.152$
-        \item $+143\%$ compared to baseline (0.0625)
-        \item $+22\%$ compared to naive policy (0.125)
-      \end{itemize}
-    \end{block}
-    \column{0.55\textwidth}
-    \begin{figure}
-        \includegraphics[width=\textwidth]{../Thesis/img/results/equal_speeds.pdf}
-        \caption*{Steady state current over time for the trained smarticles.}
-      \end{figure}
-  \end{columns}
-\end{frame}
 
 \begin{frame}{Smarticles: Uniform speed distribution}
   \begin{columns}
     \column{0.35\textwidth}
-    \begin{block}{Similar reward, $\sigma=10$}
+    \begin{block}{Simple reward components, $\sigma=10$}
       \begin{itemize}
-        \item Same setup as before
-        \item Negative reward for blocking proportional to speed
+        \item Positive reward for going forward
+        \item Negative reward for occupied destination
+        \item Zero reward for going up or down or staying
+        \item Small negative reward for blocking others proportional to speed
       \end{itemize}
     \end{block}
     \column{0.65\textwidth}
@@ -493,7 +422,7 @@ Let's have a look at some examples! (show usage videos)
         \item $\left\langle J \right\rangle \approx 0.134$
         \item $+157\%$ compared to baseline (0.052)
         \item $+15\%$ compared to previous policy (0.117)
-        \item long equilibration time
+        \item long time to reach steady state
       \end{itemize}
     \end{block}
     \column{0.55\textwidth}
@@ -543,7 +472,7 @@ Let's have a look at some examples! (show usage videos)
         \item baseline $J=0.4\cdot(1-0.4)\cdot0.6\cdot0.5=0.072$
         \item $+56\%$ compared to baseline
         \item lower than previous policies
-        \item quicker equilibration
+        \item steady state reached quicker
         \item fluctuations seem higher than they are
         \item proof of concept, room for improvement
       \end{itemize}
@@ -585,6 +514,102 @@ Let's have a look at some examples! (show usage videos)
   \end{columns}
 \end{frame}
 
+\appendix
+\section*{Backup Slides}
 
+\begin{frame}{Smarticles: Equal speeds}
+  \begin{columns}
+    \column{0.35\textwidth}
+    \begin{block}{Simple reward}
+      \begin{itemize}
+        \item Positive reward for going forward
+        \item Negative reward for occupied destination
+        \item Zero reward for going up or down or staying
+        \item Small negative reward for blocking others
+      \end{itemize}
+    \end{block}
+
+    \column{0.65\textwidth}
+      \begin{figure}
+        \includegraphics[width=\textwidth]{../Thesis/img/results/first_training_screenshot.png}
+        \caption*{Screenshot of the first smarticle training}
+      \end{figure}
+      
+  \end{columns}
+
+\end{frame}
+
+\begin{frame}{Smarticles: Equal speeds}
+  \begin{columns}
+    \column{0.45\textwidth}
+    \begin{block}{Resulting current}
+      \begin{itemize}
+        \item $\left\langle J \right\rangle \approx 0.152$
+        \item $+143\%$ compared to baseline (0.0625)
+        \item $+22\%$ compared to naive policy (0.125)
+      \end{itemize}
+    \end{block}
+    \column{0.55\textwidth}
+    \begin{figure}
+        \includegraphics[width=\textwidth]{../Thesis/img/results/equal_speeds.pdf}
+        \caption*{Steady state current over time for the trained smarticles.}
+      \end{figure}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{The \texttt{smarttasep} package: Examples}
+  Let's have a look at some examples! (show usage videos)
+\end{frame}
+
+\begin{frame}{Results: Theory}
+  \begin{columns}
+    \column{0.35\textwidth}
+    \begin{block}{Conditions for a forward move}
+      \begin{enumerate}
+        \item randomly picked cell is occupied ($p_\text{occ}=\rho$)
+        \item speed allows move ($p_\text{spd}=\bar{v}=\mu$)
+        \item forward direction is picked ($p=0.5$)
+        \item next cell is empty ($p_\text{emp}=1-\rho$)$^*$
+      \end{enumerate}
+    \end{block}
+    \begin{align*}
+      \implies \left\langle J \right\rangle &= p \cdot \mu \cdot \rho \cdot (1-\rho) \\
+      &= 0.0625
+    \end{align*}
+    \column{0.6\textwidth}
+    \begin{figure}
+      \includegraphics[width=\textwidth]{../Thesis/img/results/steady_state_current_sizes_log.pdf}
+      \caption*{Steady state current as a function of $\sigma$ for different system sizes.}
+    \end{figure}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{A Naive Policy}
+  \begin{columns}
+    \column{0.35\textwidth}
+    \begin{block}{Just go forward?}
+      \begin{itemize}
+        \item $p_\text{fwd} = 1, p_\text{up/down} = 0$
+        \item starting in checkerboard configuration
+        \item no messy mixing
+        \item bad for high $\sigma$
+        \item optimum for low $\sigma$?
+      \end{itemize}
+    \end{block}
+    \begin{align*}
+      \max \left\langle J \right\rangle &= \max \left( p_\text{occ} \cdot p_\text{spd} \cdot p_\text{fwd} \cdot p_\text{emp} \right) \\
+      &\le \rho \cdot \mu \cdot 1 \cdot \max(p_\text{emp}) 
+    \end{align*}
+    \begin{equation*}
+     \text{and}\quad 0.5 \le \max(p_\text{emp}) < 1
+    \end{equation*}
+    \column{0.6\textwidth}
+    \begin{figure}
+      \includegraphics[width=\textwidth]{../Thesis/img/results/steady_state_current_both_log.pdf}
+      \caption*{Naive policy}
+    \end{figure}
+  \end{columns}
+  
+\end{frame}
 
 \end{document}
