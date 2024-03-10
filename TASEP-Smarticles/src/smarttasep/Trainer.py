@@ -126,7 +126,7 @@ class Trainer(TrainerInterface):
     @classmethod
     def load(cls, model_id=None, sigma=None, total_steps=None, average_window=None, do_plot=None,
              wait_initial=None, render_start=None, window_height=None, moves_per_timestep=None, progress_bar=True,
-             new_model=None, hidden_layer_sizes=None, activation_function=None, env_params=None):
+             new_model=None, hidden_layer_sizes=None, activation_function=None, env_params=None, do_render=None):
         # load all_models.json
         with open("models/all_models.json", "r") as f:
             all_models = json.load(f)
@@ -151,6 +151,8 @@ class Trainer(TrainerInterface):
             env_params["window_height"] = window_height
         if moves_per_timestep is not None:
             env_params["moves_per_timestep"] = moves_per_timestep
+        if do_render is not None:
+            env_params["render_mode"] = "human" if do_render else None
         render_start = render_start if render_start is not None else all_models[str(model_id)]["render_start"]
         do_plot = do_plot if do_plot is not None else True
         wait_initial = wait_initial if wait_initial is not None else False

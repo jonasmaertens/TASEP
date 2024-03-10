@@ -45,6 +45,7 @@ class EnvParams(TypedDict):
             inh_rew_idx (int, optional): The index of the reward formula that should be used for the inhomogeneity reward
             binary_speeds: Whether to sample speeds from a binary distribution instead of a truncated normal distribution
             choices: How many options to choose from when sampling speeds from a "binary" distribution
+            inflate_speeds: Whether to map the speeds in the observations to a range of 0 to 1
     """
     render_mode: NotRequired[str | None]
     length: int
@@ -70,6 +71,7 @@ class EnvParams(TypedDict):
     forward_reward: NotRequired[float]
     binary_speeds: NotRequired[bool]
     choices: NotRequired[int]
+    inflate_speeds: NotRequired[bool]
 
 
 class GridEnvInterface(ABC):
@@ -97,7 +99,8 @@ class GridEnvInterface(ABC):
                  inh_rew_idx: int = -1,
                  forward_reward: float = 1.5,
                  binary_speeds: bool = False,
-                 choices: int = 2):
+                 choices: int = 2,
+                 inflate_speeds: bool = False):
         """
         The GridEnvironment class implements a grid environment with particles that can move forward, up,
         down or wait. It is a 2D version of the TASEP (Totally Asymmetric Simple Exclusion Process) model for use
@@ -145,6 +148,7 @@ class GridEnvInterface(ABC):
             forward_reward (float, optional): The reward for moving forward. Defaults to 1.5.
             binary_speeds: Whether to sample speeds from a binary distribution instead of a truncated normal distribution
             choices: How many options to choose from when sampling speeds from a "binary" distribution
+            inflate_speeds: Whether to map the speeds in the observations to a range of 0 to 1
         """
         pass
 
