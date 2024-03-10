@@ -8,6 +8,7 @@ from .Hasel import hsl2rgb
 
 from typing import Optional
 from .GridEnvironmentInterface import ObsType, GridEnvInterface, EnvParams
+from scipy.special import erf
 
 default_env_params = {
     "render_mode": None,
@@ -32,7 +33,8 @@ default_env_params = {
     "speed_gradient_linearity": 0.1,
     "inh_rew_idx": -1,
     "binary_speeds": False,
-    "choices": 2
+    "choices": 2,
+    "inflate_speeds": False
 }
 
 
@@ -131,12 +133,14 @@ class GridEnv(gym.Env, GridEnvInterface):
                  inh_rew_idx=-1,
                  forward_reward=1.5,
                  binary_speeds=False,
-                 choices=2):
+                 choices=2,
+                 inflate_speeds=False):
         self.state: Optional[np.ndarray[np.uint8 | np.int32]] = None
         self.social_reward = social_reward
         self.forward_reward = forward_reward
         self.binary_speeds = binary_speeds
         self.choices = choices
+        self.inflate_speeds = inflate_speeds
         self.punish_inhomogeneities = punish_inhomogeneities
         self.inh_rew_idx = inh_rew_idx
         self.density = density
@@ -161,6 +165,8 @@ class GridEnv(gym.Env, GridEnvInterface):
         self.distinguishable_particles = distinguishable_particles
         self.use_speeds = use_speeds
         self.speed_gradient_reward = speed_gradient_reward
+        self.max_speed = 0.5 + sigma / 3 if self.use_speeds else None
+        self.min_speed = 0.5 - sigma / 3 if self.use_speeds else None
         if self.use_speeds:
             if not self.distinguishable_particles:
                 raise ValueError("use_speeds can only be True if distinguishable_particles is True")
@@ -257,6 +263,12 @@ class GridEnv(gym.Env, GridEnvInterface):
             obs[obs != 0] = 1
         if self.use_speeds:
             obs[obs != 0] = obs[obs != 0] % 1
+            if self.inflate_speeds:
+                # map speeds to 0 to 1 range
+                # obs[obs != 0] = (obs[obs != 0] - self.min_speed) / (self.max_speed - self.min_speed)
+                # obs[obs != 0] = np.clip(obs[obs != 0], 0, 1)
+                obs[obs != 0] = 1 / 2 * (erf(0.5 / (np.sqrt(2) * self.sigma)) + erf(
+                    (obs[obs != 0] - 0.5) / (np.sqrt(2) * self.sigma)))
             if self.invert_speed_observation:
                 obs = invert_speed_obs(obs, self.speed_observation_threshold)
         return obs.flatten()
@@ -379,6 +391,19 @@ class GridEnv(gym.Env, GridEnvInterface):
             self.state[self.state == 1] = random_speeds
         # update density to actual density
         self.density = self.n / (self.length * self.width)
+        # prepare lane gradient by moving the slowest particles to the edges
+        for i in range(self.length):
+            # sort column by speed and shift indices by half of the width
+            particles = self.state[:, i][self.state[:, i] != 0] % 1
+            sorted_particles = np.sort(particles)[::-1]
+            num = len(sorted_particles)
+            order_indices = [num - 2 * i - 1 if i < num // 2 else 2 * i - num for i in
+                             range(num)] if num % 2 == 0 else [num - 2 * i - 1 if i <= num // 2 else 2 * i - num for i
+                                                               in range(num)]
+            order_indices = np.array(order_indices)
+            self.state[:, i][self.state[:, i] != 0] = sorted_particles[order_indices]
+
+        # find max and min speed for inflate_speeds
         observation = self._get_obs()
         info = self._get_info()
         if self.render_mode == "human":
