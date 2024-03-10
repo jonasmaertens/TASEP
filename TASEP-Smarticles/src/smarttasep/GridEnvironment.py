@@ -161,6 +161,7 @@ class GridEnv(gym.Env, GridEnvInterface):
         self.avg_window_reward = 0
         self._current = 0
         self._avg_reward = 0
+        self.prepare_lane_gradient = None
         self.moves_per_timestep = moves_per_timestep
         self.distinguishable_particles = distinguishable_particles
         self.use_speeds = use_speeds
@@ -264,11 +265,8 @@ class GridEnv(gym.Env, GridEnvInterface):
         if self.use_speeds:
             obs[obs != 0] = obs[obs != 0] % 1
             if self.inflate_speeds:
-                # map speeds to 0 to 1 range
-                # obs[obs != 0] = (obs[obs != 0] - self.min_speed) / (self.max_speed - self.min_speed)
-                # obs[obs != 0] = np.clip(obs[obs != 0], 0, 1)
                 obs[obs != 0] = 1 / 2 * (erf(0.5 / (np.sqrt(2) * self.sigma)) + erf(
-                    (obs[obs != 0] - 0.5) / (np.sqrt(2) * self.sigma)))
+                    (obs[obs != 0] - 0.5) / (np.sqrt(2) * self.sigma))) / erf(0.5 / (np.sqrt(2) * self.sigma))
             if self.invert_speed_observation:
                 obs = invert_speed_obs(obs, self.speed_observation_threshold)
         return obs.flatten()
@@ -391,19 +389,18 @@ class GridEnv(gym.Env, GridEnvInterface):
             self.state[self.state == 1] = random_speeds
         # update density to actual density
         self.density = self.n / (self.length * self.width)
-        # prepare lane gradient by moving the slowest particles to the edges
-        for i in range(self.length):
-            # sort column by speed and shift indices by half of the width
-            particles = self.state[:, i][self.state[:, i] != 0] % 1
-            sorted_particles = np.sort(particles)[::-1]
-            num = len(sorted_particles)
-            order_indices = [num - 2 * i - 1 if i < num // 2 else 2 * i - num for i in
-                             range(num)] if num % 2 == 0 else [num - 2 * i - 1 if i <= num // 2 else 2 * i - num for i
-                                                               in range(num)]
-            order_indices = np.array(order_indices)
-            self.state[:, i][self.state[:, i] != 0] = sorted_particles[order_indices]
-
-        # find max and min speed for inflate_speeds
+        if self.prepare_lane_gradient:
+            # prepare lane gradient by moving the slowest particles to the edges
+            for i in range(self.length):
+                # sort column by speed and shift indices by half of the width
+                particles = self.state[:, i][self.state[:, i] != 0] % 1
+                sorted_particles = np.sort(particles)[::-1]
+                num = len(sorted_particles)
+                order_indices = [num - 2 * i - 1 if i < num // 2 else 2 * i - num for i in
+                                 range(num)] if num % 2 == 0 else [num - 2 * i - 1 if i <= num // 2 else 2 * i - num for i
+                                                                   in range(num)]
+                order_indices = np.array(order_indices)
+                self.state[:, i][self.state[:, i] != 0] = sorted_particles[order_indices]
         observation = self._get_obs()
         info = self._get_info()
         if self.render_mode == "human":
