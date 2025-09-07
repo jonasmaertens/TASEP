@@ -11,3 +11,5 @@ Thesis/out/*
 Presentation/demo_video.mov
 Presentation/equilibration_lanes_local_compr.mp4
 Presentation/playground_demo.mov
+**/*.npy
+**/*.egg-info
